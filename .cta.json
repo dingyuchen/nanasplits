@@ -1,0 +1,25 @@
+{
+  "projectName": "nanasplits",
+  "mode": "file-router",
+  "typescript": true,
+  "tailwind": true,
+  "packageManager": "bun",
+  "addOnOptions": {},
+  "git": true,
+  "version": 1,
+  "framework": "react-cra",
+  "chosenAddOns": [
+    "biome",
+    "start",
+    "convex",
+    "compiler",
+    "shadcn",
+    "tanstack-query",
+    "sentry",
+    "form",
+    "table",
+    "t3env",
+    "tanchat",
+    "store"
+  ]
+}
