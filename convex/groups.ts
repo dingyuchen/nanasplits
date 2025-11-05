@@ -14,106 +14,53 @@ export const getGroupsByUser = query({
 export const getGroupsWithPendingSplits = query({
 	args: { userId: v.string() },
 	handler: async (ctx, args) => {
-		// Get all groups and filter to those the user is a member of
-		const allGroups = await ctx.db.query("groups").collect();
-		const groups = allGroups.filter((group) =>
-			group.memberIds.includes(args.userId),
-		);
-
-		// For each group, calculate pending splits stats
-		const groupsWithStats = await Promise.all(
-			groups.map(async (group) => {
-				// Get all unsettled splits for this group
-				const pendingSplits = await ctx.db
-					.query("splits")
-					.withIndex("groupId", (q) => q.eq("groupId", group._id))
-					.filter((q) => q.eq(q.field("settled"), false))
-					.collect();
-
-				// Calculate totals
-				const totalOwed = pendingSplits
-					.filter((split) => split.fromUserId === args.userId)
-					.reduce((sum, split) => sum + split.amount, 0);
-
-				const totalOwedToMe = pendingSplits
-					.filter((split) => split.toUserId === args.userId)
-					.reduce((sum, split) => sum + split.amount, 0);
-
-				const netAmount = totalOwedToMe - totalOwed;
-
-				// Get pending expenses count
-				const pendingExpenses = await ctx.db
-					.query("expenses")
-					.withIndex("groupId", (q) => q.eq("groupId", group._id))
-					.filter((q) => q.eq(q.field("settled"), false))
-					.collect();
-
-				return {
-					...group,
-					stats: {
-						totalOwed,
-						totalOwedToMe,
-						netAmount,
-						pendingSplitsCount: pendingSplits.length,
-						pendingExpensesCount: pendingExpenses.length,
-					},
-				};
-			}),
-		);
-
-		// Filter to only groups with pending splits
-		return groupsWithStats.filter(
-			(group) => group.stats.pendingSplitsCount > 0,
-		);
+		// Return dummy data
+		return [
+			{
+				_id: "j123456789" as any,
+				_creationTime: Date.now() - 86400000,
+				telegramChatId: "-1001234567890",
+				name: "Trip to Tokyo",
+				memberIds: [args.userId, "987654321", "456789123"],
+				createdBy: args.userId,
+				stats: {
+					totalOwed: 125.50,
+					totalOwedToMe: 50.00,
+					netAmount: -75.50,
+					pendingSplitsCount: 3,
+					pendingExpensesCount: 2,
+				},
+			},
+			{
+				_id: "j987654321" as any,
+				_creationTime: Date.now() - 172800000,
+				telegramChatId: "-1009876543210",
+				name: "Weekend Dinner",
+				memberIds: [args.userId, "987654321"],
+				createdBy: "987654321",
+				stats: {
+					totalOwed: 0,
+					totalOwedToMe: 39.25,
+					netAmount: 39.25,
+					pendingSplitsCount: 2,
+					pendingExpensesCount: 1,
+				},
+			},
+		];
 	},
 });
 
 export const getOverallStats = query({
 	args: { userId: v.string() },
 	handler: async (ctx, args) => {
-		// Get all groups and filter to those the user is a member of
-		const allGroups = await ctx.db.query("groups").collect();
-		const groups = allGroups.filter((group) =>
-			group.memberIds.includes(args.userId),
-		);
-
-		let totalOwed = 0;
-		let totalOwedToMe = 0;
-		let totalPendingSplits = 0;
-		let totalPendingExpenses = 0;
-
-		for (const group of groups) {
-			const pendingSplits = await ctx.db
-				.query("splits")
-				.withIndex("groupId", (q) => q.eq("groupId", group._id))
-				.filter((q) => q.eq(q.field("settled"), false))
-				.collect();
-
-			const pendingExpenses = await ctx.db
-				.query("expenses")
-				.withIndex("groupId", (q) => q.eq("groupId", group._id))
-				.filter((q) => q.eq(q.field("settled"), false))
-				.collect();
-
-			totalPendingSplits += pendingSplits.length;
-			totalPendingExpenses += pendingExpenses.length;
-
-			totalOwed += pendingSplits
-				.filter((split) => split.fromUserId === args.userId)
-				.reduce((sum, split) => sum + split.amount, 0);
-
-			totalOwedToMe += pendingSplits
-				.filter((split) => split.toUserId === args.userId)
-				.reduce((sum, split) => sum + split.amount, 0);
-		}
-
+		// Return dummy data
 		return {
-			totalOwed,
-			totalOwedToMe,
-			netAmount: totalOwedToMe - totalOwed,
-			totalPendingSplits,
-			totalPendingExpenses,
-			groupsWithPendingSplits: groups.length,
+			totalOwed: 125.50,
+			totalOwedToMe: 89.25,
+			netAmount: -36.25,
+			totalPendingSplits: 5,
+			totalPendingExpenses: 3,
+			groupsWithPendingSplits: 2,
 		};
 	},
 });
