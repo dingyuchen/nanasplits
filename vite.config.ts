@@ -7,7 +7,7 @@ import { cloudflare } from '@cloudflare/vite-plugin'
 
 const config = defineConfig({
   server: {
-    allowedHosts: ['grand-experiments-copied-reflect.trycloudflare.com'],
+    // allowedHosts: ['grand-experiments-copied-reflect.trycloudflare.com'],
   },
   plugins: [
     // this is the plugin that enables path aliases
