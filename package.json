@@ -12,6 +12,7 @@
     "convex:deploy": "convex deploy"
   },
   "dependencies": {
+    "@tma.js/sdk-react": "^3.0.8",
     "clsx": "^2.1.1",
     "convex": "^1.28.2",
     "lucide-react": "^0.552.0",
