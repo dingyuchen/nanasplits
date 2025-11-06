@@ -1,66 +1,71 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
 
-export const getGroupsByUser = query({
-	args: { userId: v.string() },
+/**
+ * Get overall statistics for a user
+ * Returns summary of expenses, debts, and pending splits
+ */
+export const getOverallStats = query({
+	args: {
+		userId: v.string(),
+	},
 	handler: async (ctx, args) => {
-		// Note: Convex doesn't support array.includes() in filters
-		// We fetch all groups and filter in JavaScript
-		const allGroups = await ctx.db.query("groups").collect();
-		return allGroups.filter((group) => group.memberIds.includes(args.userId));
+		// Stub: Return hardcoded dummy data
+		return {
+			totalOwed: 125.50,
+			totalOwedToMe: 85.25,
+			netAmount: -40.25, // negative means user owes more than owed to them
+			totalPendingExpenses: 7,
+			groupsWithPendingSplits: 3,
+		};
 	},
 });
 
+/**
+ * Get groups with pending splits for a user
+ * Returns list of groups where user has pending expense splits
+ */
 export const getGroupsWithPendingSplits = query({
-	args: { userId: v.string() },
+	args: {
+		userId: v.string(),
+	},
 	handler: async (ctx, args) => {
-		// Return dummy data
+		// Stub: Return hardcoded dummy data
 		return [
 			{
-				_id: "j123456789" as any,
-				_creationTime: Date.now() - 86400000,
-				telegramChatId: "-1001234567890",
-				name: "Trip to Tokyo",
-				memberIds: [args.userId, "987654321", "456789123"],
-				createdBy: args.userId,
+				_id: "group1" as any,
+				name: "Weekend Trip",
+				memberIds: ["user1", "user2", "user3", "user4"],
 				stats: {
-					totalOwed: 125.50,
-					totalOwedToMe: 50.00,
-					netAmount: -75.50,
 					pendingSplitsCount: 3,
-					pendingExpensesCount: 2,
+					totalOwed: 75.50,
+					totalOwedToMe: 45.25,
+					netAmount: -30.25,
 				},
 			},
 			{
-				_id: "j987654321" as any,
-				_creationTime: Date.now() - 172800000,
-				telegramChatId: "-1009876543210",
-				name: "Weekend Dinner",
-				memberIds: [args.userId, "987654321"],
-				createdBy: "987654321",
+				_id: "group2" as any,
+				name: "Apartment Rent",
+				memberIds: ["user1", "user2", "user3"],
 				stats: {
-					totalOwed: 0,
-					totalOwedToMe: 39.25,
-					netAmount: 39.25,
 					pendingSplitsCount: 2,
-					pendingExpensesCount: 1,
+					totalOwed: 40.00,
+					totalOwedToMe: 30.00,
+					netAmount: -10.00,
+				},
+			},
+			{
+				_id: "group3" as any,
+				name: "Office Lunch",
+				memberIds: ["user1", "user2", "user3", "user4", "user5"],
+				stats: {
+					pendingSplitsCount: 2,
+					totalOwed: 10.00,
+					totalOwedToMe: 10.00,
+					netAmount: 0,
 				},
 			},
 		];
 	},
 });
 
-export const getOverallStats = query({
-	args: { userId: v.string() },
-	handler: async (ctx, args) => {
-		// Return dummy data
-		return {
-			totalOwed: 125.50,
-			totalOwedToMe: 89.25,
-			netAmount: -36.25,
-			totalPendingSplits: 5,
-			totalPendingExpenses: 3,
-			groupsWithPendingSplits: 2,
-		};
-	},
-});
