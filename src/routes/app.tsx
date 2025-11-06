@@ -1,19 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useLaunchParams } from "@tma.js/sdk-react";
 import { isTMA } from "@tma.js/sdk";
-import { useMemo } from "react";
+import { useLaunchParams } from "@tma.js/sdk-react";
+import { useQuery } from "convex/react";
 import {
-	Users,
-	Receipt,
-	TrendingUp,
-	TrendingDown,
-	DollarSign,
 	AlertCircle,
+	DollarSign,
+	ExternalLink,
 	Loader2,
 	MessageSquare,
-	ExternalLink,
+	Receipt,
+	TrendingDown,
+	TrendingUp,
+	Users,
 } from "lucide-react";
-import { useQuery } from "convex/react";
+import { useMemo } from "react";
 import { api } from "../../convex/_generated/api";
 
 export const Route = createFileRoute("/app")({
