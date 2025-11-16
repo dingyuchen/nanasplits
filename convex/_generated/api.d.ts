@@ -8,7 +8,11 @@
  * @module
  */
 
+import type * as auth from "../auth.js";
 import type * as groups from "../groups.js";
+import type * as http from "../http.js";
+import type * as session from "../session.js";
+import type * as telegramProvider from "../telegramProvider.js";
 
 import type {
   ApiFromModules,
@@ -25,7 +29,11 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  auth: typeof auth;
   groups: typeof groups;
+  http: typeof http;
+  session: typeof session;
+  telegramProvider: typeof telegramProvider;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

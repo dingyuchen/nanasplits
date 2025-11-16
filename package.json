@@ -9,9 +9,12 @@
     "lint": "biome check",
     "format": "biome format --write",
     "convex:dev": "convex dev",
-    "convex:deploy": "convex deploy"
+    "convex:deploy": "convex deploy",
+    "tunnel": "cloudflared tunnel --url http://localhost:3000"
   },
   "dependencies": {
+    "@convex-dev/auth": "^0.0.90",
+    "@tma.js/init-data-node": "^2.0.3",
     "@tma.js/sdk-react": "^3.0.8",
     "clsx": "^2.1.1",
     "convex": "^1.28.2",

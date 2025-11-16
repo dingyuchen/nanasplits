@@ -1,11 +1,13 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
 
 export default defineSchema({
-  // Example table - customize based on your needs
-  // users: defineTable({
-  //   name: v.string(),
-  //   email: v.string(),
-  // }),
+  ...authTables,
+  users: defineTable({
+    username: v.optional(v.string()),
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    telegramUserId: v.string(),
+  }).index("by_telegram_user_id", ["telegramUserId"]),
 });
-
