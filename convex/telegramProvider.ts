@@ -35,7 +35,7 @@ export const telegram = ConvexCredentials({
       }
 
       // Validate init data signature (valid for 1 hour)
-      validate(initDataRaw, botToken, {
+      await validate(initDataRaw, botToken, {
         expiresIn: 3600,
       });
 

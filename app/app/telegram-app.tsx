@@ -53,6 +53,16 @@ export default function TelegramApp() {
     );
   }
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-6">
+        <p className="text-gray-600 dark:text-gray-400">
+          Please relaunch app to continue
+        </p>
+      </div>
+    );
+  }
+
   if (stats === undefined || groupsWithPendingSplits === undefined) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-6">
