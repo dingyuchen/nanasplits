@@ -7,7 +7,7 @@ if (typeof alt === "string" && alt.startsWith("https://")) {
 } else {
   alt = "";
 }
-const webhookUrl = `https://${env.VERCEL_URL || alt}/api/bot`;
+const webhookUrl = `https://${env.VERCEL_PROJECT_PRODUCTION_URL || alt}/api/bot`;
 
 console.log("Setting Telegram webhook:", webhookUrl);
 
