@@ -18,6 +18,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 - [ ] Make modal work
 - [ ] disable buttons for group page
+- [ ] 
 
 ## Learn More
 

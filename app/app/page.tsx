@@ -15,13 +15,7 @@ export default function AppPage() {
 
   const startParam = launchParams?.tgWebAppStartParam ?? null;
   if (startParam !== null) {
-    const params = new URLSearchParams({
-      id: userId.toString(),
-    });
-    redirect(
-      `/app/${userId}/group/${startParam}?${params.toString()}`,
-      RedirectType.replace,
-    );
+    redirect(`/app/${userId}/group/${startParam}`, RedirectType.replace);
   }
   redirect(`/app/${userId}`, RedirectType.replace);
   // redirect(`/app/12345`, RedirectType.replace);
