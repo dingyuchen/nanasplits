@@ -1,6 +1,6 @@
 "use client";
 
-import { Preloaded, usePreloadedQuery } from "convex/react";
+import { type Preloaded, usePreloadedQuery } from "convex/react";
 import {
   AlertCircle,
   DollarSign,
@@ -10,7 +10,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { api } from "@/convex/_generated/api";
+import type { api } from "@/convex/_generated/api";
 
 export default function TelegramApp({
   preloaded,

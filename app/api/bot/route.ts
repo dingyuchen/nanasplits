@@ -46,18 +46,25 @@ bot.on("my_chat_member", async (context) => {
     );
 
     const message = format`
-    👋 ${bold`Welcome to Nanasplits!`}
-      ${italic`I help to split expenses easily :)`} ❤️
+    👋 ${bold`Welcome to Nanasplits!`} 🍌
+      ${italic`I'll help you split expenses easily :)`} 💰
 
       ${bold`How to get started:`}
       ${blockquote`
         1. Click the button below to register as a member of this expense group.
         2. Add expenses inside the app.
-        3. Open the app to see the expenses and who owes what.
+        3. Open the app to see the list of expenses and who owes what.
+      `}
+
+      ${bold`View summary of expenses:`}
+      ${blockquote`
+        You can view the summary of expenses by clicking into my profile, and clicking on ${italic`Open App`}
       `}
 
       ⚠️ ${bold`Note:`}
       Removing me from the group will delete all associated expenses and data.
+
+      Made with love ❤️ and AI 🤖
       `;
 
     return context.send(message, {

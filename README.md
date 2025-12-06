@@ -16,9 +16,11 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## TODOs
 
-- [ ] Make modal work
 - [ ] disable buttons for group page
-- [ ] 
+- [ ] Set up protected query and mutations [blog](https://stack.convex.dev/authentication-best-practices-convex-clerk-and-nextjs)
+- [ ] Create schema for uneven, fractional splits
+- [ ] Item and subitems
+- [ ] currency conversion
 
 ## Learn More
 
