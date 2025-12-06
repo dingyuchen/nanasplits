@@ -2,14 +2,10 @@ import { preloadQuery } from "convex/nextjs";
 import TelegramApp from "./telegram-app";
 import { api } from "@/convex/_generated/api";
 import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
-import { auth } from "@/convex/auth";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { Suspense } from "react";
+import Loading from "@/components/ui/loading";
 
-export default async function Page({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+async function TelegramPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const userId = Number(id);
   if (Number.isNaN(userId)) {
@@ -35,5 +31,13 @@ export default async function Page({
       preloaded={preloaded}
       preloadedGroupsWithPendingSplits={preloadedGroupsWithPendingSplits}
     />
+  );
+}
+
+export default function Page({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <Suspense fallback={<Loading />}>
+      <TelegramPage params={params} />
+    </Suspense>
   );
 }
