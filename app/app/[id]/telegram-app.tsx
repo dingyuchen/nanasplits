@@ -1,7 +1,6 @@
 "use client";
 
-import { retrieveRawInitData, useLaunchParams } from "@tma.js/sdk-react";
-import { useConvexAuth, useQuery } from "convex/react";
+import { Preloaded, usePreloadedQuery } from "convex/react";
 import {
   AlertCircle,
   DollarSign,
@@ -12,56 +11,23 @@ import {
   Users,
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { useEffect } from "react";
 
-export default function TelegramApp() {
-  const launchParams = useLaunchParams();
-  const initData = retrieveRawInitData();
-  // Get user ID from Telegram SDK
-  const userId = launchParams.tgWebAppData?.user?.id?.toString();
-  const { signIn } = useAuthActions();
-  const { isAuthenticated } = useConvexAuth();
-  useEffect(() => {
-    if (!!initData && !isAuthenticated) {
-      signIn("telegram", { initData });
-    }
-  }, [isAuthenticated, signIn, initData]);
-
+export default function TelegramApp({
+  preloaded,
+  preloadedGroupsWithPendingSplits,
+}: {
+  preloaded: Preloaded<typeof api.groups.getOverallStats>;
+  preloadedGroupsWithPendingSplits: Preloaded<
+    typeof api.groups.getGroupsWithPendingSplits
+  >;
+}) {
   // Fetch overall stats
-  const stats = useQuery(
-    api.groups.getOverallStats,
-    userId ? { userId } : ("skip" as const),
-  );
+  const stats = usePreloadedQuery(preloaded);
 
   // Fetch groups with pending splits
-  const groupsWithPendingSplits = useQuery(
-    api.groups.getGroupsWithPendingSplits,
-    userId ? { userId } : ("skip" as const),
+  const groupsWithPendingSplits = usePreloadedQuery(
+    preloadedGroupsWithPendingSplits,
   );
-
-  if (!userId) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-6">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-500 mx-auto mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">
-            Initializing Telegram Mini App...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-6">
-        <p className="text-gray-600 dark:text-gray-400">
-          Please relaunch app to continue
-        </p>
-      </div>
-    );
-  }
 
   if (stats === undefined || groupsWithPendingSplits === undefined) {
     return (

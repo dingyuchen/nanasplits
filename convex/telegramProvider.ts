@@ -35,15 +35,16 @@ export const telegram = ConvexCredentials({
       }
 
       // Validate init data signature (valid for 1 hour)
+      console.log("signing in");
       await validate(initDataRaw, botToken, {
-        expiresIn: 3600,
+        expiresIn: 60 * 60, // 1 hour
       });
 
       // Parse init data to extract user information
       const initData = parse(initDataRaw);
 
       // Extract user ID from init data
-      const telegramUserId = initData.user?.id?.toString();
+      const telegramUserId = initData.user?.id;
       if (!telegramUserId) {
         return null;
       }
@@ -52,13 +53,13 @@ export const telegram = ConvexCredentials({
       const account = await createAccount(ctx, {
         provider: "telegram",
         account: {
-          id: telegramUserId,
+          id: telegramUserId.toString(),
         },
         profile: {
           telegramUserId: telegramUserId,
-          firstName: initData.user?.first_name ?? "",
-          lastName: initData.user?.last_name ?? "",
-          username: initData.user?.username ?? "",
+          firstName: initData.user?.first_name as string,
+          lastName: initData.user?.last_name as string,
+          username: initData.user?.username as string,
         },
       });
 
