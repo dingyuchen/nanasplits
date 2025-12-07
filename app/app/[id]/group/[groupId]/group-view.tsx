@@ -1,6 +1,6 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
+import type { api } from "@/convex/_generated/api";
 import {
   Users,
   Receipt,

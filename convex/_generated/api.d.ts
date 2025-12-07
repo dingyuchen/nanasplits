@@ -11,6 +11,7 @@
 import type * as auth from "../auth.js";
 import type * as groups from "../groups.js";
 import type * as http from "../http.js";
+import type * as lib_utils from "../lib/utils.js";
 import type * as session from "../session.js";
 import type * as telegramProvider from "../telegramProvider.js";
 
@@ -24,6 +25,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   groups: typeof groups;
   http: typeof http;
+  "lib/utils": typeof lib_utils;
   session: typeof session;
   telegramProvider: typeof telegramProvider;
 }>;

@@ -1,13 +1,11 @@
-import { isAuthenticatedNextjs } from "@convex-dev/auth/nextjs/server";
-import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { protectedMutation, protectedQuery } from "./lib/utils";
 
 /**
  * Create or get a group by Telegram chat ID
  * Used when the bot is added to a Telegram group
  */
-export const createOrGetGroupByChatId = mutation({
+export const createOrGetGroupByChatId = protectedMutation({
   args: {
     telegramChatId: v.number(),
     title: v.string(),
@@ -42,12 +40,18 @@ export const createOrGetGroupByChatId = mutation({
 /**
  * Check if a user is a member of a group
  */
-export const isUserMemberOfGroup = query({
+export const isUserMemberOfGroup = protectedQuery({
   args: {
     telegramChatId: v.number(),
     telegramUserId: v.number(),
   },
   handler: async (ctx, args) => {
+    // Check user match
+    const user = await ctx.db.get(ctx.userId);
+    if (!user || user.telegramUserId !== args.telegramUserId) {
+      throw new Error("User mismatch");
+    }
+
     // Find the group by Telegram chat ID
     const group = await ctx.db
       .query("groups")
@@ -60,23 +64,11 @@ export const isUserMemberOfGroup = query({
       return false;
     }
 
-    // Find the user by Telegram user ID
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_telegram_user_id", (q) =>
-        q.eq("telegramUserId", args.telegramUserId),
-      )
-      .first();
-
-    if (!user) {
-      return false;
-    }
-
     // Check if the user is a member of the group
     const membership = await ctx.db
       .query("group_members")
       .withIndex("by_group_id", (q) => q.eq("groupId", group._id))
-      .filter((q) => q.eq(q.field("userId"), user._id))
+      .filter((q) => q.eq(q.field("userId"), ctx.userId))
       .first();
 
     return membership !== null;
@@ -87,22 +79,15 @@ export const isUserMemberOfGroup = query({
  * Get overall statistics for a user
  * Returns summary of expenses, debts, and pending splits
  */
-export const getOverallStats = query({
+export const getOverallStats = protectedQuery({
   args: {
     userId: v.number(),
   },
   handler: async (ctx, args) => {
-    const userDocId = await getAuthUserId(ctx);
-    if (!userDocId) {
-      throw new Error("User not found");
-    }
-    const user = await ctx.db.get(userDocId);
-    if (!user) {
-      throw new Error("User not found");
-    }
-    const telegramUserId = user.telegramUserId;
-    if (telegramUserId !== args.userId) {
-      throw new Error("User not authorized");
+    // Check user match
+    const user = await ctx.db.get(ctx.userId);
+    if (!user || user.telegramUserId !== args.userId) {
+      throw new Error("User mismatch");
     }
 
     return {
@@ -119,11 +104,17 @@ export const getOverallStats = query({
  * Get groups with pending splits for a user
  * Returns list of groups where user has pending expense splits
  */
-export const getGroupsWithPendingSplits = query({
+export const getGroupsWithPendingSplits = protectedQuery({
   args: {
     userId: v.number(),
   },
   handler: async (ctx, args) => {
+    // Check user match
+    const user = await ctx.db.get(ctx.userId);
+    if (!user || user.telegramUserId !== args.userId) {
+      throw new Error("User mismatch");
+    }
+
     // Stub: Return hardcoded dummy data
     return [
       {
@@ -166,7 +157,7 @@ export const getGroupsWithPendingSplits = query({
 /**
  * Get a group by Telegram chat ID
  */
-export const getListOfExpenses = query({
+export const getListOfExpenses = protectedQuery({
   args: {
     telegramChatId: v.number(),
   },
@@ -213,12 +204,18 @@ export const getListOfExpenses = query({
 /**
  * Add a user to a group
  */
-export const addUserToGroup = mutation({
+export const addUserToGroup = protectedMutation({
   args: {
     telegramChatId: v.number(),
     telegramUserId: v.number(),
   },
   handler: async (ctx, args) => {
+    // Check user match
+    const user = await ctx.db.get(ctx.userId);
+    if (!user || user.telegramUserId !== args.telegramUserId) {
+      throw new Error("User mismatch");
+    }
+
     // Find the group by Telegram chat ID
     const group = await ctx.db
       .query("groups")
@@ -231,23 +228,13 @@ export const addUserToGroup = mutation({
       throw new Error("Group not found");
     }
 
-    // Find the user by Telegram user ID
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_telegram_user_id", (q) =>
-        q.eq("telegramUserId", args.telegramUserId),
-      )
-      .first();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const userId = ctx.userId;
 
     // Check if the user is already a member
     const existingMembership = await ctx.db
       .query("group_members")
       .withIndex("by_group_id", (q) => q.eq("groupId", group._id))
-      .filter((q) => q.eq(q.field("userId"), user._id))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .first();
 
     if (existingMembership) {
@@ -257,7 +244,7 @@ export const addUserToGroup = mutation({
     // Add the user to the group
     const membershipId = await ctx.db.insert("group_members", {
       groupId: group._id,
-      userId: user._id,
+      userId: userId,
     });
 
     return membershipId;
@@ -267,7 +254,7 @@ export const addUserToGroup = mutation({
 /**
  * Add an expense to a group
  */
-export const addExpense = mutation({
+export const addExpense = protectedMutation({
   args: {
     telegramChatId: v.number(),
     telegramUserId: v.number(),
@@ -276,6 +263,12 @@ export const addExpense = mutation({
     splitType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Check user match
+    const user = await ctx.db.get(ctx.userId);
+    if (!user || user.telegramUserId !== args.telegramUserId) {
+      throw new Error("User mismatch");
+    }
+
     // Find the group by Telegram chat ID
     const group = await ctx.db
       .query("groups")
@@ -288,23 +281,13 @@ export const addExpense = mutation({
       throw new Error("Group not found");
     }
 
-    // Find the user by Telegram user ID
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_telegram_user_id", (q) =>
-        q.eq("telegramUserId", args.telegramUserId),
-      )
-      .first();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
+    const userId = ctx.userId;
 
     // Check if the user is a member of the group
     const membership = await ctx.db
       .query("group_members")
       .withIndex("by_group_id", (q) => q.eq("groupId", group._id))
-      .filter((q) => q.eq(q.field("userId"), user._id))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .first();
 
     if (!membership) {
@@ -316,7 +299,7 @@ export const addExpense = mutation({
       groupId: group._id,
       amount: args.amount,
       description: args.description,
-      payerId: user._id,
+      payerId: userId,
       splitType: args.splitType || "equal",
       date: Date.now(),
     });

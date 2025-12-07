@@ -19,6 +19,7 @@
     "@tma.js/sdk-react": "^3.0.11",
     "clsx": "^2.1.1",
     "convex": "^1.30.0",
+    "convex-helpers": "^0.1.106",
     "gramio": "^0.4.11",
     "lucide-react": "^0.555.0",
     "next": "16.0.7",
