@@ -548,9 +548,7 @@ export default function AddExpensePage() {
               </button>
             )}
           </div>
-          <button type="button" onClick={handleSubmit}>
-            Save
-          </button>
+
           <MainButton text="Save" onClick={handleSubmit} />
         </form>
       </div>
