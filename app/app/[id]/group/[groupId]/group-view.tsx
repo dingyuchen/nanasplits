@@ -1,6 +1,6 @@
 "use client";
 
-import type { api } from "@/convex/_generated/api";
+import { api } from "@/convex/_generated/api";
 import {
   Users,
   Receipt,
@@ -10,10 +10,10 @@ import {
   Loader2,
 } from "lucide-react";
 
-import { JoinGroupButton } from "./join-group-button";
 import { AddExpenseButton } from "./add-expense-button";
-import { type Preloaded, usePreloadedQuery } from "convex/react";
+import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useParams } from "next/navigation";
+import MainButton from "../../main-button";
 
 export default function GroupView({
   preloadedGroupData,
@@ -29,22 +29,9 @@ export default function GroupView({
     preloadedIsRegisteredMemberOfGroup,
   );
   const { id, groupId } = useParams<{ id: string; groupId: string }>();
+  const addUserToGroupMutation = useMutation(api.groups.addUserToGroup);
   const telegramUserId = Number(id);
   const groupIdNumber = Number(groupId);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
-
-  const formatDate = (timestamp: number) => {
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-    }).format(new Date(timestamp));
-  };
 
   if (!groupData) {
     return (
@@ -56,7 +43,41 @@ export default function GroupView({
     );
   }
 
-  const { title, members, expenses, totalExpenses, memberCount } = groupData;
+  const {
+    title,
+    members,
+    expenses,
+    totalExpenses,
+    memberCount,
+    defaultCurrency,
+  } = groupData;
+  const currencyCode = defaultCurrency || "USD";
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currencyCode,
+    }).format(amount);
+  };
+
+  const formatDate = (timestamp: number) => {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+    }).format(new Date(timestamp));
+  };
+
+  const handleJoinGroup = async () => {
+    try {
+      await addUserToGroupMutation({
+        telegramChatId: groupIdNumber,
+        telegramUserId: telegramUserId,
+      });
+    } catch (error) {
+      console.error("Failed to join group:", error);
+      alert("Failed to join group. Please try again.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 pb-20 relative">
@@ -217,14 +238,12 @@ export default function GroupView({
 
       {/* Action Buttons */}
       {!isRegisteredMemberOfGroup ? (
-        <JoinGroupButton
-          telegramChatId={groupIdNumber}
-          telegramUserId={telegramUserId}
-        />
+        <MainButton text="Join Group" onClick={handleJoinGroup} />
       ) : (
         <AddExpenseButton
           telegramChatId={groupIdNumber}
           telegramUserId={telegramUserId}
+          defaultCurrency={currencyCode}
         />
       )}
     </div>

@@ -1,11 +1,13 @@
 import { v } from "convex/values";
 import { protectedMutation, protectedQuery } from "./lib/utils";
+import { mutation } from "./_generated/server";
 
 /**
  * Create or get a group by Telegram chat ID
  * Used when the bot is added to a Telegram group
+ * Not protected because it is called by the bot itself
  */
-export const createOrGetGroupByChatId = protectedMutation({
+export const createOrGetGroupByChatId = mutation({
   args: {
     telegramChatId: v.number(),
     title: v.string(),
@@ -31,6 +33,7 @@ export const createOrGetGroupByChatId = protectedMutation({
       telegramChatType: args.telegramChatType,
       isForum: args.isForum,
       telegramChatId: args.telegramChatId,
+      defaultCurrency: "USD",
     });
 
     return groupId;
@@ -154,6 +157,20 @@ export const getGroupsWithPendingSplits = protectedQuery({
   },
 });
 
+export const getGroupByChatId = protectedQuery({
+  args: {
+    telegramChatId: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("groups")
+      .withIndex("by_telegram_chat_id", (q) =>
+        q.eq("telegramChatId", args.telegramChatId),
+      )
+      .unique();
+  },
+});
+
 /**
  * Get a group by Telegram chat ID
  */
@@ -259,8 +276,20 @@ export const addExpense = protectedMutation({
     telegramChatId: v.number(),
     telegramUserId: v.number(),
     amount: v.number(),
+    currency: v.string(),
     description: v.string(),
-    splitType: v.optional(v.string()),
+    items: v.array(
+      v.object({
+        name: v.string(),
+        amount: v.number(),
+        splits: v.array(
+          v.object({
+            userId: v.id("users"),
+            amount: v.number(), // Share exact amount for each user
+          }),
+        ),
+      }),
+    ),
   },
   handler: async (ctx, args) => {
     // Check user match
@@ -298,9 +327,10 @@ export const addExpense = protectedMutation({
     const expenseId = await ctx.db.insert("expenses", {
       groupId: group._id,
       amount: args.amount,
+      currency: args.currency,
       description: args.description,
       payerId: userId,
-      splitType: args.splitType || "equal",
+      items: args.items,
       date: Date.now(),
     });
 

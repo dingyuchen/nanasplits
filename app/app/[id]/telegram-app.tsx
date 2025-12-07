@@ -11,6 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import type { api } from "@/convex/_generated/api";
+import Link from "next/link";
 
 export default function TelegramApp({
   preloaded,
