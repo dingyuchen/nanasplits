@@ -304,10 +304,11 @@ export default function AddExpensePage() {
 
   const [{ name: description, amount, splits }, ...rest] = items;
 
-  console.log("defining handleSubmit");
   const handleSubmit = async () => {
     // Calculate total amount
-    const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
+    const totalAmount = isItemized
+      ? rest.reduce((sum, item) => sum + item.amount, 0)
+      : items[0].amount;
 
     // Prepare items array
     const finalItems = isItemized ? rest : items;
@@ -321,7 +322,6 @@ export default function AddExpensePage() {
         currency,
         items: finalItems,
       });
-      console.log("added expense");
       // Navigate back
       router.push(`/app/${telegramUserId}/group/${telegramChatId}`);
     } catch (error) {
@@ -408,7 +408,7 @@ export default function AddExpensePage() {
                 inputMode="decimal"
                 id="amount"
                 value={(isItemized
-                  ? items.reduce((sum, i) => sum + i.amount, 0)
+                  ? rest.reduce((sum, i) => sum + i.amount, 0)
                   : amount
                 ).toString()}
                 onChange={(e) => handleAmountChange(Number(e.target.value))}
