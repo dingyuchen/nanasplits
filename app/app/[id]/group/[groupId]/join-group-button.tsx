@@ -5,7 +5,6 @@ import { useMutation } from "convex/react";
 import { Button } from "@/components/ui/button";
 import { UserPlus } from "lucide-react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export function JoinGroupButton({
   telegramChatId,
@@ -16,7 +15,6 @@ export function JoinGroupButton({
 }) {
   const addUserToGroup = useMutation(api.groups.addUserToGroup);
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
   const handleJoinGroup = async () => {
     setIsLoading(true);
@@ -25,8 +23,6 @@ export function JoinGroupButton({
         telegramChatId,
         telegramUserId,
       });
-      // Refresh the page to show the updated membership status
-      router.refresh();
     } catch (error) {
       console.error("Failed to join group:", error);
       alert("Failed to join group. Please try again.");
@@ -36,7 +32,7 @@ export function JoinGroupButton({
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+    <div className="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-50">
       <Button
         onClick={handleJoinGroup}
         disabled={isLoading}
@@ -57,4 +53,3 @@ export function JoinGroupButton({
     </div>
   );
 }
-

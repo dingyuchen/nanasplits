@@ -16,11 +16,17 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## TODOs
 
-- [ ] disable buttons for group page
 - [ ] Set up protected query and mutations [blog](https://stack.convex.dev/authentication-best-practices-convex-clerk-and-nextjs)
 - [ ] Create schema for uneven, fractional splits
 - [ ] Item and subitems
 - [ ] currency conversion
+- [ ] use preloaded querying for group page
+- [ ] notify when all members have joined
+- [ ] clear group and associated data when "leave" event is detected
+
+### Moonshot
+
+- [ ] use AI to create an expense given receipt and natural language description of split
 
 ## Learn More
 

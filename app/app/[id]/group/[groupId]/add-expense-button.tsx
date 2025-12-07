@@ -5,7 +5,6 @@ import { useMutation } from "convex/react";
 import { Button } from "@/components/ui/button";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export function AddExpenseButton({
   telegramChatId,
@@ -14,12 +13,12 @@ export function AddExpenseButton({
   telegramChatId: number;
   telegramUserId: number;
 }) {
+  // TODO: add optimistic update
   const addExpense = useMutation(api.groups.addExpense);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,8 +35,6 @@ export function AddExpenseButton({
       setDescription("");
       setAmount("");
       setIsModalOpen(false);
-      // Refresh the page to show the new expense
-      router.refresh();
     } catch (error) {
       console.error("Failed to add expense:", error);
       alert("Failed to add expense. Please try again.");
@@ -52,6 +49,7 @@ export function AddExpenseButton({
       <button
         onClick={() => setIsModalOpen(true)}
         className="fixed bottom-6 right-6 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+        type="button"
         aria-label="Add expense"
       >
         <Plus className="w-6 h-6" />
@@ -67,6 +65,7 @@ export function AddExpenseButton({
                 Add Expense
               </h2>
               <button
+                type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
               >
@@ -141,4 +140,3 @@ export function AddExpenseButton({
     </>
   );
 }
-

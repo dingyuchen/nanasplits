@@ -36,7 +36,7 @@ async function TelegramPage({ params }: { params: Promise<{ id: string }> }) {
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <Suspense fallback={<Loading />}>
+    <Suspense fallback={<Loading message="Getting your data..." />}>
       <TelegramPage params={params} />
     </Suspense>
   );

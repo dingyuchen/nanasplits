@@ -1,6 +1,6 @@
 import { ConvexCredentials } from "@convex-dev/auth/providers/ConvexCredentials";
 import { validate, parse } from "@tma.js/init-data-node/web";
-import type { Value, GenericId } from "convex/values";
+import { type Value, type GenericId, ConvexError } from "convex/values";
 import { createAccount } from "@convex-dev/auth/server";
 
 /**
@@ -23,7 +23,7 @@ export const telegram = ConvexCredentials({
       typeof credentials.initData === "string" ? credentials.initData : null;
 
     if (!initDataRaw) {
-      return null;
+      throw new ConvexError("Init data is not supplied");
     }
 
     try {
@@ -46,11 +46,11 @@ export const telegram = ConvexCredentials({
       // Extract user ID from init data
       const telegramUserId = initData.user?.id;
       if (!telegramUserId) {
-        return null;
+        throw new ConvexError("Telegram user ID is not found");
       }
 
       // Create or retrieve account using Convex Auth
-      const account = await createAccount(ctx, {
+      const { account, user } = await createAccount(ctx, {
         provider: "telegram",
         account: {
           id: telegramUserId.toString(),
@@ -64,11 +64,11 @@ export const telegram = ConvexCredentials({
       });
 
       return {
-        userId: account.user._id,
+        userId: user._id,
       };
     } catch (error) {
       console.error("Telegram auth validation failed:", error);
-      return null;
+      throw new ConvexError("Telegram auth validation failed");
     }
   },
 });
