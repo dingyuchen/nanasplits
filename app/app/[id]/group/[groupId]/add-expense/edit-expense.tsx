@@ -12,12 +12,14 @@ import {
   ArrowLeft,
   Calendar,
 } from "lucide-react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Id, Doc } from "@/convex/_generated/dataModel";
 import { useRouter, useParams } from "next/navigation";
 import MainButton from "../../../main-button";
 import type { ValueOf } from "next/dist/shared/lib/constants";
-import CurrencyDropdownOptions from "./currency-dropdown-options";
+import CurrencyDropdownOptions, {
+  currencySigns,
+} from "./currency-dropdown-options";
 
 type SplitType = "equal" | "exact" | "percentage" | "shares";
 
@@ -258,6 +260,7 @@ export default function EditExpensePage({
     }) || [];
 
   const [currency, setCurrency] = useState(selectedCurrency);
+  const currencySymbol = currencySigns[currency] || "$";
   const [payer, setPayer] = useState<Doc<"users"> | null>(
     groupData?.members.find((m) => m.telegramUserId === telegramUserId) || null,
   );
@@ -334,6 +337,7 @@ export default function EditExpensePage({
   };
 
   const handleSimpleSplitSave = (splits: SplitShare[]) => {
+    handleItemChange(0, "splits", splits);
     setShowSimpleSplitModal(false);
   };
 
@@ -349,12 +353,11 @@ export default function EditExpensePage({
 
     // Prepare items array
     const finalItems = isItemized ? rest : items;
-
+    if (!payer) {
+      alert("No payer selected");
+      return;
+    }
     try {
-      if (!payer) {
-        console.error("No payer selected");
-        return;
-      }
       await addExpense({
         telegramChatId,
         telegramUserId,
@@ -411,6 +414,8 @@ export default function EditExpensePage({
     );
   }
 
+  // TODO: incoporate react hook form to prevent excessive re-renders
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 pb-20">
       {/* Header */}
@@ -441,7 +446,7 @@ export default function EditExpensePage({
               onChange={(e) => handleDescriptionChange(e.target.value)}
               required
               placeholder="e.g., Dinner at restaurant"
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all [&:user-invalid]:border-red-500 focus:[&:user-invalid]:ring-red-500"
             />
           </div>
 
@@ -460,20 +465,23 @@ export default function EditExpensePage({
                 onChange={(e) => setDate(e.target.value)}
                 max={new Date().toISOString().split("T")[0]}
                 required
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none [&:user-invalid]:border-red-500 focus:[&:user-invalid]:ring-red-500"
               />
               <Calendar className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label
-                htmlFor="amount"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
-                Amount
-              </label>
+          <div>
+            <label
+              htmlFor="amount"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Amount
+            </label>
+            <div className="flex items-center justify-center rounded-xl bg-white dark:bg-gray-700 pl-3 outline outline-1 -outline-offset-1 outline-gray-300 dark:outline-gray-600 has-[:focus-within]:outline-2 has-[:focus-within]:-outline-offset-2 has-[:focus-within]:outline-blue-500 has-[input:user-invalid]:outline-red-500">
+              <div className="shrink-0 text-base text-gray-500 dark:text-gray-400 select-none sm:text-sm/6">
+                {currencySymbol}
+              </div>
               <input
                 type="number"
                 inputMode="decimal"
@@ -486,26 +494,34 @@ export default function EditExpensePage({
                 readOnly={isItemized}
                 required
                 step="0.01"
-                min="0"
+                min="0.01"
                 placeholder="0.00"
-                className={`w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${isItemized ? "opacity-70" : ""}`}
+                className={`block min-w-0 grow py-3 pr-3 pl-1 text-base text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none bg-transparent sm:text-sm/6 ${isItemized ? "opacity-70" : ""}`}
               />
-            </div>
-            <div>
-              <label
-                htmlFor="currency"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
-                Currency
-              </label>
-              <select
-                id="currency"
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none transition-all"
-              >
-                <CurrencyDropdownOptions />
-              </select>
+              <div className="grid shrink-0 grid-cols-1 focus-within:relative border-l border-gray-300 dark:border-gray-600 ml-2">
+                <select
+                  id="currency"
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="col-start-1 row-start-1 w-full appearance-none rounded-r-xl py-3 pr-7 pl-3 text-base text-gray-500 dark:text-gray-400 placeholder:text-gray-500 focus:outline-none sm:text-sm/6 bg-transparent"
+                  aria-label="Currency"
+                >
+                  <CurrencyDropdownOptions />
+                </select>
+                <svg
+                  viewBox="0 0 16 16"
+                  fill="currentColor"
+                  data-slot="icon"
+                  aria-hidden="true"
+                  className="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 dark:text-gray-400 sm:size-4"
+                >
+                  <path
+                    d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z"
+                    clipRule="evenodd"
+                    fillRule="evenodd"
+                  />
+                </svg>
+              </div>
             </div>
           </div>
           {payer && (
@@ -527,7 +543,7 @@ export default function EditExpensePage({
                     setPayer(member);
                   }
                 }}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none transition-all"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none transition-all [&:user-invalid]:border-red-500 focus:[&:user-invalid]:ring-red-500"
               >
                 {groupData?.members.map((member) => (
                   <option key={member._id} value={member._id}>
@@ -590,16 +606,19 @@ export default function EditExpensePage({
                     <div className="flex-1 space-y-3">
                       <input
                         type="text"
+                        required
                         value={item.name}
                         onChange={(e) =>
                           handleItemChange(index + 1, "name", e.target.value)
                         }
                         placeholder="Item name"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white [&:user-invalid]:border-red-500 focus:[&:user-invalid]:ring-red-500"
                       />
                       <div className="flex gap-3">
                         <input
                           type="number"
+                          required
+                          min="0.01"
                           value={item.amount.toString()}
                           onChange={(e) =>
                             handleItemChange(
@@ -610,7 +629,7 @@ export default function EditExpensePage({
                           }
                           placeholder="Amount"
                           step="0.01"
-                          className="w-1/2 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                          className="w-1/2 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white [&:user-invalid]:border-red-500 focus:[&:user-invalid]:ring-red-500"
                         />
                         <button
                           type="button"
