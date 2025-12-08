@@ -269,6 +269,7 @@ export default function AddExpensePage() {
   const [items, setItems] = useState<SubItem[]>([
     { name: "", amount: 0, splits: [] },
   ]);
+  const [{ name: description, amount, splits }, ...rest] = items;
   const isItemized = items.length > 1;
 
   const handleAddItem = () => {
@@ -279,6 +280,17 @@ export default function AddExpensePage() {
     if (items.length > 1) {
       setItems(items.filter((_, i) => i !== index));
     }
+  };
+
+  const handleClearItems = () => {
+    const totalAmount = rest.reduce((sum, item) => sum + item.amount, 0);
+    setItems([
+      {
+        name: description,
+        amount: totalAmount,
+        splits: defaultSplits(totalAmount),
+      },
+    ]);
   };
 
   const handleItemChange = (
@@ -317,8 +329,6 @@ export default function AddExpensePage() {
   const handleSplitCancel = () => {
     setActiveSplitIndex(null);
   };
-
-  const [{ name: description, amount, splits }, ...rest] = items;
 
   const handleSubmit = async () => {
     // Calculate total amount
@@ -509,13 +519,21 @@ export default function AddExpensePage() {
               <div className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 {isItemized && "Items & Splits"}
               </div>
-              {!isItemized && (
+              {!isItemized ? (
                 <button
                   type="button"
                   onClick={handleAddItem}
                   className="text-sm text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1"
                 >
                   <Plus className="w-4 h-4" /> Itemize Expense
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleClearItems}
+                  className="text-sm text-red-500 hover:text-red-600 font-medium flex items-center gap-1"
+                >
+                  <Trash2 className="w-4 h-4" /> Delete All
                 </button>
               )}
             </div>
