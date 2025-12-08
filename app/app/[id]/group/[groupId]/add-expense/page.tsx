@@ -251,6 +251,21 @@ export default function AddExpensePage() {
     }) || [];
 
   const [currency, setCurrency] = useState(selectedCurrency);
+  const [payer, setPayer] = useState<Doc<"users"> | null>(
+    groupData?.members.find((m) => m.telegramUserId === telegramUserId) || null,
+  );
+
+  useEffect(() => {
+    if (groupData && !payer) {
+      const currentUser = groupData.members.find(
+        (m) => m.telegramUserId === telegramUserId,
+      );
+      if (currentUser) {
+        setPayer(currentUser);
+      }
+    }
+  }, [groupData, telegramUserId, payer]);
+
   const [items, setItems] = useState<SubItem[]>([
     { name: "", amount: 0, splits: [] },
   ]);
@@ -315,12 +330,17 @@ export default function AddExpensePage() {
     const finalItems = isItemized ? rest : items;
 
     try {
+      if (!payer) {
+        console.error("No payer selected");
+        return;
+      }
       await addExpense({
         telegramChatId,
         telegramUserId,
         description,
         amount: totalAmount,
         currency,
+        payerId: payer._id,
         items: finalItems,
       });
       // Navigate back
@@ -438,25 +458,54 @@ export default function AddExpensePage() {
               </select>
             </div>
           </div>
+          <div>
+            <label
+              htmlFor="payer"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Paid by
+            </label>
+            <select
+              id="payer"
+              value={payer?._id}
+              onChange={(e) => {
+                const member = groupData?.members.find(
+                  (m) => m._id === e.target.value,
+                );
+                if (member) {
+                  setPayer(member);
+                }
+              }}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none transition-all"
+            >
+              {groupData?.members.map((member) => (
+                <option key={member._id} value={member._id}>
+                  {member.firstName} {member.lastName}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {!isItemized && (
-            <button
-              type="button"
-              onClick={() => setShowSimpleSplitModal(true)}
-              className="w-full px-4 py-3 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all flex items-center justify-center gap-2 border border-blue-200 dark:border-blue-800"
-            >
-              <Split className="w-5 h-5" />
-              {splits.length > 0
-                ? `Split among ${splits.length} people`
-                : "Split Expense"}
-            </button>
+            <div className="flex-1">
+              <button
+                type="button"
+                onClick={() => setShowSimpleSplitModal(true)}
+                className="w-full px-4 py-3 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all flex items-center justify-center gap-2 border border-blue-200 dark:border-blue-800"
+              >
+                <Split className="w-5 h-5" />
+                {splits.length > 0
+                  ? `Split among ${splits.length} people`
+                  : "Split Expense"}
+              </button>
+            </div>
           )}
 
           {/* Items Section */}
           <div className="space-y-4 pt-2">
             <div className="flex items-center justify-between">
               <div className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {isItemized ? "Items & Splits" : "Itemize Expense"}
+                {isItemized && "Items & Splits"}
               </div>
               {!isItemized && (
                 <button
@@ -464,7 +513,7 @@ export default function AddExpensePage() {
                   onClick={handleAddItem}
                   className="text-sm text-blue-500 hover:text-blue-600 font-medium flex items-center gap-1"
                 >
-                  <Plus className="w-4 h-4" /> Add Items
+                  <Plus className="w-4 h-4" /> Itemize Expense
                 </button>
               )}
             </div>

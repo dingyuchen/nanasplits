@@ -5,9 +5,11 @@ import { useEffect, useRef, useTransition } from "react";
 
 export default function MainButton({
   text,
+  ready = true,
   onClick,
 }: {
   text: string;
+  ready?: boolean;
   onClick: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -20,11 +22,29 @@ export default function MainButton({
     const off = button.onClick(() => {
       startTransition(onClick);
     }, true);
-    return () => {
-      console.log("removing listener");
-      off();
-    };
+    return off;
   }, [onClick, button]);
+
+  useEffect(() => {
+    if (!button.isMounted()) {
+      button.mount();
+    }
+    if (ready) {
+      button.enable();
+      button.enableShineEffect();
+    } else {
+      button.disable();
+      button.disableShineEffect();
+    }
+  }, [button, ready]);
+
+  useEffect(() => {
+    if (isPending) {
+      button.showLoader();
+    } else {
+      button.hideLoader();
+    }
+  }, [button, isPending]);
 
   useEffect(() => {
     if (!button.isMounted()) {
@@ -34,19 +54,13 @@ export default function MainButton({
     button.setParams({
       text,
     });
-    button.enable();
-    button.enableShineEffect();
-    if (isPending) {
-      button.showLoader();
-    }
     button.show();
     return () => {
       button.disable();
       button.hide();
       button.hideLoader();
-      console.log("unmounting button");
       button.unmount();
     };
-  }, [button, isPending, text]);
+  }, [button, text]);
   return null;
 }

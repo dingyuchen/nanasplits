@@ -6,6 +6,5 @@ export default function TelegramAppLayout({
   children: React.ReactNode;
 }) {
   // Show loading state while checking environment
-
   return <>{children}</>;
 }

@@ -275,6 +275,7 @@ export const addExpense = protectedMutation({
   args: {
     telegramChatId: v.number(),
     telegramUserId: v.number(),
+    payerId: v.id("users"),
     amount: v.number(),
     currency: v.string(),
     description: v.string(),
@@ -329,7 +330,7 @@ export const addExpense = protectedMutation({
       amount: args.amount,
       currency: args.currency,
       description: args.description,
-      payerId: userId,
+      payerId: args.payerId,
       items: args.items,
       date: Date.now(),
     });
