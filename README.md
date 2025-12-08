@@ -16,18 +16,33 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## TODOs
 
-- [ ] currency conversion
-- [ ] edit splits, split by types, split validation
 - [ ] expense validation
-- [ ] expense categories/tag
-- [ ] Fix `app/[id]` page
+- [x] expense date picker
+- [ ] edit splits
+- [ ] split by types
+- [ ] split validation
 - [ ] Tally amounts correctly, tally different currencies separately
+    - [ ] all tallies are grouped by currency
+    - [ ] incoming and outgoing per member != self, per currency
+    - [ ] aggregate per currency for total incoming, outgoing
+- [ ] Fix `app/[id]` page
+- [ ] Settle up per group
+    - [ ] aggregate tally for total incoming, outgoing
 - [ ] Request to settle
+    - [ ] profile settings page
+        - [ ] allow edit signature
+    - [ ] Send a messsage with group tally (aggregated on self only)
+        - [ ] include mention, value per user
+    - [ ] supply button for triggering transfer expense
+
+---
+- [ ] expense categories/tag
 - [ ] /intro bot command
+- [ ] currency conversion
 - [ ] use preloaded querying for group page
 - [ ] notify when all members have joined
 - [ ] clear group and associated data when "leave" event is detected
-- [ ] profile settings page
+- [ ] simplify transactions
 - [ ] group settings page
 
 ### Moonshot

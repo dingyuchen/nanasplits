@@ -238,12 +238,11 @@ export default function GroupView({
 
       {/* Action Buttons */}
       {!isRegisteredMemberOfGroup ? (
-        <MainButton text="Join Group" onClick={handleJoinGroup} />
+        <MainButton text="Join Group" onClick={handleJoinGroup} once />
       ) : (
         <AddExpenseButton
           telegramChatId={groupIdNumber}
           telegramUserId={telegramUserId}
-          defaultCurrency={currencyCode}
         />
       )}
     </div>

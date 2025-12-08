@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { protectedMutation, protectedQuery } from "./lib/utils";
 import { mutation } from "./_generated/server";
+import { ExpenseType } from "./schema";
 
 /**
  * Create or get a group by Telegram chat ID
@@ -279,6 +280,7 @@ export const addExpense = protectedMutation({
     amount: v.number(),
     currency: v.string(),
     description: v.string(),
+    date: v.number(),
     items: v.array(
       v.object({
         name: v.string(),
@@ -308,32 +310,35 @@ export const addExpense = protectedMutation({
       .first();
 
     if (!group) {
+      // attempting to add expense to a non-existent group
       throw new Error("Group not found");
     }
 
     const userId = ctx.userId;
 
-    // Check if the user is a member of the group
-    const membership = await ctx.db
+    // Get all group members to validate participants
+    const groupMembers = await ctx.db
       .query("group_members")
       .withIndex("by_group_id", (q) => q.eq("groupId", group._id))
-      .filter((q) => q.eq(q.field("userId"), userId))
-      .first();
+      .collect();
+    const memberIds = new Set(groupMembers.map((m) => m.userId));
 
-    if (!membership) {
+    // Check if the user is a member of the group
+    if (!memberIds.has(userId)) {
       throw new Error("User is not a member of this group");
     }
-
     // Check if the payer is a member of the group
-    if (args.payerId !== userId) {
-      const payerMembership = await ctx.db
-        .query("group_members")
-        .withIndex("by_group_id", (q) => q.eq("groupId", group._id))
-        .filter((q) => q.eq(q.field("userId"), args.payerId))
-        .first();
-
-      if (!payerMembership) {
-        throw new Error("Payer is not a member of this group");
+    if (!memberIds.has(args.payerId)) {
+      throw new Error("Payer is not a member of this group");
+    }
+    // Check if all split users are members of the group
+    for (const item of args.items) {
+      for (const split of item.splits) {
+        if (!memberIds.has(split.userId)) {
+          throw new Error(
+            `Split user ${split.userId} is not a member of this group`,
+          );
+        }
       }
     }
 
@@ -345,7 +350,8 @@ export const addExpense = protectedMutation({
       description: args.description,
       payerId: args.payerId,
       items: args.items,
-      date: Date.now(),
+      date: args.date,
+      type: ExpenseType.Split,
     });
 
     return expenseId;

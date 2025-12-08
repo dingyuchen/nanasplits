@@ -13,6 +13,11 @@ const expenseItemSchema = v.object({
   ),
 });
 
+export enum ExpenseType {
+  Split = "split",
+  Transfer = "transfer",
+}
+
 export default defineSchema({
   ...authTables,
   users: defineTable({
@@ -20,6 +25,7 @@ export default defineSchema({
     firstName: v.optional(v.string()),
     lastName: v.optional(v.string()),
     telegramUserId: v.number(),
+    defaultCurrency: v.optional(v.string()),
   }).index("by_telegram_user_id", ["telegramUserId"]),
 
   groups: defineTable({
@@ -45,6 +51,10 @@ export default defineSchema({
     payerId: v.id("users"),
     // Multiple sub-items support
     items: v.array(expenseItemSchema),
+    type: v.union(
+      v.literal(ExpenseType.Split),
+      v.literal(ExpenseType.Transfer),
+    ),
     date: v.number(),
   }).index("by_group_id", ["groupId"]),
 });

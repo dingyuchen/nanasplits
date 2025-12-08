@@ -1,15 +1,17 @@
 "use client";
 
-import { mainButton, themeParams } from "@tma.js/sdk-react";
+import { mainButton } from "@tma.js/sdk-react";
 import { useEffect, useRef, useTransition } from "react";
 
 export default function MainButton({
   text,
   ready = true,
+  once = false,
   onClick,
 }: {
   text: string;
   ready?: boolean;
+  once?: boolean;
   onClick: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -20,32 +22,14 @@ export default function MainButton({
       button.mount();
     }
     const off = button.onClick(() => {
-      startTransition(onClick);
-    }, true);
+      if (!isPending) {
+        startTransition(onClick);
+      }
+    }, once);
     return off;
-  }, [onClick, button]);
+  }, [onClick, button, once, isPending]);
 
-  useEffect(() => {
-    if (!button.isMounted()) {
-      button.mount();
-    }
-    if (ready) {
-      button.enable();
-      button.enableShineEffect();
-    } else {
-      button.disable();
-      button.disableShineEffect();
-    }
-  }, [button, ready]);
-
-  useEffect(() => {
-    if (isPending) {
-      button.showLoader();
-    } else {
-      button.hideLoader();
-    }
-  }, [button, isPending]);
-
+  // shutdown hook
   useEffect(() => {
     if (!button.isMounted()) {
       button.mount();
@@ -53,14 +37,24 @@ export default function MainButton({
 
     button.setParams({
       text,
+      isVisible: ready,
+      isEnabled: ready && !isPending,
+      isLoaderVisible: isPending,
+      hasShineEffect: ready && !isPending,
     });
-    button.show();
     return () => {
-      button.disable();
-      button.hide();
-      button.hideLoader();
+      button.setParams({
+        isVisible: false,
+        isEnabled: false,
+        isLoaderVisible: false,
+        hasShineEffect: false,
+      });
       button.unmount();
     };
-  }, [button, text]);
-  return null;
+  }, [button, text, ready, isPending]);
+  return (
+    <button type="submit" formAction={onClick} className="hidden" disabled>
+      {text}
+    </button>
+  );
 }
