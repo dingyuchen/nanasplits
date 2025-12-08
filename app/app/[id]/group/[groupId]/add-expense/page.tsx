@@ -256,15 +256,15 @@ export default function AddExpensePage() {
   );
 
   useEffect(() => {
-    if (groupData && !payer) {
+    if (groupData) {
       const currentUser = groupData.members.find(
         (m) => m.telegramUserId === telegramUserId,
       );
       if (currentUser) {
-        setPayer(currentUser);
+        setPayer((currentPayer) => currentPayer || currentUser);
       }
     }
-  }, [groupData, telegramUserId, payer]);
+  }, [groupData, telegramUserId]);
 
   const [items, setItems] = useState<SubItem[]>([
     { name: "", amount: 0, splits: [] },
@@ -458,33 +458,35 @@ export default function AddExpensePage() {
               </select>
             </div>
           </div>
-          <div>
-            <label
-              htmlFor="payer"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >
-              Paid by
-            </label>
-            <select
-              id="payer"
-              value={payer?._id}
-              onChange={(e) => {
-                const member = groupData?.members.find(
-                  (m) => m._id === e.target.value,
-                );
-                if (member) {
-                  setPayer(member);
-                }
-              }}
-              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none transition-all"
-            >
-              {groupData?.members.map((member) => (
-                <option key={member._id} value={member._id}>
-                  {member.firstName} {member.lastName}
-                </option>
-              ))}
-            </select>
-          </div>
+          {payer && (
+            <div>
+              <label
+                htmlFor="payer"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Paid by
+              </label>
+              <select
+                id="payer"
+                value={payer?._id}
+                onChange={(e) => {
+                  const member = groupData?.members.find(
+                    (m) => m._id === e.target.value,
+                  );
+                  if (member) {
+                    setPayer(member);
+                  }
+                }}
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none transition-all"
+              >
+                {groupData?.members.map((member) => (
+                  <option key={member._id} value={member._id}>
+                    {member.firstName} {member.lastName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {!isItemized && (
             <div className="flex-1">

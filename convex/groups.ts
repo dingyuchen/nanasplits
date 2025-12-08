@@ -324,6 +324,19 @@ export const addExpense = protectedMutation({
       throw new Error("User is not a member of this group");
     }
 
+    // Check if the payer is a member of the group
+    if (args.payerId !== userId) {
+      const payerMembership = await ctx.db
+        .query("group_members")
+        .withIndex("by_group_id", (q) => q.eq("groupId", group._id))
+        .filter((q) => q.eq(q.field("userId"), args.payerId))
+        .first();
+
+      if (!payerMembership) {
+        throw new Error("Payer is not a member of this group");
+      }
+    }
+
     // Add the expense
     const expenseId = await ctx.db.insert("expenses", {
       groupId: group._id,

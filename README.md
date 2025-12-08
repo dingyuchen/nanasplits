@@ -19,11 +19,11 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 - [ ] currency conversion
 - [ ] edit splits, split by types, split validation
 - [ ] expense validation
-- [ ] expense category
+- [ ] expense categories/tag
 - [ ] Fix `app/[id]` page
 - [ ] Tally amounts correctly, tally different currencies separately
 - [ ] Request to settle
-- [ ] bot commands
+- [ ] /intro bot command
 - [ ] use preloaded querying for group page
 - [ ] notify when all members have joined
 - [ ] clear group and associated data when "leave" event is detected
