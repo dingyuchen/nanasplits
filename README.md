@@ -16,13 +16,19 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## TODOs
 
-- [ ] Set up protected query and mutations [blog](https://stack.convex.dev/authentication-best-practices-convex-clerk-and-nextjs)
-- [ ] Create schema for uneven, fractional splits
-- [ ] Item and subitems
 - [ ] currency conversion
+- [ ] edit splits, split by types, split validation
+- [ ] expense validation
+- [ ] expense category
+- [ ] Fix `app/[id]` page
+- [ ] Tally amounts correctly, tally different currencies separately
+- [ ] Request to settle
+- [ ] bot commands
 - [ ] use preloaded querying for group page
 - [ ] notify when all members have joined
 - [ ] clear group and associated data when "leave" event is detected
+- [ ] profile settings page
+- [ ] group settings page
 
 ### Moonshot
 

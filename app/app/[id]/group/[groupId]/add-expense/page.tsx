@@ -10,6 +10,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import MainButton from "../../../main-button";
 import { useAuthenticatedQueryWithStatus } from "@/lib/hooks";
 import { ValueOf } from "next/dist/shared/lib/constants";
+import CurrencyDropdownOptions from "./currency-dropdown-options";
 
 type SplitType = "equal" | "exact" | "percentage" | "shares";
 
@@ -433,10 +434,7 @@ export default function AddExpensePage() {
                 onChange={(e) => setCurrency(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none transition-all"
               >
-                <option value="USD">USD ($)</option>
-                <option value="EUR">EUR (€)</option>
-                <option value="GBP">GBP (£)</option>
-                <option value="JPY">JPY (¥)</option>
+                <CurrencyDropdownOptions />
               </select>
             </div>
           </div>
