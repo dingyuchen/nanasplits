@@ -22,5 +22,7 @@ export default function AppPage() {
   if (!userId) {
     return <div>User not found</div>;
   }
+  const groupId = launchParams?.tgWebAppStartParam;
+  router.prefetch(`/app/${userId}${groupId ? `/group/${groupId}` : ""}`);
   return <Loading />;
 }
