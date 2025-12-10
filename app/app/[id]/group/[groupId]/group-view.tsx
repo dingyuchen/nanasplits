@@ -226,7 +226,12 @@ export default function GroupView({
                       </div>
                     </div>
                     <span className="font-bold text-gray-900 dark:text-white">
-                      {formatCurrency(expense.amount)}
+                      {formatCurrency(
+                        expense.items.reduce(
+                          (sum, item) => sum + item.amount,
+                          0,
+                        ),
+                      )}
                     </span>
                   </div>
                 );

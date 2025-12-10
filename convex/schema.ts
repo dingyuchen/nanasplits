@@ -45,7 +45,6 @@ export default defineSchema({
 
   expenses: defineTable({
     groupId: v.id("groups"),
-    amount: v.number(),
     currency: v.string(),
     description: v.string(),
     payerId: v.id("users"),

@@ -185,7 +185,7 @@ export const getListOfExpenses = protectedQuery({
       .withIndex("by_telegram_chat_id", (q) =>
         q.eq("telegramChatId", args.telegramChatId),
       )
-      .first();
+      .unique();
 
     if (!group) return null;
 
@@ -196,8 +196,9 @@ export const getListOfExpenses = protectedQuery({
       .withIndex("by_group_id", (q) => q.eq("groupId", group._id))
       .collect();
 
-    const memberIds = groupMembers.map((m) => m.userId);
-    const members = await Promise.all(memberIds.map((id) => ctx.db.get(id)));
+    const members = await Promise.all(
+      groupMembers.map((member) => ctx.db.get(member.userId)),
+    );
 
     // Fetch expenses
     const expenses = await ctx.db
@@ -207,7 +208,10 @@ export const getListOfExpenses = protectedQuery({
       .collect();
 
     // Calculate basic stats
-    const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const totalExpenses = expenses.reduce(
+      (sum, exp) => sum + exp.items.reduce((sum, item) => sum + item.amount, 0),
+      0,
+    );
 
     return {
       ...group,
@@ -277,7 +281,6 @@ export const addExpense = protectedMutation({
     telegramChatId: v.number(),
     telegramUserId: v.number(),
     payerId: v.id("users"),
-    amount: v.number(),
     currency: v.string(),
     description: v.string(),
     date: v.number(),
@@ -345,7 +348,6 @@ export const addExpense = protectedMutation({
     // Add the expense
     const expenseId = await ctx.db.insert("expenses", {
       groupId: group._id,
-      amount: args.amount,
       currency: args.currency,
       description: args.description,
       payerId: args.payerId,

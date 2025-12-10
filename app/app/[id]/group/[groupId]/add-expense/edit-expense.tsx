@@ -13,7 +13,7 @@ import {
   ArrowLeft,
   Calendar,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import type { Id, Doc } from "@/convex/_generated/dataModel";
 import { useRouter, useParams } from "next/navigation";
 import MainButton from "../../../main-button";
@@ -21,6 +21,33 @@ import type { ValueOf } from "next/dist/shared/lib/constants";
 import CurrencyDropdownOptions, {
   currencySigns,
 } from "./currency-dropdown-options";
+import { z } from "zod";
+
+// Zod validation schemas
+const splitShareSchema = z.object({
+  userId: z.string().min(1),
+  amount: z.number().nonnegative(),
+});
+
+const subItemSchema = z.object({
+  name: z.string().min(1, "Item name is required"),
+  amount: z.number().positive("Amount must be greater than 0"),
+  splits: z.array(splitShareSchema),
+});
+
+const baseExpenseSchema = z.object({
+  description: z.string().min(1, "Description is required"),
+  payerId: z.string().min(1, "Payer is required"),
+  currency: z.string().min(1),
+});
+
+const simpleExpenseSchema = baseExpenseSchema.extend({
+  amount: z.number().positive("Amount must be greater than 0"),
+});
+
+const itemizedExpenseSchema = baseExpenseSchema.extend({
+  items: z.array(subItemSchema).min(1, "At least one item is required"),
+});
 
 type SplitType = "equal" | "exact" | "percentage" | "shares";
 
@@ -265,12 +292,9 @@ export default function EditExpensePage({
   const [payer, setPayer] = useState<Doc<"users"> | null>(
     groupData?.members.find((m) => m.telegramUserId === telegramUserId) || null,
   );
-  // const [date, setDate] = useState(() => {
-  //   const d = new Date();
-  //   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  // });
+
   const dateInputRef = useRef<HTMLInputElement>(null);
-  if (dateInputRef.current) {
+  if (dateInputRef.current && !dateInputRef.current.valueAsDate) {
     dateInputRef.current.valueAsDate = new Date();
   }
 
@@ -336,6 +360,30 @@ export default function EditExpensePage({
   const [activeSplitIndex, setActiveSplitIndex] = useState<number | null>(null);
   const [showSimpleSplitModal, setShowSimpleSplitModal] = useState(false);
 
+  // Zod validation
+  const formValidation = useMemo(() => {
+    const baseData = {
+      description,
+      payerId: payer?._id ?? "",
+      currency,
+    };
+
+    if (isItemized) {
+      // Skip first item (description holder) when itemized
+      const itemsToValidate = items.slice(1);
+      return itemizedExpenseSchema.safeParse({
+        ...baseData,
+        items: itemsToValidate,
+      });
+    }
+    return simpleExpenseSchema.safeParse({
+      ...baseData,
+      amount: items[0].amount,
+    });
+  }, [description, payer, currency, isItemized, items]);
+
+  const isFormValid = formValidation.success;
+
   const handleSplitSave = (index: number, splits: SplitShare[]) => {
     handleItemChange(index, "splits", splits);
     setActiveSplitIndex(null);
@@ -353,10 +401,6 @@ export default function EditExpensePage({
   const handleSubmit = async (formData: FormData) => {
     console.log("formdata", ...formData);
     const date = new Date(formData.get("date") as string);
-    // Calculate total amount
-    const totalAmount = isItemized
-      ? rest.reduce((sum, item) => sum + item.amount, 0)
-      : items[0].amount;
 
     // Prepare items array
     const finalItems = isItemized ? rest : items;
@@ -369,7 +413,6 @@ export default function EditExpensePage({
         telegramChatId,
         telegramUserId,
         description,
-        amount: totalAmount,
         currency,
         payerId: payer._id,
         items: finalItems,
@@ -467,7 +510,6 @@ export default function EditExpensePage({
                 id="date"
                 name="date"
                 ref={dateInputRef}
-                // value={date}
                 // onChange={(e) => setDate(e.target.value)}
                 max={new Date().toISOString().split("T")[0]}
                 required
@@ -680,7 +722,11 @@ export default function EditExpensePage({
           </button>
 
           {/* Link Main Button to Submit Button */}
-          <MainButton text="Save" onClick={handleMainButtonClick} />
+          <MainButton
+            text="Save"
+            onClick={handleMainButtonClick}
+            ready={isFormValid}
+          />
         </form>
       </div>
     </div>
