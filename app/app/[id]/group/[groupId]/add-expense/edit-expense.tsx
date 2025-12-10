@@ -715,7 +715,6 @@ export default function EditExpensePage({
             type="submit"
             ref={submitButtonRef}
             formAction={handleSubmit}
-            // onClick={handleSubmit}
             className="hidden w-full py-3 text-sm text-blue-500 hover:text-blue-600 font-medium flex items-center justify-center gap-2 border-2 border-dashed border-blue-200 dark:border-blue-800 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
           >
             Submit
@@ -726,6 +725,7 @@ export default function EditExpensePage({
             text="Save"
             onClick={handleMainButtonClick}
             ready={isFormValid}
+            show={isFormValid}
           />
         </form>
       </div>

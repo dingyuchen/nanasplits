@@ -75,7 +75,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return (
       <>
         <Loading message="Signing in... Restart app if this message persists" />
-        <MainButton text="Close" onClick={() => miniApp.close()} once />
+        <MainButton
+          text="Close"
+          onClick={() => miniApp.close()}
+          once
+          ready={false}
+        />
       </>
     );
   }

@@ -6,11 +6,13 @@ import { useEffect, useRef, useTransition } from "react";
 export default function MainButton({
   text,
   ready = true,
+  show = true,
   once = false,
   onClick,
 }: {
   text: string;
   ready?: boolean;
+  show?: boolean;
   once?: boolean;
   onClick: () => void;
 }) {
@@ -37,8 +39,8 @@ export default function MainButton({
 
     button.setParams({
       text,
-      isVisible: ready,
-      isEnabled: ready && !isPending,
+      isVisible: show,
+      isEnabled: show && !isPending,
       isLoaderVisible: isPending,
       hasShineEffect: ready && !isPending,
     });
@@ -51,7 +53,7 @@ export default function MainButton({
       });
       button.unmount();
     };
-  }, [button, text, ready, isPending]);
+  }, [button, text, show, ready, isPending]);
   return (
     <button type="submit" formAction={onClick} className="hidden" disabled>
       {text}

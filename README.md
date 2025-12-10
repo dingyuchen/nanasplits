@@ -16,7 +16,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## TODOs
 
-- [ ] expense validation
+- [x] expense validation
 - [x] expense date picker
 - [ ] edit splits
 - [ ] split by types
