@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 import type { Id, Doc } from "@/convex/_generated/dataModel";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import MainButton from "../../../main-button";
 import type { ValueOf } from "next/dist/shared/lib/constants";
 import CurrencyDropdownOptions, {
@@ -271,11 +271,17 @@ export default function EditExpensePage({
 }) {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
 
   const telegramUserId = Number(params.id);
   const telegramChatId = Number(params.groupId);
 
+  // Check if we're editing an existing expense
+  const expenseId = searchParams.get("expenseId") as Id<"expenses"> | null;
+  const isEditing = !!expenseId;
+
   const addExpense = useMutation(api.groups.addExpense);
+  const updateExpense = useMutation(api.groups.updateExpense);
   const groupData = usePreloadedQuery(preloadedGroupExpenses);
   const submitButtonRef = useRef<HTMLButtonElement>(null);
   const selectedCurrency = groupData?.defaultCurrency || "USD";
@@ -287,19 +293,41 @@ export default function EditExpensePage({
       };
     }) || [];
 
-  const [currency, setCurrency] = useState(selectedCurrency);
+  // Parse URL params for editing
+  const editDescription = searchParams.get("description") || "";
+  const editCurrency = searchParams.get("currency") || selectedCurrency;
+  const editPayerId = searchParams.get("payerId") as Id<"users"> | null;
+  const editDate = searchParams.get("date");
+  const editItemsRaw = searchParams.get("items");
+  const editItems: SubItem[] = editItemsRaw ? JSON.parse(editItemsRaw) : null;
+
+  const [currency, setCurrency] = useState(editCurrency);
   const currencySymbol = currencySigns[currency] || "$";
-  const [payer, setPayer] = useState<Doc<"users"> | null>(
-    groupData?.members.find((m) => m.telegramUserId === telegramUserId) || null,
-  );
+  const [payer, setPayer] = useState<Doc<"users"> | null>(null);
 
   const dateInputRef = useRef<HTMLInputElement>(null);
-  if (dateInputRef.current && !dateInputRef.current.valueAsDate) {
-    dateInputRef.current.valueAsDate = new Date();
-  }
 
+  // Set date from URL params or default to today
+  useEffect(() => {
+    if (dateInputRef.current) {
+      if (editDate) {
+        dateInputRef.current.valueAsDate = new Date(Number(editDate));
+      } else if (!dateInputRef.current.valueAsDate) {
+        dateInputRef.current.valueAsDate = new Date();
+      }
+    }
+  }, [editDate]);
+
+  // Initialize payer from URL params or default to current user
   useEffect(() => {
     if (groupData) {
+      if (editPayerId) {
+        const editPayer = groupData.members.find((m) => m._id === editPayerId);
+        if (editPayer) {
+          setPayer((currentPayer) => currentPayer || editPayer);
+          return;
+        }
+      }
       const currentUser = groupData.members.find(
         (m) => m.telegramUserId === telegramUserId,
       );
@@ -307,11 +335,24 @@ export default function EditExpensePage({
         setPayer((currentPayer) => currentPayer || currentUser);
       }
     }
-  }, [groupData, telegramUserId]);
+  }, [groupData, telegramUserId, editPayerId]);
 
-  const [items, setItems] = useState<SubItem[]>([
-    { name: "", amount: 0, splits: [] },
-  ]);
+  // Initialize items from URL params or default
+  const [items, setItems] = useState<SubItem[]>(() => {
+    if (editItems && editItems.length > 0) {
+      // For editing, add description holder as first item if itemized
+      if (editItems.length > 1) {
+        const totalAmount = editItems.reduce((sum, i) => sum + i.amount, 0);
+        return [
+          { name: editDescription, amount: totalAmount, splits: [] },
+          ...editItems,
+        ];
+      }
+      // Single item - use it as the main expense
+      return [{ ...editItems[0], name: editDescription }];
+    }
+    return [{ name: "", amount: 0, splits: [] }];
+  });
   const [{ name: description, amount, splits }, ...rest] = items;
   const isItemized = items.length > 1;
 
@@ -409,20 +450,33 @@ export default function EditExpensePage({
       return;
     }
     try {
-      await addExpense({
-        telegramChatId,
-        telegramUserId,
-        description,
-        currency,
-        payerId: payer._id,
-        items: finalItems,
-        date: date.getTime(),
-      });
+      if (isEditing && expenseId) {
+        await updateExpense({
+          expenseId,
+          telegramChatId,
+          telegramUserId,
+          description,
+          currency,
+          payerId: payer._id,
+          items: finalItems,
+          date: date.getTime(),
+        });
+      } else {
+        await addExpense({
+          telegramChatId,
+          telegramUserId,
+          description,
+          currency,
+          payerId: payer._id,
+          items: finalItems,
+          date: date.getTime(),
+        });
+      }
       // Navigate back
       router.push(`/app/${telegramUserId}/group/${telegramChatId}`);
     } catch (error) {
-      console.error("Failed to add expense:", error);
-      // alert("Failed to add expense. Please try again.");
+      console.error("Failed to save expense:", error);
+      // alert("Failed to save expense. Please try again.");
     }
   };
 
@@ -472,7 +526,7 @@ export default function EditExpensePage({
             <ArrowLeft className="w-4 h-4" />
           </button>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-            Add Expense
+            {isEditing ? "Edit Expense" : "Add Expense"}
           </h1>
         </div>
       </div>
@@ -722,7 +776,7 @@ export default function EditExpensePage({
 
           {/* Link Main Button to Submit Button */}
           <MainButton
-            text="Save"
+            text={isEditing ? "Update Expense" : "Save Expense"}
             onClick={handleMainButtonClick}
             ready={isFormValid}
             show={isFormValid}

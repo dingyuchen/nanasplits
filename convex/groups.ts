@@ -2,6 +2,89 @@ import { v } from "convex/values";
 import { protectedMutation, protectedQuery } from "./lib/utils";
 import { mutation } from "./_generated/server";
 import { ExpenseType } from "./schema";
+import type { Id, Doc } from "./_generated/dataModel";
+import type { DatabaseReader, DatabaseWriter } from "./_generated/server";
+
+/** Shared validator for expense items */
+const expenseItemsValidator = v.array(
+  v.object({
+    name: v.string(),
+    amount: v.number(),
+    splits: v.array(
+      v.object({
+        userId: v.id("users"),
+        amount: v.number(),
+      }),
+    ),
+  }),
+);
+
+type ExpenseItem = {
+  name: string;
+  amount: number;
+  splits: { userId: Id<"users">; amount: number }[];
+};
+
+/**
+ * Validates expense data and returns the group and member IDs
+ * Shared validation logic for addExpense and updateExpense
+ */
+async function validateExpenseData(
+  db: DatabaseReader | DatabaseWriter,
+  args: {
+    telegramChatId: number;
+    telegramUserId: number;
+    payerId: Id<"users">;
+    items: ExpenseItem[];
+  },
+  userId: Id<"users">,
+): Promise<{ group: Doc<"groups">; memberIds: Set<Id<"users">> }> {
+  // Check user match
+  const user = await db.get(userId);
+  if (!user || user.telegramUserId !== args.telegramUserId) {
+    throw new Error("User mismatch");
+  }
+
+  // Find the group by Telegram chat ID
+  const group = await db
+    .query("groups")
+    .withIndex("by_telegram_chat_id", (q) =>
+      q.eq("telegramChatId", args.telegramChatId),
+    )
+    .first();
+
+  if (!group) {
+    throw new Error("Group not found");
+  }
+
+  // Get all group members to validate participants
+  const groupMembers = await db
+    .query("group_members")
+    .withIndex("by_group_id", (q) => q.eq("groupId", group._id))
+    .collect();
+  const memberIds = new Set(groupMembers.map((m) => m.userId));
+
+  // Check if the user is a member of the group
+  if (!memberIds.has(userId)) {
+    throw new Error("User is not a member of this group");
+  }
+  // Check if the payer is a member of the group
+  if (!memberIds.has(args.payerId)) {
+    throw new Error("Payer is not a member of this group");
+  }
+  // Check if all split users are members of the group
+  for (const item of args.items) {
+    for (const split of item.splits) {
+      if (!memberIds.has(split.userId)) {
+        throw new Error(
+          `Split user ${split.userId} is not a member of this group`,
+        );
+      }
+    }
+  }
+
+  return { group, memberIds };
+}
 
 /**
  * Create or get a group by Telegram chat ID
@@ -207,6 +290,19 @@ export const getListOfExpenses = protectedQuery({
       .order("desc")
       .collect();
 
+    // Join payer info into expenses
+    const expensesWithPayer = await Promise.all(
+      expenses.map(async (expense) => {
+        const payer = await ctx.db.get(expense.payerId);
+        return {
+          ...expense,
+          payerName:
+            payer?.firstName ?? payer?.lastName ?? payer?.username ?? "Unnamed",
+          payerTelegramUserId: payer?.telegramUserId ?? null,
+        };
+      }),
+    );
+
     // Calculate basic stats
     const totalExpenses = expenses.reduce(
       (sum, exp) => sum + exp.items.reduce((sum, item) => sum + item.amount, 0),
@@ -216,7 +312,7 @@ export const getListOfExpenses = protectedQuery({
     return {
       ...group,
       members: members.filter((m) => m !== null),
-      expenses,
+      expenses: expensesWithPayer,
       totalExpenses,
       memberCount: members.length,
     };
@@ -284,66 +380,10 @@ export const addExpense = protectedMutation({
     currency: v.string(),
     description: v.string(),
     date: v.number(),
-    items: v.array(
-      v.object({
-        name: v.string(),
-        amount: v.number(),
-        splits: v.array(
-          v.object({
-            userId: v.id("users"),
-            amount: v.number(), // Share exact amount for each user
-          }),
-        ),
-      }),
-    ),
+    items: expenseItemsValidator,
   },
   handler: async (ctx, args) => {
-    // Check user match
-    const user = await ctx.db.get(ctx.userId);
-    if (!user || user.telegramUserId !== args.telegramUserId) {
-      throw new Error("User mismatch");
-    }
-
-    // Find the group by Telegram chat ID
-    const group = await ctx.db
-      .query("groups")
-      .withIndex("by_telegram_chat_id", (q) =>
-        q.eq("telegramChatId", args.telegramChatId),
-      )
-      .first();
-
-    if (!group) {
-      // attempting to add expense to a non-existent group
-      throw new Error("Group not found");
-    }
-
-    const userId = ctx.userId;
-
-    // Get all group members to validate participants
-    const groupMembers = await ctx.db
-      .query("group_members")
-      .withIndex("by_group_id", (q) => q.eq("groupId", group._id))
-      .collect();
-    const memberIds = new Set(groupMembers.map((m) => m.userId));
-
-    // Check if the user is a member of the group
-    if (!memberIds.has(userId)) {
-      throw new Error("User is not a member of this group");
-    }
-    // Check if the payer is a member of the group
-    if (!memberIds.has(args.payerId)) {
-      throw new Error("Payer is not a member of this group");
-    }
-    // Check if all split users are members of the group
-    for (const item of args.items) {
-      for (const split of item.splits) {
-        if (!memberIds.has(split.userId)) {
-          throw new Error(
-            `Split user ${split.userId} is not a member of this group`,
-          );
-        }
-      }
-    }
+    const { group } = await validateExpenseData(ctx.db, args, ctx.userId);
 
     // Add the expense
     const expenseId = await ctx.db.insert("expenses", {
@@ -357,5 +397,46 @@ export const addExpense = protectedMutation({
     });
 
     return expenseId;
+  },
+});
+
+/**
+ * Update an existing expense
+ */
+export const updateExpense = protectedMutation({
+  args: {
+    expenseId: v.id("expenses"),
+    telegramChatId: v.number(),
+    telegramUserId: v.number(),
+    payerId: v.id("users"),
+    currency: v.string(),
+    description: v.string(),
+    date: v.number(),
+    items: expenseItemsValidator,
+  },
+  handler: async (ctx, args) => {
+    // Verify the expense exists
+    const expense = await ctx.db.get(args.expenseId);
+    if (!expense) {
+      throw new Error("Expense not found");
+    }
+
+    const { group } = await validateExpenseData(ctx.db, args, ctx.userId);
+
+    // Verify expense belongs to this group
+    if (expense.groupId !== group._id) {
+      throw new Error("Expense does not belong to this group");
+    }
+
+    // Update the expense
+    await ctx.db.patch(args.expenseId, {
+      currency: args.currency,
+      description: args.description,
+      payerId: args.payerId,
+      items: args.items,
+      date: args.date,
+    });
+
+    return args.expenseId;
   },
 });

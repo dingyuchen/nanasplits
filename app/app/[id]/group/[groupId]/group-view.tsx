@@ -8,11 +8,12 @@ import {
   TrendingDown,
   Wallet,
   Loader2,
+  ChevronRight,
 } from "lucide-react";
 
 import { AddExpenseButton } from "./add-expense-button";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import MainButton from "../../main-button";
 
 export default function GroupView({
@@ -29,9 +30,25 @@ export default function GroupView({
     preloadedIsRegisteredMemberOfGroup,
   );
   const { id, groupId } = useParams<{ id: string; groupId: string }>();
+  const router = useRouter();
   const addUserToGroupMutation = useMutation(api.groups.addUserToGroup);
   const telegramUserId = Number(id);
   const groupIdNumber = Number(groupId);
+
+  const handleEditExpense = (expense: (typeof expenses)[number]) => {
+    // Build URL params with expense data
+    const params = new URLSearchParams({
+      expenseId: expense._id,
+      description: expense.description,
+      currency: expense.currency,
+      payerId: expense.payerId,
+      date: expense.date.toString(),
+      items: JSON.stringify(expense.items),
+    });
+    router.push(
+      `/app/${telegramUserId}/group/${groupIdNumber}/add-expense?${params.toString()}`,
+    );
+  };
 
   if (!groupData) {
     return (
@@ -203,37 +220,41 @@ export default function GroupView({
               </div>
             ) : (
               expenses.map((expense) => {
-                const payer = members.find((m) => m._id === expense.payerId);
-                const isMe = payer?.telegramUserId === telegramUserId;
+                const isMe = expense.payerTelegramUserId === telegramUserId;
 
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={expense._id}
-                    className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between"
+                    onClick={() => handleEditExpense(expense)}
+                    className="w-full bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-600 dark:text-green-400">
                         <Wallet className="w-5 h-5" />
                       </div>
-                      <div>
+                      <div className="text-left">
                         <p className="font-medium text-gray-900 dark:text-white">
                           {expense.description}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {payer ? (isMe ? "You" : payer.firstName) : "Unknown"}{" "}
-                          paid • {formatDate(expense.date)}
+                          {isMe ? "You" : expense.payerName} paid •{" "}
+                          {formatDate(expense.date)}
                         </p>
                       </div>
                     </div>
-                    <span className="font-bold text-gray-900 dark:text-white">
-                      {formatCurrency(
-                        expense.items.reduce(
-                          (sum, item) => sum + item.amount,
-                          0,
-                        ),
-                      )}
-                    </span>
-                  </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-gray-900 dark:text-white">
+                        {formatCurrency(
+                          expense.items.reduce(
+                            (sum, item) => sum + item.amount,
+                            0,
+                          ),
+                        )}
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                    </div>
+                  </button>
                 );
               })
             )}

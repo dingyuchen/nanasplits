@@ -18,7 +18,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 - [x] expense validation
 - [x] expense date picker
-- [ ] edit splits
+- [x] edit splits
 - [ ] split by types
 - [ ] split validation
 - [ ] Tally amounts correctly, tally different currencies separately
