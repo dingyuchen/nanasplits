@@ -11,7 +11,9 @@ import {
   Loader2,
   ChevronRight,
   ArrowRight,
+  Settings,
 } from "lucide-react";
+import Link from "next/link";
 
 import { AddExpenseButton } from "./add-expense-button";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
@@ -223,9 +225,17 @@ export default function GroupView({
       <div className="px-4 -mt-12 space-y-6">
         {/* Stats Cards */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Your Balance
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Your Balance
+            </h2>
+            <Link
+              href={`/app/${telegramUserId}/group/${groupIdNumber}/settings`}
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <Settings className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+            </Link>
+          </div>
           <div className="space-y-4">
             {/* Per-currency balances with nested member balances */}
             {Object.keys(currencyBalances).length === 0 ? (

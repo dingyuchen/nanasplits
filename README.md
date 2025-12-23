@@ -25,6 +25,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
     - [x] all tallies are grouped by currency
     - [x] incoming and outgoing per member != self, per currency
     - [x] aggregate per currency for total incoming, outgoing
+- [ ] Remove member query from group-view and use member only query in group-settings
 - [ ] Fix `app/[id]` page
 - [ ] Settle up per group
     - [ ] aggregate tally for total incoming, outgoing

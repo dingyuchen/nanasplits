@@ -401,6 +401,54 @@ export const addExpense = protectedMutation({
 });
 
 /**
+ * Update group settings (default currency)
+ */
+export const updateGroupSettings = protectedMutation({
+  args: {
+    telegramChatId: v.number(),
+    telegramUserId: v.number(),
+    defaultCurrency: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Check user match
+    const user = await ctx.db.get(ctx.userId);
+    if (!user || user.telegramUserId !== args.telegramUserId) {
+      throw new Error("User mismatch");
+    }
+
+    // Find the group by Telegram chat ID
+    const group = await ctx.db
+      .query("groups")
+      .withIndex("by_telegram_chat_id", (q) =>
+        q.eq("telegramChatId", args.telegramChatId),
+      )
+      .first();
+
+    if (!group) {
+      throw new Error("Group not found");
+    }
+
+    // Check if the user is a member of the group
+    const membership = await ctx.db
+      .query("group_members")
+      .withIndex("by_group_id", (q) => q.eq("groupId", group._id))
+      .filter((q) => q.eq(q.field("userId"), ctx.userId))
+      .first();
+
+    if (!membership) {
+      throw new Error("User is not a member of this group");
+    }
+
+    // Update the group settings
+    await ctx.db.patch(group._id, {
+      defaultCurrency: args.defaultCurrency,
+    });
+
+    return group._id;
+  },
+});
+
+/**
  * Update an existing expense
  */
 export const updateExpense = protectedMutation({
