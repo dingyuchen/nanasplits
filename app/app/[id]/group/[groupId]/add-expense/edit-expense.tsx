@@ -15,13 +15,22 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useRef, useMemo } from "react";
 import type { Id, Doc } from "@/convex/_generated/dataModel";
-import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import MainButton from "../../../main-button";
 import type { ValueOf } from "next/dist/shared/lib/constants";
 import CurrencyDropdownOptions, {
   currencySigns,
 } from "./currency-dropdown-options";
 import { z } from "zod";
+
+interface EditExpenseSearchParams {
+  expenseId: string | null;
+  description: string;
+  currency: string | null;
+  payerId: string | null;
+  date: string | null;
+  items: string | null;
+}
 
 // Zod validation schemas
 const splitShareSchema = z.object({
@@ -90,19 +99,130 @@ function SplitModal({
       ? initialSplits.map((s) => s.userId)
       : members.map((m) => m._id),
   );
+  // For percentage mode, store percentage values separately
+  const [percentages, setPercentages] = useState<Record<string, number>>({});
+  // For shares mode, store share counts separately
+  const [shares, setShares] = useState<Record<string, number>>({});
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Get ordered list of selected users (maintain order for "last user" logic)
+  const orderedSelectedUsers = useMemo(() => {
+    return members
+      .filter((m) => selectedUsers.includes(m._id))
+      .map((m) => m._id);
+  }, [members, selectedUsers]);
+
+  const lastSelectedUserId =
+    orderedSelectedUsers[orderedSelectedUsers.length - 1];
 
   // Initialize splits when split type changes or users are selected
   useEffect(() => {
+    const userCount = orderedSelectedUsers.length;
+    if (userCount === 0) return;
+
     if (splitType === "equal") {
-      const splitAmount = amount / selectedUsers.length;
+      const splitAmount = amount / userCount;
       setSplits(
-        selectedUsers.map((userId) => ({
+        orderedSelectedUsers.map((userId) => ({
           userId: userId as Id<"users">,
           amount: splitAmount,
         })),
       );
+    } else if (splitType === "exact") {
+      // Initialize with zeros for exact mode
+      setSplits((prevSplits) => {
+        return orderedSelectedUsers.map((userId) => {
+          const existing = prevSplits.find((s) => s.userId === userId);
+          return {
+            userId: userId as Id<"users">,
+            amount: existing?.amount ?? 0,
+          };
+        });
+      });
+    } else if (splitType === "percentage") {
+      // Initialize percentages equally
+      const equalPercent = 100 / userCount;
+      setPercentages((prevPercentages) => {
+        const newPercentages: Record<string, number> = {};
+        for (const userId of orderedSelectedUsers) {
+          newPercentages[userId] = prevPercentages[userId] ?? equalPercent;
+        }
+        return newPercentages;
+      });
+      setSplits((prevSplits) =>
+        orderedSelectedUsers.map((userId) => {
+          const existing = prevSplits.find((s) => s.userId === userId);
+          return {
+            userId: userId as Id<"users">,
+            amount: existing?.amount ?? amount / userCount,
+          };
+        }),
+      );
+    } else if (splitType === "shares") {
+      // Initialize with 1 share each
+      setShares((prevShares) => {
+        const newShares: Record<string, number> = {};
+        for (const userId of orderedSelectedUsers) {
+          newShares[userId] = prevShares[userId] ?? 1;
+        }
+        return newShares;
+      });
+      setSplits(
+        orderedSelectedUsers.map((userId) => ({
+          userId: userId as Id<"users">,
+          amount: amount / userCount,
+        })),
+      );
     }
-  }, [splitType, selectedUsers, amount]);
+    setValidationError(null);
+  }, [splitType, amount, orderedSelectedUsers]);
+
+  // Auto-fill last user for exact mode
+  const getExactAmountForUser = (userId: string): number => {
+    if (userId === lastSelectedUserId) {
+      const otherUsersTotal = splits
+        .filter(
+          (s) =>
+            s.userId !== lastSelectedUserId && selectedUsers.includes(s.userId),
+        )
+        .reduce((sum, s) => sum + s.amount, 0);
+      return Math.max(0, amount - otherUsersTotal);
+    }
+    return splits.find((s) => s.userId === userId)?.amount ?? 0;
+  };
+
+  // Auto-fill last user for percentage mode
+  const getPercentageForUser = (userId: string): number => {
+    if (userId === lastSelectedUserId) {
+      const otherUsersTotal = Object.entries(percentages)
+        .filter(
+          ([id]) => id !== lastSelectedUserId && selectedUsers.includes(id),
+        )
+        .reduce((sum, [, pct]) => sum + pct, 0);
+      return Math.max(0, 100 - otherUsersTotal);
+    }
+    return percentages[userId] ?? 0;
+  };
+
+  // Get share count for user
+  const getSharesForUser = (userId: string): number => {
+    return shares[userId] ?? 1;
+  };
+
+  // Calculate total shares
+  const getTotalShares = (): number => {
+    return selectedUsers.reduce(
+      (sum, userId) => sum + getSharesForUser(userId),
+      0,
+    );
+  };
+
+  // Calculate amount based on shares
+  const getAmountFromShares = (userId: string): number => {
+    const totalShares = getTotalShares();
+    if (totalShares === 0) return 0;
+    return (getSharesForUser(userId) / totalShares) * amount;
+  };
 
   const toggleUser = (userId: string) => {
     if (selectedUsers.includes(userId)) {
@@ -110,11 +230,156 @@ function SplitModal({
     } else {
       setSelectedUsers([...selectedUsers, userId]);
     }
+    setValidationError(null);
+  };
+
+  const handleExactAmountChange = (userId: string, newAmount: number) => {
+    if (userId === lastSelectedUserId) return; // Last user is auto-calculated
+    const newSplits = splits.map((s) =>
+      s.userId === userId ? { ...s, amount: newAmount } : s,
+    );
+    if (!splits.find((s) => s.userId === userId)) {
+      newSplits.push({ userId: userId as Id<"users">, amount: newAmount });
+    }
+    setSplits(newSplits);
+    setValidationError(null);
+  };
+
+  const handlePercentageChange = (userId: string, newPercent: number) => {
+    if (userId === lastSelectedUserId) return; // Last user is auto-calculated
+    const newPercentages = { ...percentages, [userId]: newPercent };
+    setPercentages(newPercentages);
+
+    // Update splits based on new percentages
+    const newSplits = selectedUsers.map((uid) => {
+      const pct =
+        uid === lastSelectedUserId
+          ? Math.max(
+              0,
+              100 -
+                Object.entries(newPercentages)
+                  .filter(
+                    ([id]) =>
+                      id !== lastSelectedUserId && selectedUsers.includes(id),
+                  )
+                  .reduce((sum, [, p]) => sum + p, 0),
+            )
+          : (newPercentages[uid] ?? 0);
+      return {
+        userId: uid as Id<"users">,
+        amount: (pct / 100) * amount,
+      };
+    });
+    setSplits(newSplits);
+    setValidationError(null);
+  };
+
+  const handleSharesChange = (userId: string, newShareCount: number) => {
+    const validShares = Math.max(0, Math.floor(newShareCount)); // Shares must be non-negative integers
+    const newShares = { ...shares, [userId]: validShares };
+    setShares(newShares);
+
+    // Update splits based on new shares
+    const totalShares = selectedUsers.reduce(
+      (sum, uid) => sum + (newShares[uid] ?? 1),
+      0,
+    );
+    if (totalShares > 0) {
+      const newSplits = selectedUsers.map((uid) => ({
+        userId: uid as Id<"users">,
+        amount: ((newShares[uid] ?? 1) / totalShares) * amount,
+      }));
+      setSplits(newSplits);
+    }
+    setValidationError(null);
+  };
+
+  // Compute final splits with auto-fill applied
+  const getFinalSplits = (): SplitShare[] => {
+    if (splitType === "equal") {
+      return splits;
+    }
+    if (splitType === "exact") {
+      return selectedUsers.map((userId) => ({
+        userId: userId as Id<"users">,
+        amount: getExactAmountForUser(userId),
+      }));
+    }
+    if (splitType === "percentage") {
+      return selectedUsers.map((userId) => ({
+        userId: userId as Id<"users">,
+        amount: (getPercentageForUser(userId) / 100) * amount,
+      }));
+    }
+    if (splitType === "shares") {
+      return selectedUsers.map((userId) => ({
+        userId: userId as Id<"users">,
+        amount: getAmountFromShares(userId),
+      }));
+    }
+    return splits;
+  };
+
+  const validateSplits = (): boolean => {
+    const finalSplits = getFinalSplits();
+
+    // Check all values are positive
+    const hasNegative = finalSplits.some((s) => s.amount < 0);
+    if (hasNegative) {
+      setValidationError("All amounts must be positive");
+      return false;
+    }
+
+    // Check total matches (with small tolerance for floating point)
+    const total = finalSplits.reduce((sum, s) => sum + s.amount, 0);
+    if (Math.abs(total - amount) > 0.01) {
+      setValidationError(
+        `Total (${total.toFixed(2)}) doesn't match expense amount (${amount.toFixed(2)})`,
+      );
+      return false;
+    }
+
+    // For percentage mode, check percentages add to 100
+    if (splitType === "percentage") {
+      const totalPercent = selectedUsers.reduce(
+        (sum, userId) => sum + getPercentageForUser(userId),
+        0,
+      );
+      if (Math.abs(totalPercent - 100) > 0.01) {
+        setValidationError(
+          `Percentages must add up to 100% (currently ${totalPercent.toFixed(1)}%)`,
+        );
+        return false;
+      }
+    }
+
+    // For shares mode, check total shares is positive
+    if (splitType === "shares") {
+      const totalShares = getTotalShares();
+      if (totalShares <= 0) {
+        setValidationError("Total shares must be greater than 0");
+        return false;
+      }
+    }
+
+    setValidationError(null);
+    return true;
   };
 
   const handleSave = () => {
-    onSave(splits);
+    if (!validateSplits()) return;
+    onSave(getFinalSplits());
   };
+
+  const totalAssigned = getFinalSplits().reduce((sum, s) => sum + s.amount, 0);
+  const totalPercent =
+    splitType === "percentage"
+      ? selectedUsers.reduce(
+          (sum, userId) => sum + getPercentageForUser(userId),
+          0,
+        )
+      : 0;
+  const totalSharesDisplay = splitType === "shares" ? getTotalShares() : 0;
 
   if (!isOpen) return null;
 
@@ -127,7 +392,7 @@ function SplitModal({
               Split Expense
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              {itemName} • {amount} {currency}
+              {itemName} • {amount.toFixed(2)} {currency}
             </p>
           </div>
           <button
@@ -140,7 +405,7 @@ function SplitModal({
         </div>
 
         <div className="p-6 space-y-4">
-          <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
+          <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
             <button
               type="button"
               onClick={() => setSplitType("equal")}
@@ -163,13 +428,34 @@ function SplitModal({
             >
               Exact
             </button>
-            {/* Add more split types later */}
+            <button
+              type="button"
+              onClick={() => setSplitType("percentage")}
+              className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                splitType === "percentage"
+                  ? "bg-white dark:bg-gray-600 shadow text-gray-900 dark:text-white"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+            >
+              %
+            </button>
+            <button
+              type="button"
+              onClick={() => setSplitType("shares")}
+              className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                splitType === "shares"
+                  ? "bg-white dark:bg-gray-600 shadow text-gray-900 dark:text-white"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+            >
+              Shares
+            </button>
           </div>
 
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {members.map((member) => {
               const isSelected = selectedUsers.includes(member._id);
-              const split = splits.find((s) => s.userId === member._id);
+              const isLastUser = member._id === lastSelectedUserId;
 
               return (
                 <div
@@ -193,30 +479,85 @@ function SplitModal({
                     </span>
                   </div>
                   {isSelected && (
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {splitType === "equal" ? (
-                        `${(amount / selectedUsers.length).toFixed(2)} ${currency}`
-                      ) : (
-                        <input
-                          type="number"
-                          value={split?.amount || ""}
-                          onChange={(e) => {
-                            const newAmount = parseFloat(e.target.value) || 0;
-                            const newSplits = splits.map((s) =>
-                              s.userId === member._id
-                                ? { ...s, amount: newAmount }
-                                : s,
-                            );
-                            if (!splits.find((s) => s.userId === member._id)) {
-                              newSplits.push({
-                                userId: member._id,
-                                amount: newAmount,
-                              });
+                    <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1">
+                      {splitType === "equal" && (
+                        <span>
+                          {(amount / selectedUsers.length).toFixed(2)}{" "}
+                          {currency}
+                        </span>
+                      )}
+                      {splitType === "exact" &&
+                        (isLastUser ? (
+                          <span className="text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">
+                            {getExactAmountForUser(member._id).toFixed(2)}{" "}
+                            {currency}
+                          </span>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={getExactAmountForUser(member._id) || ""}
+                              onChange={(e) =>
+                                handleExactAmountChange(
+                                  member._id,
+                                  parseFloat(e.target.value) || 0,
+                                )
+                              }
+                              className="w-20 px-2 py-1 text-right border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                              placeholder="0.00"
+                            />
+                            <span className="text-gray-400 text-xs">
+                              {currency}
+                            </span>
+                          </div>
+                        ))}
+                      {splitType === "percentage" &&
+                        (isLastUser ? (
+                          <span className="text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded">
+                            {getPercentageForUser(member._id).toFixed(1)}%
+                          </span>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="0.1"
+                              value={getPercentageForUser(member._id) || ""}
+                              onChange={(e) =>
+                                handlePercentageChange(
+                                  member._id,
+                                  parseFloat(e.target.value) || 0,
+                                )
+                              }
+                              className="w-16 px-2 py-1 text-right border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                              placeholder="0"
+                            />
+                            <span className="text-gray-400 text-xs">%</span>
+                          </div>
+                        ))}
+                      {splitType === "shares" && (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={getSharesForUser(member._id)}
+                            onChange={(e) =>
+                              handleSharesChange(
+                                member._id,
+                                parseInt(e.target.value, 10) || 0,
+                              )
                             }
-                            setSplits(newSplits);
-                          }}
-                          className="w-20 px-2 py-1 text-right border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
-                        />
+                            className="w-14 px-2 py-1 text-right border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                          />
+                          <span className="text-gray-400 text-xs">
+                            = {getAmountFromShares(member._id).toFixed(2)}{" "}
+                            {currency}
+                          </span>
+                        </div>
                       )}
                     </div>
                   )}
@@ -226,23 +567,59 @@ function SplitModal({
           </div>
 
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex justify-between mb-4 text-sm font-medium">
+            {splitType === "percentage" && (
+              <div className="flex justify-between mb-2 text-sm font-medium">
+                <span className="text-gray-500 dark:text-gray-400">
+                  Total percentage:
+                </span>
+                <span
+                  className={
+                    Math.abs(totalPercent - 100) < 0.01
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
+                  }
+                >
+                  {totalPercent.toFixed(1)}%
+                </span>
+              </div>
+            )}
+            {splitType === "shares" && (
+              <div className="flex justify-between mb-2 text-sm font-medium">
+                <span className="text-gray-500 dark:text-gray-400">
+                  Total shares:
+                </span>
+                <span
+                  className={
+                    totalSharesDisplay > 0
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
+                  }
+                >
+                  {totalSharesDisplay}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between mb-2 text-sm font-medium">
               <span className="text-gray-500 dark:text-gray-400">
                 Total assigned:
               </span>
               <span
                 className={
-                  Math.abs(
-                    splits.reduce((sum, s) => sum + s.amount, 0) - amount,
-                  ) < 0.01
+                  Math.abs(totalAssigned - amount) < 0.01
                     ? "text-green-600 dark:text-green-400"
                     : "text-red-600 dark:text-red-400"
                 }
               >
-                {splits.reduce((sum, s) => sum + s.amount, 0).toFixed(2)} /{" "}
-                {amount} {currency}
+                {totalAssigned.toFixed(2)} / {amount.toFixed(2)} {currency}
               </span>
             </div>
+            {validationError && (
+              <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {validationError}
+                </p>
+              </div>
+            )}
             <div className="flex gap-3">
               <Button
                 onClick={onClose}
@@ -252,7 +629,8 @@ function SplitModal({
               </Button>
               <Button
                 onClick={handleSave}
-                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+                disabled={Math.abs(totalAssigned - amount) > 0.01}
+                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Save Split
               </Button>
@@ -266,18 +644,19 @@ function SplitModal({
 
 export default function EditExpensePage({
   preloadedGroupExpenses,
+  searchParams,
 }: {
   preloadedGroupExpenses: Preloaded<typeof api.groups.getListOfExpenses>;
+  searchParams: EditExpenseSearchParams;
 }) {
   const router = useRouter();
   const params = useParams();
-  const searchParams = useSearchParams();
 
   const telegramUserId = Number(params.id);
   const telegramChatId = Number(params.groupId);
 
   // Check if we're editing an existing expense
-  const expenseId = searchParams.get("expenseId") as Id<"expenses"> | null;
+  const expenseId = searchParams.expenseId as Id<"expenses"> | null;
   const isEditing = !!expenseId;
 
   const addExpense = useMutation(api.groups.addExpense);
@@ -294,29 +673,24 @@ export default function EditExpensePage({
     }) || [];
 
   // Parse URL params for editing
-  const editDescription = searchParams.get("description") || "";
-  const editCurrency = searchParams.get("currency") || selectedCurrency;
-  const editPayerId = searchParams.get("payerId") as Id<"users"> | null;
-  const editDate = searchParams.get("date");
-  const editItemsRaw = searchParams.get("items");
+  const editDescription = searchParams.description || "";
+  const editCurrency = searchParams.currency || selectedCurrency;
+  const editPayerId = searchParams.payerId as Id<"users"> | null;
+  const editDate = searchParams.date;
+  const editItemsRaw = searchParams.items;
   const editItems: SubItem[] = editItemsRaw ? JSON.parse(editItemsRaw) : null;
 
   const [currency, setCurrency] = useState(editCurrency);
   const currencySymbol = currencySigns[currency] || "$";
   const [payer, setPayer] = useState<Doc<"users"> | null>(null);
 
-  const dateInputRef = useRef<HTMLInputElement>(null);
-
-  // Set date from URL params or default to today
-  useEffect(() => {
-    if (dateInputRef.current) {
-      if (editDate) {
-        dateInputRef.current.valueAsDate = new Date(Number(editDate));
-      } else if (!dateInputRef.current.valueAsDate) {
-        dateInputRef.current.valueAsDate = new Date();
-      }
+  // Store date in state to persist across modal open/close
+  const [date, setDate] = useState<string>(() => {
+    if (editDate) {
+      return new Date(Number(editDate)).toISOString().split("T")[0];
     }
-  }, [editDate]);
+    return new Date().toISOString().split("T")[0];
+  });
 
   // Initialize payer from URL params or default to current user
   useEffect(() => {
@@ -563,8 +937,8 @@ export default function EditExpensePage({
                 type="date"
                 id="date"
                 name="date"
-                ref={dateInputRef}
-                // onChange={(e) => setDate(e.target.value)}
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
                 max={new Date().toISOString().split("T")[0]}
                 required
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none [&:user-invalid]:border-red-500 focus:[&:user-invalid]:ring-red-500"

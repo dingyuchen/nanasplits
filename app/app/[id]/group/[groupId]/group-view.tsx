@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import {
   Users,
   Receipt,
@@ -9,12 +10,25 @@ import {
   Wallet,
   Loader2,
   ChevronRight,
+  ArrowRight,
 } from "lucide-react";
 
 import { AddExpenseButton } from "./add-expense-button";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useParams, useRouter } from "next/navigation";
 import MainButton from "../../main-button";
+import { useMemo } from "react";
+
+type MemberBalance = {
+  memberId: Id<"users">;
+  memberName: string;
+  balance: number;
+};
+type CurrencyData = {
+  netBalance: number;
+  memberBalances: Record<string, MemberBalance>;
+};
+type CurrencyBalances = Record<string, CurrencyData>;
 
 export default function GroupView({
   preloadedGroupData,
@@ -34,6 +48,113 @@ export default function GroupView({
   const addUserToGroupMutation = useMutation(api.groups.addUserToGroup);
   const telegramUserId = Number(id);
   const groupIdNumber = Number(groupId);
+
+  // Find current user's internal ID from members
+  const currentUserId = groupData?.members.find(
+    (m) => m.telegramUserId === telegramUserId,
+  )?._id;
+
+  // Calculate balances per currency, with member balances nested inside each currency
+  const currencyBalances = useMemo(() => {
+    if (!groupData || !currentUserId) {
+      return {} as CurrencyBalances;
+    }
+
+    const currencyBalances: CurrencyBalances = {};
+
+    // Helper to get or create currency data
+    const getOrCreateCurrency = (currency: string): CurrencyData => {
+      if (!(currency in currencyBalances)) {
+        currencyBalances[currency] = { netBalance: 0, memberBalances: {} };
+      }
+      return currencyBalances[currency];
+    };
+
+    // Helper to get or create member balance within a currency
+    const getOrCreateMemberBalance = (
+      currencyData: CurrencyData,
+      memberId: Id<"users">,
+    ): MemberBalance => {
+      if (!(memberId in currencyData.memberBalances)) {
+        const member = groupData.members.find((m) => m._id === memberId);
+        currencyData.memberBalances[memberId] = {
+          memberId,
+          memberName: member?.firstName || member?.username || "Unknown",
+          balance: 0,
+        };
+      }
+      return currencyData.memberBalances[memberId];
+    };
+
+    for (const expense of groupData.expenses) {
+      const currency = expense.currency;
+      const payerId = expense.payerId;
+      const isCurrentUserPayer = payerId === currentUserId;
+      const currencyData = getOrCreateCurrency(currency);
+
+      // Process each item and its splits
+      for (const item of expense.items) {
+        for (const split of item.splits) {
+          const splitUserId = split.userId;
+          const amount = split.amount;
+
+          if (isCurrentUserPayer) {
+            // Current user paid - others owe current user their split amounts
+            if (splitUserId !== currentUserId) {
+              // Other person owes current user
+              currencyData.netBalance += amount;
+              const memberBalance = getOrCreateMemberBalance(
+                currencyData,
+                splitUserId,
+              );
+              memberBalance.balance += amount;
+            }
+          } else {
+            // Someone else paid
+            if (splitUserId === currentUserId) {
+              // Current user owes the payer
+              currencyData.netBalance -= amount;
+              const memberBalance = getOrCreateMemberBalance(
+                currencyData,
+                payerId,
+              );
+              memberBalance.balance -= amount;
+            }
+          }
+        }
+      }
+    }
+
+    return currencyBalances;
+  }, [groupData, currentUserId]);
+
+  // Calculate user's balance for an expense
+  // Positive = user is owed money, Negative = user owes money
+  const calculateUserBalance = (expense: (typeof expenses)[number]) => {
+    if (!currentUserId) return 0;
+
+    const totalAmount = expense.items.reduce(
+      (sum, item) => sum + item.amount,
+      0,
+    );
+
+    // Calculate what the current user owes (their share in splits)
+    let userOwes = 0;
+    for (const item of expense.items) {
+      for (const split of item.splits) {
+        if (split.userId === currentUserId) {
+          userOwes += split.amount;
+        }
+      }
+    }
+
+    // If user is the payer, they paid the total and are owed by others
+    const isPayer = expense.payerId === currentUserId;
+    const userPaid = isPayer ? totalAmount : 0;
+
+    // Balance = what they paid - what they owe
+    return userPaid - userOwes;
+  };
 
   const handleEditExpense = (expense: (typeof expenses)[number]) => {
     // Build URL params with expense data
@@ -60,14 +181,7 @@ export default function GroupView({
     );
   }
 
-  const {
-    title,
-    members,
-    expenses,
-    totalExpenses,
-    memberCount,
-    defaultCurrency,
-  } = groupData;
+  const { title, members, expenses, memberCount, defaultCurrency } = groupData;
   const currencyCode = defaultCurrency || "USD";
 
   const formatCurrency = (amount: number) => {
@@ -113,63 +227,129 @@ export default function GroupView({
             Your Balance
           </h2>
           <div className="space-y-4">
-            <div
-              className={`${
-                totalExpenses >= 0
-                  ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
-                  : "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800"
-              } border rounded-xl p-4 flex items-center justify-between`}
-            >
-              <div>
-                <span
-                  className={`text-sm font-medium block mb-1 ${
-                    totalExpenses >= 0
-                      ? "text-blue-700 dark:text-blue-300"
-                      : "text-orange-700 dark:text-orange-300"
-                  }`}
-                >
-                  Net Balance
-                </span>
-                <p
-                  className={`text-3xl font-bold ${
-                    totalExpenses >= 0
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-orange-600 dark:text-orange-400"
-                  }`}
-                >
-                  {totalExpenses >= 0 ? "+" : "-"}
-                  {formatCurrency(Math.abs(totalExpenses))}
-                </p>
+            {/* Per-currency balances with nested member balances */}
+            {Object.keys(currencyBalances).length === 0 ? (
+              <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                <p>No expenses yet</p>
               </div>
-              <div
-                className={`p-3 rounded-full ${totalExpenses >= 0 ? "bg-blue-100 dark:bg-blue-800/30 text-blue-600" : "bg-orange-100 dark:bg-orange-800/30 text-orange-600"}`}
-              >
-                {totalExpenses >= 0 ? (
-                  <TrendingUp className="w-6 h-6" />
-                ) : (
-                  <TrendingDown className="w-6 h-6" />
+            ) : (
+              <div className="space-y-3">
+                {Object.entries(currencyBalances).map(
+                  ([currency, currencyData]) => {
+                    const isPositive = currencyData.netBalance >= 0;
+                    const memberBalanceEntries = Object.values(
+                      currencyData.memberBalances,
+                    ).filter((m) => m.balance !== 0);
+
+                    return (
+                      <div
+                        key={currency}
+                        className={`${
+                          isPositive
+                            ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                            : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+                        } border rounded-xl p-4`}
+                      >
+                        {/* Currency header with net balance */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <span
+                              className={`text-sm font-medium block mb-1 ${
+                                isPositive
+                                  ? "text-green-700 dark:text-green-300"
+                                  : "text-red-700 dark:text-red-300"
+                              }`}
+                            >
+                              {currency}
+                            </span>
+                            <p
+                              className={`text-2xl font-bold ${
+                                isPositive
+                                  ? "text-green-600 dark:text-green-400"
+                                  : "text-red-600 dark:text-red-400"
+                              }`}
+                            >
+                              {isPositive ? "+" : ""}
+                              {new Intl.NumberFormat("en-US", {
+                                style: "currency",
+                                currency: currency,
+                              }).format(currencyData.netBalance)}
+                            </p>
+                          </div>
+                          <div
+                            className={`p-3 rounded-full ${
+                              isPositive
+                                ? "bg-green-100 dark:bg-green-800/30 text-green-600"
+                                : "bg-red-100 dark:bg-red-800/30 text-red-600"
+                            }`}
+                          >
+                            {isPositive ? (
+                              <TrendingUp className="w-6 h-6" />
+                            ) : (
+                              <TrendingDown className="w-6 h-6" />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Member balances for this currency */}
+                        {memberBalanceEntries.length > 0 && (
+                          <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-2 space-y-2">
+                            {memberBalanceEntries.map((member) => {
+                              const isMemberPositive = member.balance > 0;
+                              return (
+                                <div
+                                  key={member.memberId}
+                                  className="flex items-center justify-between"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-full bg-white/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 flex items-center justify-center text-xs font-bold">
+                                      {member.memberName[0]?.toUpperCase() ||
+                                        "?"}
+                                    </div>
+                                    <span className="text-sm text-gray-700 dark:text-gray-200">
+                                      {member.memberName}
+                                    </span>
+                                    <div className="flex items-center gap-1 text-xs">
+                                      {isMemberPositive ? (
+                                        <>
+                                          <span className="text-gray-500 dark:text-gray-400">
+                                            owes you
+                                          </span>
+                                          <ArrowRight className="w-3 h-3 text-green-500" />
+                                        </>
+                                      ) : (
+                                        <>
+                                          <span className="text-gray-500 dark:text-gray-400">
+                                            you owe
+                                          </span>
+                                          <ArrowRight className="w-3 h-3 text-red-500" />
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <span
+                                    className={`text-sm font-semibold ${
+                                      isMemberPositive
+                                        ? "text-green-600 dark:text-green-400"
+                                        : "text-red-600 dark:text-red-400"
+                                    }`}
+                                  >
+                                    {new Intl.NumberFormat("en-US", {
+                                      style: "currency",
+                                      currency: currency,
+                                    }).format(Math.abs(member.balance))}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  },
                 )}
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                  Total Spent
-                </p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {formatCurrency(totalExpenses)}
-                </p>
-              </div>
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                  Your Share
-                </p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {formatCurrency(totalExpenses / memberCount)}
-                </p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -221,16 +401,54 @@ export default function GroupView({
             ) : (
               expenses.map((expense) => {
                 const isMe = expense.payerTelegramUserId === telegramUserId;
+                const balance = calculateUserBalance(expense);
+                const isInvolved = balance !== 0;
+
+                const totalAmount = expense.items.reduce(
+                  (sum, item) => sum + item.amount,
+                  0,
+                );
+
+                // Determine styling based on balance
+                const getBalanceStyles = () => {
+                  if (!isInvolved) {
+                    return {
+                      iconBg:
+                        "bg-gray-100 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500",
+                      amountText: "text-gray-900 dark:text-white",
+                      amountPrefix: "",
+                    };
+                  }
+                  if (balance > 0) {
+                    return {
+                      iconBg:
+                        "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400",
+                      amountText: "text-green-600 dark:text-green-400",
+                      amountPrefix: "+",
+                    };
+                  }
+                  // balance < 0
+                  return {
+                    iconBg:
+                      "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400",
+                    amountText: "text-red-600 dark:text-red-400",
+                    amountPrefix: "-",
+                  };
+                };
+
+                const styles = getBalanceStyles();
 
                 return (
                   <button
                     type="button"
                     key={expense._id}
                     onClick={() => handleEditExpense(expense)}
-                    className="w-full bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer"
+                    className={`w-full bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer ${!isInvolved ? "opacity-60" : ""}`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center text-green-600 dark:text-green-400">
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center ${styles.iconBg}`}
+                      >
                         <Wallet className="w-5 h-5" />
                       </div>
                       <div className="text-left">
@@ -244,14 +462,19 @@ export default function GroupView({
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-gray-900 dark:text-white">
-                        {formatCurrency(
-                          expense.items.reduce(
-                            (sum, item) => sum + item.amount,
-                            0,
-                          ),
+                      <div className="text-right">
+                        <span className={`font-bold ${styles.amountText}`}>
+                          {styles.amountPrefix}
+                          {formatCurrency(
+                            isInvolved ? Math.abs(balance) : totalAmount,
+                          )}
+                        </span>
+                        {isInvolved && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatCurrency(totalAmount)}
+                          </p>
                         )}
-                      </span>
+                      </div>
                       <ChevronRight className="w-4 h-4 text-gray-400" />
                     </div>
                   </button>

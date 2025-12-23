@@ -19,12 +19,12 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 - [x] expense validation
 - [x] expense date picker
 - [x] edit splits
-- [ ] split by types
-- [ ] split validation
-- [ ] Tally amounts correctly, tally different currencies separately
-    - [ ] all tallies are grouped by currency
-    - [ ] incoming and outgoing per member != self, per currency
-    - [ ] aggregate per currency for total incoming, outgoing
+- [x] split by types
+- [x] split validation
+- [x] Tally amounts correctly, tally different currencies separately
+    - [x] all tallies are grouped by currency
+    - [x] incoming and outgoing per member != self, per currency
+    - [x] aggregate per currency for total incoming, outgoing
 - [ ] Fix `app/[id]` page
 - [ ] Settle up per group
     - [ ] aggregate tally for total incoming, outgoing
