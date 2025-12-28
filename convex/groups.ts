@@ -163,10 +163,11 @@ export const isUserMemberOfGroup = protectedQuery({
 });
 
 /**
- * Get overall statistics for a user
- * Returns summary of expenses, debts, and pending splits
+ * Get dashboard data for a user
+ * Returns overall stats, groups with pending splits, and balances by currency
+ * All data is calculated in a single pass for efficiency
  */
-export const getOverallStats = protectedQuery({
+export const getDashboardData = protectedQuery({
   args: {
     userId: v.number(),
   },
@@ -176,68 +177,202 @@ export const getOverallStats = protectedQuery({
     if (!user || user.telegramUserId !== args.userId) {
       throw new Error("User mismatch");
     }
+
+    const currentUserId = ctx.userId;
+
+    // Get all groups the user is a member of
+    const memberships = await ctx.db
+      .query("group_members")
+      .withIndex("by_user_id", (q) => q.eq("userId", currentUserId))
+      .collect();
+
+    // Overall stats
+    let totalPendingExpenses = 0;
+
+    // Currency balances structure
+    const currencyBalances: Record<
+      string,
+      {
+        netBalance: number;
+        memberBalances: Record<
+          string,
+          { memberId: Id<"users">; memberName: string; balance: number }
+        >;
+      }
+    > = {};
+
+    // Cache for user lookups
+    const userCache: Record<string, { firstName?: string; username?: string }> =
+      {};
+
+    const getUser = async (userId: Id<"users">) => {
+      if (!(userId in userCache)) {
+        const u = await ctx.db.get(userId);
+        userCache[userId] = u || {};
+      }
+      return userCache[userId];
+    };
+
+    // Helper to get or create currency data
+    const getOrCreateCurrency = (currency: string) => {
+      if (!(currency in currencyBalances)) {
+        currencyBalances[currency] = { netBalance: 0, memberBalances: {} };
+      }
+      return currencyBalances[currency];
+    };
+
+    // Helper to get or create member balance within a currency
+    const getOrCreateMemberBalance = async (
+      currencyData: (typeof currencyBalances)[string],
+      memberId: Id<"users">,
+    ) => {
+      if (!(memberId in currencyData.memberBalances)) {
+        const member = await getUser(memberId);
+        currencyData.memberBalances[memberId] = {
+          memberId,
+          memberName: member?.firstName || member?.username || "Unknown",
+          balance: 0,
+        };
+      }
+      return currencyData.memberBalances[memberId];
+    };
+
+    // Groups with pending splits
+    const groupsWithStats: Array<{
+      _id: Id<"groups">;
+      name: string;
+      telegramChatId: number;
+      memberIds: Id<"users">[];
+      stats: {
+        currency: string;
+        totalOwed: number;
+        totalOwedToMe: number;
+        netAmount: number;
+      }[];
+    }> = [];
+
+    // Fetch all group data in parallel
+    const groupDataResults = await Promise.all(
+      memberships.map(async (membership) => {
+        const group = await ctx.db.get(membership.groupId);
+        if (!group) return null;
+
+        // Fetch members and expenses in parallel for each group
+        const [groupMembers, expenses] = await Promise.all([
+          ctx.db
+            .query("group_members")
+            .withIndex("by_group_id", (q) => q.eq("groupId", group._id))
+            .collect(),
+          ctx.db
+            .query("expenses")
+            .withIndex("by_group_id", (q) => q.eq("groupId", group._id))
+            .collect(),
+        ]);
+
+        return { group, groupMembers, expenses };
+      }),
+    );
+
+    // Process all groups (sequential to update shared state)
+    for (const groupData of groupDataResults) {
+      if (!groupData) continue;
+
+      const { group, groupMembers, expenses } = groupData;
+
+      // Track stats per currency for this group
+      const groupCurrencyStats: Record<
+        string,
+        { totalOwed: number; totalOwedToMe: number }
+      > = {};
+
+      const getOrCreateGroupCurrencyStats = (currency: string) => {
+        if (!(currency in groupCurrencyStats)) {
+          groupCurrencyStats[currency] = { totalOwed: 0, totalOwedToMe: 0 };
+        }
+        return groupCurrencyStats[currency];
+      };
+
+      for (const expense of expenses) {
+        const isCurrentUserPayer = expense.payerId === currentUserId;
+        const currency = expense.currency;
+        const currencyData = getOrCreateCurrency(currency);
+        const groupStats = getOrCreateGroupCurrencyStats(currency);
+
+        for (const item of expense.items) {
+          for (const split of item.splits) {
+            const splitUserId = split.userId;
+            const amount = split.amount;
+
+            if (isCurrentUserPayer) {
+              // Current user paid - others owe current user
+              if (splitUserId !== currentUserId) {
+                groupStats.totalOwedToMe += amount;
+
+                // Update currency balance
+                currencyData.netBalance += amount;
+                const memberBalance = await getOrCreateMemberBalance(
+                  currencyData,
+                  splitUserId,
+                );
+                memberBalance.balance += amount;
+              }
+            } else if (splitUserId === currentUserId) {
+              // Current user owes the payer
+              groupStats.totalOwed += amount;
+
+              // Update currency balance
+              currencyData.netBalance -= amount;
+              const memberBalance = await getOrCreateMemberBalance(
+                currencyData,
+                expense.payerId,
+              );
+              memberBalance.balance -= amount;
+            }
+          }
+        }
+      }
+
+      // Convert group currency stats to array and filter non-zero balances
+      const stats = Object.entries(groupCurrencyStats)
+        .map(([currency, { totalOwed, totalOwedToMe }]) => ({
+          currency,
+          totalOwed,
+          totalOwedToMe,
+          netAmount: totalOwedToMe - totalOwed,
+        }))
+        .filter((s) => s.netAmount !== 0);
+
+      // Add group to list if it has pending splits in any currency
+      if (stats.length > 0) {
+        groupsWithStats.push({
+          _id: group._id,
+          name: group.title,
+          telegramChatId: group.telegramChatId,
+          memberIds: groupMembers.map((m) => m.userId),
+          stats,
+        });
+      }
+    }
+
+    // Convert currency balances to array format
+    const balancesByCurrency = Object.entries(currencyBalances).map(
+      ([currency, data]) => ({
+        currency,
+        netBalance: data.netBalance,
+        memberBalances: Object.values(data.memberBalances).filter(
+          (m) => m.balance !== 0,
+        ),
+      }),
+    );
 
     return {
-      totalOwed: 125.5,
-      totalOwedToMe: 85.25,
-      netAmount: -40.25, // negative means user owes more than owed to them
-      totalPendingExpenses: 7,
-      groupsWithPendingSplits: 3,
+      stats: {
+        totalPendingExpenses,
+        groupsWithPendingSplits: groupsWithStats.length,
+      },
+      groupsWithPendingSplits: groupsWithStats,
+      balancesByCurrency,
     };
-  },
-});
-
-/**
- * Get groups with pending splits for a user
- * Returns list of groups where user has pending expense splits
- */
-export const getGroupsWithPendingSplits = protectedQuery({
-  args: {
-    userId: v.number(),
-  },
-  handler: async (ctx, args) => {
-    // Check user match
-    const user = await ctx.db.get(ctx.userId);
-    if (!user || user.telegramUserId !== args.userId) {
-      throw new Error("User mismatch");
-    }
-
-    // Stub: Return hardcoded dummy data
-    return [
-      {
-        _id: "group1" as any,
-        name: "Weekend Trip",
-        memberIds: ["user1", "user2", "user3", "user4"],
-        stats: {
-          pendingSplitsCount: 3,
-          totalOwed: 75.5,
-          totalOwedToMe: 45.25,
-          netAmount: -30.25,
-        },
-      },
-      {
-        _id: "group2" as any,
-        name: "Apartment Rent",
-        memberIds: ["user1", "user2", "user3"],
-        stats: {
-          pendingSplitsCount: 2,
-          totalOwed: 40.0,
-          totalOwedToMe: 30.0,
-          netAmount: -10.0,
-        },
-      },
-      {
-        _id: "group3" as any,
-        name: "Office Lunch",
-        memberIds: ["user1", "user2", "user3", "user4", "user5"],
-        stats: {
-          pendingSplitsCount: 2,
-          totalOwed: 10.0,
-          totalOwedToMe: 10.0,
-          netAmount: 0,
-        },
-      },
-    ];
   },
 });
 

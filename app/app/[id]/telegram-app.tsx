@@ -3,9 +3,8 @@
 import { type Preloaded, usePreloadedQuery } from "convex/react";
 import {
   AlertCircle,
-  DollarSign,
+  ArrowRight,
   Loader2,
-  Receipt,
   TrendingDown,
   TrendingUp,
   Users,
@@ -14,23 +13,16 @@ import type { api } from "@/convex/_generated/api";
 import Link from "next/link";
 
 export default function TelegramApp({
-  preloaded,
-  preloadedGroupsWithPendingSplits,
+  preloadedDashboard,
+  userId,
 }: {
-  preloaded: Preloaded<typeof api.groups.getOverallStats>;
-  preloadedGroupsWithPendingSplits: Preloaded<
-    typeof api.groups.getGroupsWithPendingSplits
-  >;
+  preloadedDashboard: Preloaded<typeof api.groups.getDashboardData>;
+  userId: number;
 }) {
-  // Fetch overall stats
-  const stats = usePreloadedQuery(preloaded);
+  // Fetch all dashboard data from single query
+  const dashboardData = usePreloadedQuery(preloadedDashboard);
 
-  // Fetch groups with pending splits
-  const groupsWithPendingSplits = usePreloadedQuery(
-    preloadedGroupsWithPendingSplits,
-  );
-
-  if (stats === undefined || groupsWithPendingSplits === undefined) {
+  if (dashboardData === undefined) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-6">
         <div className="text-center">
@@ -41,10 +33,12 @@ export default function TelegramApp({
     );
   }
 
-  const formatCurrency = (amount: number) => {
+  const { stats, groupsWithPendingSplits, balancesByCurrency } = dashboardData;
+
+  const formatCurrencyAmount = (amount: number, currency: string) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
+      currency: currency,
     }).format(amount);
   };
 
@@ -60,89 +54,141 @@ export default function TelegramApp({
       <div className="px-6 -mt-8">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Overall Statistics
+            Your Balances
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-red-700 dark:text-red-300">
-                  You Owe
-                </span>
-                <TrendingDown className="w-5 h-5 text-red-500" />
+
+          {/* Per-currency balances with nested member balances */}
+          <div className="space-y-4 mb-6">
+            {balancesByCurrency.length === 0 ? (
+              <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                <p>No pending balances</p>
               </div>
-              <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-                {formatCurrency(stats.totalOwed)}
-              </p>
-            </div>
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                  Owed to You
-                </span>
-                <TrendingUp className="w-5 h-5 text-green-500" />
+            ) : (
+              <div className="space-y-3">
+                {balancesByCurrency.map((currencyData) => {
+                  const isPositive = currencyData.netBalance >= 0;
+
+                  return (
+                    <div
+                      key={currencyData.currency}
+                      className={`${
+                        isPositive
+                          ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                          : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+                      } border rounded-xl p-4`}
+                    >
+                      {/* Currency header with net balance */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <span
+                            className={`text-sm font-medium block mb-1 ${
+                              isPositive
+                                ? "text-green-700 dark:text-green-300"
+                                : "text-red-700 dark:text-red-300"
+                            }`}
+                          >
+                            {currencyData.currency}
+                          </span>
+                          <p
+                            className={`text-2xl font-bold ${
+                              isPositive
+                                ? "text-green-600 dark:text-green-400"
+                                : "text-red-600 dark:text-red-400"
+                            }`}
+                          >
+                            {isPositive ? "+" : ""}
+                            {formatCurrencyAmount(
+                              currencyData.netBalance,
+                              currencyData.currency,
+                            )}
+                          </p>
+                        </div>
+                        <div
+                          className={`p-3 rounded-full ${
+                            isPositive
+                              ? "bg-green-100 dark:bg-green-800/30 text-green-600"
+                              : "bg-red-100 dark:bg-red-800/30 text-red-600"
+                          }`}
+                        >
+                          {isPositive ? (
+                            <TrendingUp className="w-6 h-6" />
+                          ) : (
+                            <TrendingDown className="w-6 h-6" />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Member balances for this currency */}
+                      {currencyData.memberBalances.length > 0 && (
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-3 mt-2 space-y-2">
+                          {currencyData.memberBalances.map((member) => {
+                            const isMemberPositive = member.balance > 0;
+                            return (
+                              <div
+                                key={member.memberId}
+                                className="flex items-center justify-between"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-full bg-white/50 dark:bg-gray-800/50 text-gray-600 dark:text-gray-300 flex items-center justify-center text-xs font-bold">
+                                    {member.memberName[0]?.toUpperCase() || "?"}
+                                  </div>
+                                  <span className="text-sm text-gray-700 dark:text-gray-200">
+                                    {member.memberName}
+                                  </span>
+                                  <div className="flex items-center gap-1 text-xs">
+                                    {isMemberPositive ? (
+                                      <>
+                                        <span className="text-gray-500 dark:text-gray-400">
+                                          owes you
+                                        </span>
+                                        <ArrowRight className="w-3 h-3 text-green-500" />
+                                      </>
+                                    ) : (
+                                      <>
+                                        <span className="text-gray-500 dark:text-gray-400">
+                                          you owe
+                                        </span>
+                                        <ArrowRight className="w-3 h-3 text-red-500" />
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                                <span
+                                  className={`text-sm font-semibold ${
+                                    isMemberPositive
+                                      ? "text-green-600 dark:text-green-400"
+                                      : "text-red-600 dark:text-red-400"
+                                  }`}
+                                >
+                                  {formatCurrencyAmount(
+                                    Math.abs(member.balance),
+                                    currencyData.currency,
+                                  )}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {formatCurrency(stats.totalOwedToMe)}
-              </p>
-            </div>
-            <div
-              className={`${
-                stats.netAmount >= 0
-                  ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
-                  : "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800"
-              } border rounded-xl p-4`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span
-                  className={`text-sm font-medium ${
-                    stats.netAmount >= 0
-                      ? "text-blue-700 dark:text-blue-300"
-                      : "text-orange-700 dark:text-orange-300"
-                  }`}
-                >
-                  Net Balance
-                </span>
-                <DollarSign
-                  className={`w-5 h-5 ${
-                    stats.netAmount >= 0 ? "text-blue-500" : "text-orange-500"
-                  }`}
-                />
-              </div>
-              <p
-                className={`text-2xl font-bold ${
-                  stats.netAmount >= 0
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-orange-600 dark:text-orange-400"
-                }`}
-              >
-                {formatCurrency(Math.abs(stats.netAmount))}
-                {stats.netAmount >= 0 ? " ↑" : " ↓"}
-              </p>
-            </div>
+            )}
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Receipt className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Pending Expenses
-                </span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {stats.totalPendingExpenses}
-              </p>
+
+          {/* Summary stats */}
+
+          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 grid grid-cols-2 gap-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Active Groups
+              </span>
             </div>
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Active Groups
-                </span>
-              </div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {stats.groupsWithPendingSplits}
-              </p>
-            </div>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white text-right">
+              {stats.groupsWithPendingSplits}
+            </p>
           </div>
         </div>
 
@@ -150,65 +196,72 @@ export default function TelegramApp({
         {groupsWithPendingSplits.length > 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Groups with Pending Splits
+              Active Groups
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-2">
               {groupsWithPendingSplits.map((group) => (
-                <div
+                <Link
+                  href={`/app/${userId}/group/${group.telegramChatId}`}
                   key={group._id}
-                  className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all"
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                        {group.name}
-                      </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {group.memberIds.length} members
-                      </p>
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                          {group.name}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {group.memberIds.length} members
+                        </p>
+                      </div>
                     </div>
-                    {group.stats.pendingSplitsCount > 0 && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                        {group.stats.pendingSplitsCount} pending
-                      </span>
-                    )}
+                    <div className="space-y-2">
+                      {group.stats.map((currencyStats) => {
+                        const isPositive = currencyStats.netAmount >= 0;
+                        return (
+                          <div
+                            key={currencyStats.currency}
+                            className={`flex items-center justify-between rounded-lg p-3 ${
+                              isPositive
+                                ? "bg-green-50 dark:bg-green-900/20"
+                                : "bg-red-50 dark:bg-red-900/20"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              {isPositive ? (
+                                <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+                              ) : (
+                                <TrendingDown className="w-4 h-4 text-red-600 dark:text-red-400" />
+                              )}
+                              <span
+                                className={`text-sm font-medium ${
+                                  isPositive
+                                    ? "text-green-700 dark:text-green-300"
+                                    : "text-red-700 dark:text-red-300"
+                                }`}
+                              >
+                                {currencyStats.currency}
+                              </span>
+                            </div>
+                            <p
+                              className={`text-lg font-semibold ${
+                                isPositive
+                                  ? "text-green-600 dark:text-green-400"
+                                  : "text-red-600 dark:text-red-400"
+                              }`}
+                            >
+                              {isPositive ? "+" : ""}
+                              {formatCurrencyAmount(
+                                currencyStats.netAmount,
+                                currencyStats.currency,
+                              )}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
-                      <p className="text-xs text-red-700 dark:text-red-300 mb-1">
-                        You Owe
-                      </p>
-                      <p className="text-lg font-semibold text-red-600 dark:text-red-400">
-                        {formatCurrency(group.stats.totalOwed)}
-                      </p>
-                    </div>
-                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
-                      <p className="text-xs text-green-700 dark:text-green-300 mb-1">
-                        Owed to You
-                      </p>
-                      <p className="text-lg font-semibold text-green-600 dark:text-green-400">
-                        {formatCurrency(group.stats.totalOwedToMe)}
-                      </p>
-                    </div>
-                  </div>
-                  {group.stats.netAmount !== 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Net:</span>{" "}
-                        <span
-                          className={
-                            group.stats.netAmount >= 0
-                              ? "text-green-600 dark:text-green-400"
-                              : "text-red-600 dark:text-red-400"
-                          }
-                        >
-                          {group.stats.netAmount >= 0 ? "+" : "-"}
-                          {formatCurrency(Math.abs(group.stats.netAmount))}
-                        </span>
-                      </p>
-                    </div>
-                  )}
-                </div>
+                </Link>
               ))}
             </div>
           </div>

@@ -12,25 +12,13 @@ async function TelegramPage({ params }: { params: Promise<{ id: string }> }) {
     throw new Error("Invalid user ID");
   }
   const token = await convexAuthNextjsToken();
-  const preloaded = await preloadQuery(
-    api.groups.getOverallStats,
-    {
-      userId: userId,
-    },
-    { token },
-  );
-  const preloadedGroupsWithPendingSplits = await preloadQuery(
-    api.groups.getGroupsWithPendingSplits,
-    {
-      userId: userId,
-    },
+  const preloadedDashboard = await preloadQuery(
+    api.groups.getDashboardData,
+    { userId },
     { token },
   );
   return (
-    <TelegramApp
-      preloaded={preloaded}
-      preloadedGroupsWithPendingSplits={preloadedGroupsWithPendingSplits}
-    />
+    <TelegramApp preloadedDashboard={preloadedDashboard} userId={userId} />
   );
 }
 

@@ -494,16 +494,10 @@ function SplitModal({
                           </span>
                         ) : (
                           <div className="flex items-center gap-1">
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={getExactAmountForUser(member._id) || ""}
-                              onChange={(e) =>
-                                handleExactAmountChange(
-                                  member._id,
-                                  parseFloat(e.target.value) || 0,
-                                )
+                            <CurrencyInput
+                              value={getExactAmountForUser(member._id)}
+                              onValueChange={(val) =>
+                                handleExactAmountChange(member._id, val)
                               }
                               className="w-20 px-2 py-1 text-right border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
                               placeholder="0.00"
