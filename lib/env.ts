@@ -7,6 +7,7 @@ export const env = createEnv({
   server: {
     CONVEX_DEPLOY_KEY: z.string(),
     TELEGRAM_BOT_TOKEN: z.string().min(1),
+    TELEGRAM_BOT_SECRET_TOKEN: z.string().min(1),
   },
 
   /**

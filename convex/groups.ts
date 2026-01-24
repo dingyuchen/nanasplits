@@ -186,9 +186,6 @@ export const getDashboardData = protectedQuery({
       .withIndex("by_user_id", (q) => q.eq("userId", currentUserId))
       .collect();
 
-    // Overall stats
-    let totalPendingExpenses = 0;
-
     // Currency balances structure
     const currencyBalances: Record<
       string,
@@ -367,7 +364,6 @@ export const getDashboardData = protectedQuery({
 
     return {
       stats: {
-        totalPendingExpenses,
         groupsWithPendingSplits: groupsWithStats.length,
       },
       groupsWithPendingSplits: groupsWithStats,
@@ -580,6 +576,91 @@ export const updateGroupSettings = protectedMutation({
     });
 
     return group._id;
+  },
+});
+
+/**
+ * Add members to a group by their Telegram info
+ * Called by the bot when users are mentioned in the /add command
+ * Not protected because it is called by the bot itself
+ */
+export const addMembersToGroupByTelegram = mutation({
+  args: {
+    telegramChatId: v.number(),
+    members: v.array(
+      v.object({
+        telegramUserId: v.number(),
+        username: v.optional(v.string()),
+        firstName: v.optional(v.string()),
+        lastName: v.optional(v.string()),
+      }),
+    ),
+  },
+  handler: async (ctx, args) => {
+    // Find the group by Telegram chat ID
+    const group = await ctx.db
+      .query("groups")
+      .withIndex("by_telegram_chat_id", (q) =>
+        q.eq("telegramChatId", args.telegramChatId),
+      )
+      .first();
+
+    if (!group) {
+      throw new Error("Group not found");
+    }
+
+    const addedMembers: string[] = [];
+    const alreadyMembers: string[] = [];
+
+    for (const member of args.members) {
+      // Find or create the user by Telegram user ID
+      let user = await ctx.db
+        .query("users")
+        .withIndex("by_telegram_user_id", (q) =>
+          q.eq("telegramUserId", member.telegramUserId),
+        )
+        .first();
+
+      if (!user) {
+        // Create the user
+        const userId = await ctx.db.insert("users", {
+          telegramUserId: member.telegramUserId,
+          username: member.username,
+          firstName: member.firstName,
+          lastName: member.lastName,
+        });
+        user = await ctx.db.get(userId);
+      }
+
+      if (!user) {
+        continue;
+      }
+
+      // Check if the user is already a member of the group
+      const existingMembership = await ctx.db
+        .query("group_members")
+        .withIndex("by_group_id", (q) => q.eq("groupId", group._id))
+        .filter((q) => q.eq(q.field("userId"), user._id))
+        .first();
+
+      const displayName =
+        member.firstName || member.username || `User ${member.telegramUserId}`;
+
+      if (existingMembership) {
+        alreadyMembers.push(displayName);
+        continue;
+      }
+
+      // Add the user to the group
+      await ctx.db.insert("group_members", {
+        groupId: group._id,
+        userId: user._id,
+      });
+
+      addedMembers.push(displayName);
+    }
+
+    return { addedMembers, alreadyMembers };
   },
 });
 

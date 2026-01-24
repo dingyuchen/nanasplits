@@ -15,6 +15,9 @@ const response = await fetch(
   `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/setWebhook?url=${webhookUrl}`,
   {
     method: "POST",
+    body: JSON.stringify({
+      secret_token: env.TELEGRAM_BOT_SECRET_TOKEN,
+    }),
   },
 );
 
