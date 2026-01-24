@@ -166,6 +166,7 @@ bot.on("my_chat_member", async (context) => {
 await bot.init();
 
 export const POST = async (req: Request) => {
+  console.log("req", req);
   const secretToken = req.headers.get("x-telegram-bot-api-secret-token");
   if (secretToken !== env.TELEGRAM_BOT_SECRET_TOKEN) {
     return new Response("Unauthorized", { status: 401 });
