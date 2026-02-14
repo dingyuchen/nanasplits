@@ -183,15 +183,7 @@ export default function GroupView({
     );
   }
 
-  const { title, members, expenses, memberCount, defaultCurrency } = groupData;
-  const currencyCode = defaultCurrency || "USD";
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currencyCode,
-    }).format(amount);
-  };
+  const { title, members, expenses, memberCount } = groupData;
 
   const formatDate = (timestamp: number) => {
     return new Intl.DateTimeFormat("en-US", {
@@ -444,6 +436,13 @@ export default function GroupView({
                     amountText: "text-red-600 dark:text-red-400",
                     amountPrefix: "-",
                   };
+                };
+
+                const formatCurrency = (amount: number) => {
+                  return new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: expense.currency,
+                  }).format(amount);
                 };
 
                 const styles = getBalanceStyles();
