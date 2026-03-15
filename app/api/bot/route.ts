@@ -1,7 +1,7 @@
-import { blockquote, bold, Bot, format, InlineKeyboard, italic } from "gramio";
-import { env } from "@/lib/env";
 import { ConvexHttpClient } from "convex/browser";
+import { Bot, blockquote, bold, format, InlineKeyboard, italic } from "gramio";
 import { api } from "@/convex/_generated/api";
+import { env } from "@/lib/env";
 
 const convex = new ConvexHttpClient(env.NEXT_PUBLIC_CONVEX_URL);
 const message = format`
@@ -61,67 +61,6 @@ const bot = new Bot(env.TELEGRAM_BOT_TOKEN).command(
 //   console.log("context", context);
 //   return context.send(context.text ?? "");
 // });
-
-bot.command("add", async (context) => {
-  if (context.chat.type === "private") {
-    return context.send(
-      "This command can only be used in group chats. Add me to a group first!",
-    );
-  }
-  console.log("context", context);
-
-  // Extract user info from text_mention entities (these have full user data)
-  const mentionedUsers = context.entities
-    ?.filter((entity) => entity.type === "text_mention" && entity.user)
-    .map((entity) => {
-      const user = entity.user;
-      return user
-        ? {
-            telegramUserId: user.id,
-            username: user.username,
-            firstName: user.firstName,
-            lastName: user.lastName,
-          }
-        : null;
-    })
-    .filter((user) => user !== null);
-
-  if (!mentionedUsers || mentionedUsers.length === 0) {
-    return context.send(
-      "Please mention users to add to the group.\n\n" +
-        "💡 Tip: You can only add users who don't have a public username by tapping on their name in the chat.",
-    );
-  }
-
-  try {
-    const result = await convex.mutation(
-      api.groups.addMembersToGroupByTelegram,
-      {
-        telegramChatId: context.chat.id,
-        members: mentionedUsers,
-      },
-    );
-
-    const messages: string[] = [];
-    if (result.addedMembers.length > 0) {
-      messages.push(`✅ Added: ${result.addedMembers.join(", ")}`);
-    }
-    if (result.alreadyMembers.length > 0) {
-      messages.push(`ℹ️ Already members: ${result.alreadyMembers.join(", ")}`);
-    }
-
-    return context.send(
-      messages.length > 0
-        ? messages.join("\n")
-        : "No users were added to the group.",
-    );
-  } catch (error) {
-    console.error("Error adding members to group:", error);
-    return context.send(
-      "❌ Failed to add members. Make sure the group is registered first by using /start.",
-    );
-  }
-});
 
 bot.on("my_chat_member", async (context) => {
   // Check if the bot was added to the group

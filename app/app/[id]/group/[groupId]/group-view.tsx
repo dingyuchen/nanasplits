@@ -1,25 +1,26 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import {
-  Users,
-  Receipt,
-  TrendingUp,
-  TrendingDown,
-  Wallet,
-  Loader2,
-  ChevronRight,
+  ArrowLeftRight,
   ArrowRight,
+  ChevronRight,
+  Loader2,
+  Receipt,
   Settings,
+  TrendingDown,
+  TrendingUp,
+  Users,
+  Wallet,
 } from "lucide-react";
 import Link from "next/link";
-
-import { AddExpenseButton } from "./add-expense-button";
-import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import { useParams, useRouter } from "next/navigation";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { ExpenseType } from "@/convex/schema";
 import MainButton from "../../main-button";
-import { useMemo } from "react";
+import { AddExpenseButton } from "./add-expense-button";
+import { SettleUp } from "./settle-up";
 
 type MemberBalance = {
   memberId: Id<"users">;
@@ -57,7 +58,7 @@ export default function GroupView({
   )?._id;
 
   // Calculate balances per currency, with member balances nested inside each currency
-  const currencyBalances = useMemo(() => {
+  const currencyBalances = (() => {
     if (!groupData || !currentUserId) {
       return {} as CurrencyBalances;
     }
@@ -128,7 +129,7 @@ export default function GroupView({
     }
 
     return currencyBalances;
-  }, [groupData, currentUserId]);
+  })();
 
   // Calculate user's balance for an expense
   // Positive = user is owed money, Negative = user owes money
@@ -355,6 +356,16 @@ export default function GroupView({
           </div>
         </div>
 
+        {/* Settle Up */}
+        {isRegisteredMemberOfGroup && currentUserId && (
+          <SettleUp
+            currencyBalances={currencyBalances}
+            currentUserId={currentUserId}
+            telegramUserId={telegramUserId}
+            groupIdNumber={groupIdNumber}
+          />
+        )}
+
         {/* Members */}
         <div>
           <div className="flex items-center gap-2 mb-3 px-1">
@@ -447,38 +458,57 @@ export default function GroupView({
 
                 const styles = getBalanceStyles();
 
+                const isTransfer = expense.type === ExpenseType.Transfer;
+
                 return (
                   <button
                     type="button"
                     key={expense._id}
                     onClick={() => handleEditExpense(expense)}
-                    className={`w-full bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer ${!isInvolved ? "opacity-60" : ""}`}
+                    className={`w-full bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer ${!isInvolved && !isTransfer ? "opacity-60" : ""}`}
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center ${styles.iconBg}`}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          isTransfer
+                            ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
+                            : styles.iconBg
+                        }`}
                       >
-                        <Wallet className="w-5 h-5" />
+                        {isTransfer ? (
+                          <ArrowLeftRight className="w-5 h-5" />
+                        ) : (
+                          <Wallet className="w-5 h-5" />
+                        )}
                       </div>
                       <div className="text-left">
                         <p className="font-medium text-gray-900 dark:text-white">
                           {expense.description}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {isMe ? "You" : expense.payerName} paid •{" "}
-                          {formatDate(expense.date)}
+                          {isTransfer
+                            ? `Settled with ${expense.payerName}`
+                            : `${isMe ? "You" : expense.payerName} paid • ${formatDate(expense.date)}`}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="text-right">
-                        <span className={`font-bold ${styles.amountText}`}>
-                          {styles.amountPrefix}
+                        <span
+                          className={`font-bold ${
+                            isTransfer
+                              ? "text-purple-600 dark:text-purple-400"
+                              : styles.amountText
+                          }`}
+                        >
+                          {isTransfer ? "" : styles.amountPrefix}
                           {formatCurrency(
-                            isInvolved ? Math.abs(balance) : totalAmount,
+                            isInvolved || isTransfer
+                              ? Math.abs(balance)
+                              : totalAmount,
                           )}
                         </span>
-                        {isInvolved && (
+                        {!isTransfer && isInvolved && (
                           <p className="text-xs text-gray-500 dark:text-gray-400">
                             {formatCurrency(totalAmount)}
                           </p>
