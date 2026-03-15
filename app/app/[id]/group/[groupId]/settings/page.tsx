@@ -1,9 +1,9 @@
+import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
+import { preloadQuery } from "convex/nextjs";
 import { Suspense } from "react";
 import Loading from "@/components/ui/loading";
-import GroupSettings from "./group-settings";
 import { api } from "@/convex/_generated/api";
-import { preloadQuery } from "convex/nextjs";
-import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
+import GroupSettings from "./group-settings";
 
 export default async function SettingsPage({
   params,

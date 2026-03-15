@@ -1,5 +1,3 @@
-import BackButton from "./back-button";
-
 export default function TelegramAppLayout({
   children,
 }: {

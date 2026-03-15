@@ -4,7 +4,9 @@ import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
 import {
   ArrowLeftRight,
   ArrowRight,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   Loader2,
   Receipt,
   Settings,
@@ -15,6 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { ExpenseType } from "@/convex/schema";
@@ -48,6 +51,7 @@ export default function GroupView({
   );
   const { id, groupId } = useParams<{ id: string; groupId: string }>();
   const router = useRouter();
+  const [membersCollapsed, setMembersCollapsed] = useState(true);
   const addUserToGroupMutation = useMutation(api.groups.addUserToGroup);
   const telegramUserId = Number(id);
   const groupIdNumber = Number(groupId);
@@ -217,7 +221,7 @@ export default function GroupView({
 
       <div className="px-4 -mt-12 space-y-6">
         {/* Stats Cards */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5">
+        <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Your Balance
@@ -354,51 +358,64 @@ export default function GroupView({
               </div>
             )}
           </div>
-        </div>
+        </section>
 
         {/* Settle Up */}
         {isRegisteredMemberOfGroup && currentUserId && (
-          <SettleUp
-            currencyBalances={currencyBalances}
-            currentUserId={currentUserId}
-            telegramUserId={telegramUserId}
-            groupIdNumber={groupIdNumber}
-          />
+          <section>
+            <SettleUp
+              currencyBalances={currencyBalances}
+              currentUserId={currentUserId}
+              telegramUserId={telegramUserId}
+              groupIdNumber={groupIdNumber}
+            />
+          </section>
         )}
 
         {/* Members */}
-        <div>
-          <div className="flex items-center gap-2 mb-3 px-1">
+        <section>
+          <button
+            type="button"
+            onClick={() => setMembersCollapsed(!membersCollapsed)}
+            className="flex items-center gap-2 mb-3 px-1 w-full"
+          >
             <Users className="w-5 h-5 text-gray-500" />
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
               Members ({memberCount})
             </h2>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4">
-            <div className="flex flex-wrap gap-2">
-              {members.map((member) => (
-                <div
-                  key={member._id}
-                  className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-full px-3 py-1.5 border border-gray-100 dark:border-gray-700"
-                >
-                  <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
-                    {(
-                      member.firstName?.[0] ||
-                      member.username?.[0] ||
-                      "?"
-                    ).toUpperCase()}
+            {membersCollapsed ? (
+              <ChevronDown className="w-5 h-5 text-gray-500 ml-auto" />
+            ) : (
+              <ChevronUp className="w-5 h-5 text-gray-500 ml-auto" />
+            )}
+          </button>
+          {!membersCollapsed && (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4">
+              <div className="flex flex-wrap gap-2">
+                {members.map((member) => (
+                  <div
+                    key={member._id}
+                    className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-full px-3 py-1.5 border border-gray-100 dark:border-gray-700"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
+                      {(
+                        member.firstName?.[0] ||
+                        member.username?.[0] ||
+                        "?"
+                      ).toUpperCase()}
+                    </div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                      {member.firstName} {member.lastName}
+                    </span>
                   </div>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                    {member.firstName} {member.lastName}
-                  </span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        </div>
+          )}
+        </section>
 
         {/* Expenses List */}
-        <div>
+        <section>
           <div className="flex items-center gap-2 mb-3 px-1">
             <Receipt className="w-5 h-5 text-gray-500" />
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -521,7 +538,7 @@ export default function GroupView({
               })
             )}
           </div>
-        </div>
+        </section>
       </div>
 
       {/* Action Buttons */}

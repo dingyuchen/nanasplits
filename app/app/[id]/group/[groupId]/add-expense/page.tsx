@@ -1,9 +1,9 @@
+import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
+import { preloadQuery } from "convex/nextjs";
 import { Suspense } from "react";
 import Loading from "@/components/ui/loading";
-import EditExpensePage from "./edit-expense";
 import { api } from "@/convex/_generated/api";
-import { preloadQuery } from "convex/nextjs";
-import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
+import EditExpensePage from "./edit-expense";
 
 export default async function AddExpensePage({
   params,

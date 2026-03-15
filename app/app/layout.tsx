@@ -1,20 +1,20 @@
 "use client";
 
+import { useAuthActions } from "@convex-dev/auth/react";
 import {
   backButton,
   init,
   isTMA,
   mainButton,
+  miniApp,
   retrieveRawInitData,
   themeParams,
-  miniApp,
 } from "@tma.js/sdk";
-import { useEffect, useState } from "react";
-import { TelegramRequiredPage } from "./telegram-required";
-import { useAuthActions } from "@convex-dev/auth/react";
 import { Authenticated, AuthLoading, useConvexAuth } from "convex/react";
+import { useEffect, useState } from "react";
 import Loading from "@/components/ui/loading";
 import MainButton from "./[id]/main-button";
+import { TelegramRequiredPage } from "./telegram-required";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [isTelegram, setIsTelegram] = useState<boolean | null>(null);

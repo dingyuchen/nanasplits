@@ -1,7 +1,7 @@
 "use client";
 
 import { mainButton } from "@tma.js/sdk-react";
-import { useEffect, useRef, useTransition } from "react";
+import { useEffect, useTransition } from "react";
 
 export default function MainButton({
   text,
@@ -29,7 +29,7 @@ export default function MainButton({
       }
     }, once);
     return off;
-  }, [onClick, button, once, isPending]);
+  }, [onClick, once, isPending]);
 
   // shutdown hook
   useEffect(() => {
@@ -53,7 +53,7 @@ export default function MainButton({
       });
       button.unmount();
     };
-  }, [button, text, show, ready, isPending]);
+  }, [text, show, ready, isPending]);
   return (
     <button type="submit" formAction={onClick} className="hidden" disabled>
       {text}

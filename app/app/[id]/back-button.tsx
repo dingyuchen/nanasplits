@@ -1,7 +1,7 @@
 "use client";
 
-import { backButton, init } from "@tma.js/sdk-react";
-import { usePathname, useRouter } from "next/navigation";
+import { backButton } from "@tma.js/sdk-react";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function BackButton() {

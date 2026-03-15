@@ -1,8 +1,8 @@
-import { api } from "@/convex/_generated/api";
+import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
 
 import { preloadQuery } from "convex/nextjs";
+import { api } from "@/convex/_generated/api";
 import GroupMembership from "./group-membership";
-import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
 import GroupView from "./group-view";
 
 export default async function GroupPage({

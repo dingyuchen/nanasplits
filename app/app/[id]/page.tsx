@@ -1,9 +1,9 @@
-import { preloadQuery } from "convex/nextjs";
-import TelegramApp from "./telegram-app";
-import { api } from "@/convex/_generated/api";
 import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
+import { preloadQuery } from "convex/nextjs";
 import { Suspense } from "react";
 import Loading from "@/components/ui/loading";
+import { api } from "@/convex/_generated/api";
+import TelegramApp from "./telegram-app";
 
 async function TelegramPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

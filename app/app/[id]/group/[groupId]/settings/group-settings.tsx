@@ -1,12 +1,12 @@
 "use client";
 
-import { api } from "@/convex/_generated/api";
 import { type Preloaded, useMutation, usePreloadedQuery } from "convex/react";
+import { ArrowLeft, Check, Globe, Loader2, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowLeft, Globe, Users, Loader2, Check } from "lucide-react";
-import { currencySigns } from "../add-expense/currency-dropdown-options";
+import { api } from "@/convex/_generated/api";
 import MainButton from "../../../main-button";
+import { currencySigns } from "../add-expense/currency-dropdown-options";
 
 export default function GroupSettings({
   preloadedGroupData,

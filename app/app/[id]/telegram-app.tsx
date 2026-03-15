@@ -9,8 +9,8 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import type { api } from "@/convex/_generated/api";
 import Link from "next/link";
+import type { api } from "@/convex/_generated/api";
 
 export default function TelegramApp({
   preloadedDashboard,

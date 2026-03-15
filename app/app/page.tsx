@@ -1,9 +1,9 @@
 "use client";
 
-import Loading from "@/components/ui/loading";
 import { useLaunchParams } from "@tma.js/sdk-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import Loading from "@/components/ui/loading";
 
 export default function AppPage() {
   const router = useRouter();
