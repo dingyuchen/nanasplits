@@ -439,33 +439,6 @@ export default function GroupView({
                   0,
                 );
 
-                // Determine styling based on balance
-                const getBalanceStyles = () => {
-                  if (!isInvolved) {
-                    return {
-                      iconBg:
-                        "bg-gray-100 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500",
-                      amountText: "text-gray-900 dark:text-white",
-                      amountPrefix: "",
-                    };
-                  }
-                  if (balance > 0) {
-                    return {
-                      iconBg:
-                        "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400",
-                      amountText: "text-green-600 dark:text-green-400",
-                      amountPrefix: "+",
-                    };
-                  }
-                  // balance < 0
-                  return {
-                    iconBg:
-                      "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400",
-                    amountText: "text-red-600 dark:text-red-400",
-                    amountPrefix: "-",
-                  };
-                };
-
                 const formatCurrency = (amount: number) => {
                   return new Intl.NumberFormat("en-US", {
                     style: "currency",
@@ -473,24 +446,58 @@ export default function GroupView({
                   }).format(amount);
                 };
 
-                const styles = getBalanceStyles();
-
                 const isTransfer = expense.type === ExpenseType.Transfer;
+                const getDisplayStyles = () => {
+                  if (!isInvolved) {
+                    return {
+                      cardOpacity: "opacity-60",
+                      iconBg:
+                        "bg-gray-100 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500",
+                      amountText: "text-gray-500 dark:text-gray-400",
+                      amountPrefix: "",
+                    };
+                  }
+
+                  if (isTransfer) {
+                    return {
+                      cardOpacity: "",
+                      iconBg:
+                        "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400",
+                      amountText: "text-purple-600 dark:text-purple-400",
+                      amountPrefix: "",
+                    };
+                  }
+
+                  if (balance > 0) {
+                    return {
+                      cardOpacity: "",
+                      iconBg:
+                        "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400",
+                      amountText: "text-green-600 dark:text-green-400",
+                      amountPrefix: "+",
+                    };
+                  }
+
+                  return {
+                    cardOpacity: "",
+                    iconBg:
+                      "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400",
+                    amountText: "text-red-600 dark:text-red-400",
+                    amountPrefix: "-",
+                  };
+                };
+                const styles = getDisplayStyles();
 
                 return (
                   <button
                     type="button"
                     key={expense._id}
                     onClick={() => handleEditExpense(expense)}
-                    className={`w-full bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer ${!isInvolved && !isTransfer ? "opacity-60" : ""}`}
+                    className={`w-full bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer ${styles.cardOpacity}`}
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          isTransfer
-                            ? "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400"
-                            : styles.iconBg
-                        }`}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center ${styles.iconBg}`}
                       >
                         {isTransfer ? (
                           <ArrowLeftRight className="w-5 h-5" />
@@ -512,13 +519,9 @@ export default function GroupView({
                     <div className="flex items-center gap-2">
                       <div className="text-right">
                         <span
-                          className={`font-bold ${
-                            isTransfer
-                              ? "text-purple-600 dark:text-purple-400"
-                              : styles.amountText
-                          }`}
+                          className={`font-bold ${styles.amountText}`}
                         >
-                          {isTransfer ? "" : styles.amountPrefix}
+                          {styles.amountPrefix}
                           {formatCurrency(
                             isInvolved || isTransfer
                               ? Math.abs(balance)
