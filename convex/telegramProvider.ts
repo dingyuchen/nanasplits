@@ -1,6 +1,6 @@
 import { ConvexCredentials } from "@convex-dev/auth/providers/ConvexCredentials";
 import { validate, parse } from "@tma.js/init-data-node/web";
-import { type Value, type GenericId, ConvexError } from "convex/values";
+import { type GenericId, ConvexError } from "convex/values";
 import { createAccount } from "@convex-dev/auth/server";
 
 /**
@@ -50,7 +50,7 @@ export const telegram = ConvexCredentials({
       }
 
       // Create or retrieve account using Convex Auth
-      const { account, user } = await createAccount(ctx, {
+      const { user } = await createAccount(ctx, {
         provider: "telegram",
         account: {
           id: telegramUserId.toString(),
