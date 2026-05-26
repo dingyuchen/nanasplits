@@ -3,11 +3,11 @@
 ## Project Overview
 
 Nanasplits is a Telegram-based expense splitting app built with:
-- **Frontend**: Next.js 16, React 19, Tailwind CSS 4
+- **Frontend**: TanStack Start, TanStack Router, SolidJS, Vite
 - **Backend**: Convex (serverless database + API)
-- **Styling**: Tailwind CSS 4 with `@tailwindcss/postcss`
-- **Icons**: lucide-react
-- **Telegram**: `@tma.js/sdk-react`, Gramio bot framework
+- **Styling**: Tailwind CSS 4 with `@tailwindcss/vite`
+- **Icons**: lucide-solid
+- **Telegram**: `@tma.js/sdk`, Gramio bot framework
 - **Validation**: Zod
 
 ---
@@ -22,7 +22,7 @@ bun run convex:dev      # Start Convex dev server (required for local developmen
 
 ### Building
 ```bash
-bun run build           # Build production app (includes set:webhook)
+bun run build           # Build production app
 bun run start           # Start production server
 ```
 
@@ -51,24 +51,24 @@ bun run convex:deploy   # Deploy Convex backend to production
 ### Imports
 
 Organize imports in the following order (Biome will enforce this):
-1. External libraries (React, Next.js, etc.)
+1. External libraries (Solid, TanStack, etc.)
 2. Internal packages (Convex, etc.)
 3. Absolute imports (`@/...`)
 4. Relative imports (`./`, `../`)
 
 ```typescript
 // Good
-import { useState } from "react";
+import { createSignal } from "solid-js";
+import { ArrowLeftRight } from "lucide-solid";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useMutation } from "convex/react";
-import { ArrowLeftRight } from "lucide-react";
-import MainButton from "../../main-button";
+import { useMutation } from "../solid-convex";
+import { TelegramMainButton } from "../../telegram-main-button";
 import { SettleUp } from "./settle-up";
 
 // Avoid - don't mix import styles
 import { api } from "@/convex/_generated/api";
-import { useState } from "react";
+import { createSignal } from "solid-js";
 ```
 
 ### Types
@@ -103,12 +103,13 @@ const memberId: any = "...";
 - **Files**: kebab-case (e.g., `group-view.tsx`, `settle-up.tsx`)
 - **Constants**: UPPER_SNAKE_CASE for config values, camelCase otherwise
 
-### React/Next.js Patterns
+### Solid/TanStack Patterns
 
-- Use `"use client"` directive for client-side components
-- React Compiler (babel-plugin-react-compiler) is enabled - prefer automatic memoization
+- Routes live in `src/routes` and use TanStack Router file-based routing
+- Solid JSX uses `class` instead of React `className`
+- Use `createSignal`, `createMemo`, `createEffect`, `Show`, and `For` for reactive UI
 - Extract complex UI/logic into separate components
-- Avoid `useMemo` and `useCallback` - let React Compiler handle memoization
+- Do not use React hooks or Next.js APIs
 
 ```typescript
 // Good - extract to separate component
@@ -160,11 +161,11 @@ try {
 
 ```typescript
 // Good - consistent with codebase
-className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5"
-className="bg-green-50 dark:bg-green-900/20 text-green-600"
+class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5"
+class="bg-green-50 dark:bg-green-900/20 text-green-600"
 
 // Bad - inconsistent
-className="bg-gray-100 rounded-lg shadow-md"
+class="bg-gray-100 rounded-lg shadow-md"
 ```
 
 ### Database Schema (Convex)
@@ -179,14 +180,14 @@ className="bg-gray-100 rounded-lg shadow-md"
 
 ```
 nanasplits/
-├── app/                    # Next.js app router
-│   ├── app/[id]/          # User routes (Telegram ID)
-│   │   └── group/[groupId]/
-│   │       ├── group-view.tsx
-│   │       ├── settle-up.tsx    # Extracted component
-│   │       └── add-expense/
-│   ├── api/               # API routes (Telegram bot)
-│   └── globals.css
+├── src/                    # TanStack Start app
+│   ├── routes/             # File-based TanStack routes
+│   │   ├── app.$id.tsx
+│   │   ├── app.$id.group.$groupId.index.tsx
+│   │   ├── app.$id.group.$groupId.add-expense.tsx
+│   │   └── api/bot.ts
+│   ├── solid-convex.tsx    # Solid Convex auth/query wrappers
+│   └── styles.css
 ├── convex/                # Convex backend
 │   ├── groups.ts          # Group-related mutations/queries
 │   ├── schema.ts          # Database schema
@@ -210,6 +211,20 @@ This project does not currently have a test suite. If adding tests:
 ## Notes
 
 - This is a Telegram Mini App - the UI is designed for mobile within Telegram
-- The app uses Telegram authentication via `@tma.js/sdk-react`
+- The app uses Telegram authentication via `@tma.js/sdk`
 - All monetary amounts are stored as numbers (not strings)
 - Multi-currency support is built into the balance calculation
+
+<!-- convex-ai-start -->
+
+This project uses [Convex](https://convex.dev) as its backend.
+
+When working on Convex code, **always read
+`convex/_generated/ai/guidelines.md` first** for important guidelines on
+how to correctly use Convex APIs and patterns. The file contains rules that
+override what you may have learned about Convex from training data.
+
+Convex agent skills for common tasks can be installed by running
+`npx convex ai-files install`.
+
+<!-- convex-ai-end -->

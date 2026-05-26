@@ -14,6 +14,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIdRouteImport } from './routes/app.$id'
 import { Route as ApiBotRouteImport } from './routes/api/bot'
 import { Route as AppIdGroupGroupIdRouteImport } from './routes/app.$id.group.$groupId'
+import { Route as AppIdGroupGroupIdIndexRouteImport } from './routes/app.$id.group.$groupId.index'
+import { Route as AppIdGroupGroupIdSettingsRouteImport } from './routes/app.$id.group.$groupId.settings'
+import { Route as AppIdGroupGroupIdAddExpenseRouteImport } from './routes/app.$id.group.$groupId.add-expense'
 
 const AppRoute = AppRouteImport.update({
   id: '/app',
@@ -40,20 +43,42 @@ const AppIdGroupGroupIdRoute = AppIdGroupGroupIdRouteImport.update({
   path: '/group/$groupId',
   getParentRoute: () => AppIdRoute,
 } as any)
+const AppIdGroupGroupIdIndexRoute = AppIdGroupGroupIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppIdGroupGroupIdRoute,
+} as any)
+const AppIdGroupGroupIdSettingsRoute =
+  AppIdGroupGroupIdSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AppIdGroupGroupIdRoute,
+  } as any)
+const AppIdGroupGroupIdAddExpenseRoute =
+  AppIdGroupGroupIdAddExpenseRouteImport.update({
+    id: '/add-expense',
+    path: '/add-expense',
+    getParentRoute: () => AppIdGroupGroupIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/api/bot': typeof ApiBotRoute
   '/app/$id': typeof AppIdRouteWithChildren
-  '/app/$id/group/$groupId': typeof AppIdGroupGroupIdRoute
+  '/app/$id/group/$groupId': typeof AppIdGroupGroupIdRouteWithChildren
+  '/app/$id/group/$groupId/add-expense': typeof AppIdGroupGroupIdAddExpenseRoute
+  '/app/$id/group/$groupId/settings': typeof AppIdGroupGroupIdSettingsRoute
+  '/app/$id/group/$groupId/': typeof AppIdGroupGroupIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/api/bot': typeof ApiBotRoute
   '/app/$id': typeof AppIdRouteWithChildren
-  '/app/$id/group/$groupId': typeof AppIdGroupGroupIdRoute
+  '/app/$id/group/$groupId/add-expense': typeof AppIdGroupGroupIdAddExpenseRoute
+  '/app/$id/group/$groupId/settings': typeof AppIdGroupGroupIdSettingsRoute
+  '/app/$id/group/$groupId': typeof AppIdGroupGroupIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -61,13 +86,31 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/api/bot': typeof ApiBotRoute
   '/app/$id': typeof AppIdRouteWithChildren
-  '/app/$id/group/$groupId': typeof AppIdGroupGroupIdRoute
+  '/app/$id/group/$groupId': typeof AppIdGroupGroupIdRouteWithChildren
+  '/app/$id/group/$groupId/add-expense': typeof AppIdGroupGroupIdAddExpenseRoute
+  '/app/$id/group/$groupId/settings': typeof AppIdGroupGroupIdSettingsRoute
+  '/app/$id/group/$groupId/': typeof AppIdGroupGroupIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/api/bot' | '/app/$id' | '/app/$id/group/$groupId'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/api/bot'
+    | '/app/$id'
+    | '/app/$id/group/$groupId'
+    | '/app/$id/group/$groupId/add-expense'
+    | '/app/$id/group/$groupId/settings'
+    | '/app/$id/group/$groupId/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/app' | '/api/bot' | '/app/$id' | '/app/$id/group/$groupId'
+  to:
+    | '/'
+    | '/app'
+    | '/api/bot'
+    | '/app/$id'
+    | '/app/$id/group/$groupId/add-expense'
+    | '/app/$id/group/$groupId/settings'
+    | '/app/$id/group/$groupId'
   id:
     | '__root__'
     | '/'
@@ -75,6 +118,9 @@ export interface FileRouteTypes {
     | '/api/bot'
     | '/app/$id'
     | '/app/$id/group/$groupId'
+    | '/app/$id/group/$groupId/add-expense'
+    | '/app/$id/group/$groupId/settings'
+    | '/app/$id/group/$groupId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -83,7 +129,7 @@ export interface RootRouteChildren {
   ApiBotRoute: typeof ApiBotRoute
 }
 
-declare module '@tanstack/react-router' {
+declare module '@tanstack/solid-router' {
   interface FileRoutesByPath {
     '/app': {
       id: '/app'
@@ -120,15 +166,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIdGroupGroupIdRouteImport
       parentRoute: typeof AppIdRoute
     }
+    '/app/$id/group/$groupId/': {
+      id: '/app/$id/group/$groupId/'
+      path: '/'
+      fullPath: '/app/$id/group/$groupId/'
+      preLoaderRoute: typeof AppIdGroupGroupIdIndexRouteImport
+      parentRoute: typeof AppIdGroupGroupIdRoute
+    }
+    '/app/$id/group/$groupId/settings': {
+      id: '/app/$id/group/$groupId/settings'
+      path: '/settings'
+      fullPath: '/app/$id/group/$groupId/settings'
+      preLoaderRoute: typeof AppIdGroupGroupIdSettingsRouteImport
+      parentRoute: typeof AppIdGroupGroupIdRoute
+    }
+    '/app/$id/group/$groupId/add-expense': {
+      id: '/app/$id/group/$groupId/add-expense'
+      path: '/add-expense'
+      fullPath: '/app/$id/group/$groupId/add-expense'
+      preLoaderRoute: typeof AppIdGroupGroupIdAddExpenseRouteImport
+      parentRoute: typeof AppIdGroupGroupIdRoute
+    }
   }
 }
 
+interface AppIdGroupGroupIdRouteChildren {
+  AppIdGroupGroupIdAddExpenseRoute: typeof AppIdGroupGroupIdAddExpenseRoute
+  AppIdGroupGroupIdSettingsRoute: typeof AppIdGroupGroupIdSettingsRoute
+  AppIdGroupGroupIdIndexRoute: typeof AppIdGroupGroupIdIndexRoute
+}
+
+const AppIdGroupGroupIdRouteChildren: AppIdGroupGroupIdRouteChildren = {
+  AppIdGroupGroupIdAddExpenseRoute: AppIdGroupGroupIdAddExpenseRoute,
+  AppIdGroupGroupIdSettingsRoute: AppIdGroupGroupIdSettingsRoute,
+  AppIdGroupGroupIdIndexRoute: AppIdGroupGroupIdIndexRoute,
+}
+
+const AppIdGroupGroupIdRouteWithChildren =
+  AppIdGroupGroupIdRoute._addFileChildren(AppIdGroupGroupIdRouteChildren)
+
 interface AppIdRouteChildren {
-  AppIdGroupGroupIdRoute: typeof AppIdGroupGroupIdRoute
+  AppIdGroupGroupIdRoute: typeof AppIdGroupGroupIdRouteWithChildren
 }
 
 const AppIdRouteChildren: AppIdRouteChildren = {
-  AppIdGroupGroupIdRoute: AppIdGroupGroupIdRoute,
+  AppIdGroupGroupIdRoute: AppIdGroupGroupIdRouteWithChildren,
 }
 
 const AppIdRouteWithChildren = AppIdRoute._addFileChildren(AppIdRouteChildren)
@@ -153,8 +235,8 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
+import type { createStart } from '@tanstack/solid-start'
+declare module '@tanstack/solid-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>

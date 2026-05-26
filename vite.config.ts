@@ -1,20 +1,21 @@
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
-
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-
-import viteReact from "@vitejs/plugin-react";
+import { tanstackStart } from "@tanstack/solid-start/plugin/vite";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
+import viteSolid from "vite-plugin-solid";
 
 const config = defineConfig({
-	resolve: { tsconfigPaths: true },
+	server: {
+		allowedHosts: ["nanasplitsdev.ding.gg"],
+	},
+	resolve: { dedupe: ["@tanstack/router-core"], tsconfigPaths: true },
 	plugins: [
 		devtools(),
-		nitro({ rollupConfig: { external: [/^@sentry\//] } }),
-		tailwindcss(),
 		tanstackStart(),
-		viteReact(),
+		viteSolid({ ssr: true }),
+		tailwindcss(),
+		nitro({ preset: "bun", rollupConfig: { external: [/^@sentry\//] } }),
 	],
 });
 

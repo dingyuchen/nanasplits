@@ -1,24 +1,181 @@
-import { createFileRoute } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Outlet,
+	useLocation,
+	useNavigate,
+} from "@tanstack/solid-router";
+import {
+	backButton,
+	init,
+	isTMA,
+	type LaunchParams,
+	mainButton,
+	miniApp,
+	retrieveLaunchParams,
+	retrieveRawInitData,
+	themeParams,
+} from "@tma.js/sdk";
+import {
+	createEffect,
+	createSignal,
+	Match,
+	onCleanup,
+	onMount,
+	Switch,
+} from "solid-js";
+import Loading from "@/components/ui/loading";
+import {
+	Authenticated,
+	AuthLoading,
+	Unauthenticated,
+	useAuthActions,
+} from "../solid-convex";
+import { TelegramMainButton } from "../telegram-main-button";
+import { TelegramRequiredPage } from "../telegram-required";
 
 export const Route = createFileRoute("/app")({
-	component: AppEntryPage,
+	component: AppRoute,
 });
 
-function AppEntryPage() {
+type TelegramStatus = "checking" | "ready" | "unavailable";
+
+function AppRoute() {
+	const [telegramStatus, setTelegramStatus] =
+		createSignal<TelegramStatus>("checking");
+	const [launchParams, setLaunchParams] = createSignal<LaunchParams | null>(
+		null,
+	);
+
+	onMount(() => {
+		let cleanup: VoidFunction | undefined;
+
+		void (async () => {
+			try {
+				const result = await isTMA("complete");
+				if (!result) {
+					setTelegramStatus("unavailable");
+					return;
+				}
+
+				cleanup = init();
+				if (!themeParams.isMounted()) {
+					themeParams.mount();
+				}
+				if (!miniApp.isMounted()) {
+					miniApp.mount();
+				}
+				miniApp.ready();
+				setLaunchParams(retrieveLaunchParams());
+				setTelegramStatus("ready");
+			} catch (error) {
+				console.error("Failed to initialize Telegram Mini App:", error);
+				setTelegramStatus("unavailable");
+			}
+		})();
+
+		onCleanup(() => {
+			if (mainButton.isMounted()) {
+				mainButton.hide();
+				mainButton.unmount();
+			}
+			if (backButton.isMounted()) {
+				backButton.hide();
+				backButton.unmount();
+			}
+			if (miniApp.isMounted()) {
+				miniApp.unmount();
+			}
+			if (themeParams.isMounted()) {
+				themeParams.unmount();
+			}
+			cleanup?.();
+		});
+	});
+
 	return (
-		<main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 to-white p-6 text-center dark:from-gray-900 dark:to-gray-800">
-			<div className="max-w-sm rounded-3xl bg-white p-8 shadow-xl dark:bg-gray-800">
-				<div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-yellow-100 text-3xl">
-					🍌
-				</div>
-				<h1 className="text-2xl font-bold text-gray-950 dark:text-white">
-					Open in Telegram
-				</h1>
-				<p className="mt-3 text-gray-600 dark:text-gray-300">
-					NanaSplits needs Telegram launch data. Open the bot menu or Mini App
-					button from Telegram so it can route you to your dashboard.
-				</p>
-			</div>
-		</main>
+		<Switch>
+			<Match when={telegramStatus() === "checking"}>
+				<Loading message="Checking environment..." />
+			</Match>
+			<Match when={telegramStatus() === "unavailable"}>
+				<TelegramRequiredPage />
+			</Match>
+			<Match when={telegramStatus() === "ready"}>
+				<AuthLoading>
+					<Loading message="Authenticating..." />
+				</AuthLoading>
+				<Unauthenticated>
+					<SignInPanel />
+				</Unauthenticated>
+				<Authenticated>
+					<AppOutlet launchParams={launchParams()} />
+				</Authenticated>
+			</Match>
+		</Switch>
+	);
+}
+
+function SignInPanel() {
+	const { signIn } = useAuthActions();
+	const [started, setStarted] = createSignal(false);
+
+	createEffect(() => {
+		if (started()) return;
+		setStarted(true);
+		const initData = retrieveRawInitData() ?? "";
+		void signIn("telegram", { initData });
+	});
+
+	return (
+		<>
+			<Loading message="Signing in... Restart app if this message persists" />
+			<TelegramMainButton
+				once
+				ready={false}
+				text="Close"
+				onClick={() => miniApp.close()}
+			/>
+		</>
+	);
+}
+
+function AppOutlet(props: { launchParams: LaunchParams | null }) {
+	const location = useLocation();
+	const navigate = useNavigate();
+
+	createEffect(() => {
+		if (location().pathname !== "/app") return;
+
+		const launchParams = props.launchParams;
+		if (launchParams === null) return;
+
+		const userId = launchParams?.tgWebAppData?.user?.id;
+		if (userId === undefined) return;
+
+		const groupId =
+			launchParams.tgWebAppStartParam ?? launchParams.tgWebAppData?.start_param;
+
+		if (groupId !== undefined && groupId !== "") {
+			void navigate({
+				params: { id: String(userId), groupId },
+				replace: true,
+				to: "/app/$id/group/$groupId",
+			});
+			return;
+		}
+
+		void navigate({
+			params: { id: String(userId) },
+			replace: true,
+			to: "/app/$id",
+		});
+	});
+
+	return (
+		<Switch fallback={<Outlet />}>
+			<Match when={location().pathname === "/app"}>
+				<Loading message="Opening NanaSplits..." />
+			</Match>
+		</Switch>
 	);
 }

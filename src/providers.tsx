@@ -1,12 +1,11 @@
-import { ConvexAuthProvider } from "@convex-dev/auth/react";
-import { ConvexReactClient } from "convex/react";
-import type { ReactNode } from "react";
+import type { JSX } from "solid-js";
 import { getConvexUrl } from "./env";
+import { SolidConvexProvider } from "./solid-convex";
 
-const convex = new ConvexReactClient(getConvexUrl(), {
-	expectAuth: true,
-});
-
-export function AppProviders({ children }: { children: ReactNode }) {
-	return <ConvexAuthProvider client={convex}>{children}</ConvexAuthProvider>;
+export function AppProviders(props: { children: JSX.Element }) {
+	return (
+		<SolidConvexProvider convexUrl={getConvexUrl()}>
+			{props.children}
+		</SolidConvexProvider>
+	);
 }
