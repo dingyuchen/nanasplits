@@ -20,9 +20,9 @@ import {
 } from "solid-js";
 import { z } from "zod";
 
-import { Button } from "@/components/ui/button";
-import { CurrencyInput } from "@/components/ui/currency-input";
-import Loading from "@/components/ui/loading";
+import { Button } from "#/components/ui/button";
+import { CurrencyInput } from "#/components/ui/currency-input";
+import Loading from "#/components/ui/loading";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 
