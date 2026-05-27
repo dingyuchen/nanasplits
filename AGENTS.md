@@ -1,46 +1,76 @@
-# AGENTS.md - Nanasplits Development Guide
+# AGENTS.md - NanaSplits Development Guide
 
 ## Project Overview
 
-Nanasplits is a Telegram-based expense splitting app built with:
+NanaSplits is a Telegram Mini App for splitting group expenses. It is built with:
 
+- **Runtime/package manager**: Bun
 - **Frontend**: TanStack Start, TanStack Router, SolidJS, Vite
-- **Backend**: Convex (serverless database + API)
-- **Styling**: Tailwind CSS 4 with `@tailwindcss/vite`
-- **Icons**: lucide-solid
-- **Telegram**: `@tma.js/sdk`, Gramio bot framework
-- **Validation**: Zod
+- **Backend**: Convex with `@convex-dev/auth`
+- **Styling**: Tailwind CSS 4 via `@tailwindcss/vite`
+- **Icons**: `lucide-solid`
+- **Telegram**: `@tma.js/sdk`, `@tma.js/init-data-node`, Gramio
+- **Validation**: Zod on client/server inputs, Convex validators on backend functions
+
+The app is primarily meant to run inside Telegram. The public `/` route is a small web landing page; `/app` initializes Telegram Mini App APIs, signs in with Telegram init data, and routes users to the dashboard or a Telegram group.
 
 ---
 
 ## Commands
 
+Use Bun for project commands.
+
 ### Development
 
 ```bash
-bun run dev              # Start development server
-bun run convex:dev      # Start Convex dev server (required for local development)
+bun install
+bun run dev              # Start TanStack/Vite dev server on port 3000
+bun run convex:dev       # Start Convex dev server; run alongside the app
 ```
 
-### Building
+### Build and Serve
 
 ```bash
-bun run build           # Build production app
-bun run start           # Start production server
+bun run build            # Build production app
+bun run start            # Serve dist through server.ts
+bun run preview          # Vite preview
 ```
 
-### Linting & Formatting
+### Quality
 
 ```bash
-bun run lint            # Run Oxlint
-bun run format         # Format code with Oxfmt
+bun run lint             # Run Oxlint
+bun run format           # Format with Oxfmt
+bun run check            # Run lint and oxfmt --check
+bun x tsc --noEmit       # Type-check; there is no package script for this
 ```
 
-### Database
+### Convex and Telegram
 
 ```bash
-bun run convex:deploy   # Deploy Convex backend to production
+bun run convex:deploy    # Deploy Convex backend
+bun run set:webhook      # Set Telegram webhook using configured public host
+bun run set:webhook https://example.com
 ```
+
+`set:webhook` uses `VERCEL_PROJECT_PRODUCTION_URL`, `VITE_PUBLIC_BASE_URL`, or `PUBLIC_BASE_URL` when present. The optional CLI argument may include `https://`; the script strips it before building `https://<host>/api/bot`.
+
+---
+
+## Environment
+
+Required for local app/backend work:
+
+- `VITE_CONVEX_URL` or `NEXT_PUBLIC_CONVEX_URL`: Convex URL used by the Solid client and bot route.
+- `TELEGRAM_BOT_TOKEN`: used by Gramio, Telegram Mini App auth validation, and membership checks.
+- `TELEGRAM_BOT_SECRET_TOKEN`: validates incoming Telegram webhook requests and is sent by `set:webhook`.
+- `CONVEX_SITE_URL`: Convex Auth issuer domain in `convex/auth.config.ts`.
+
+Useful deployment/server env vars:
+
+- `PORT` and `HOST`: production server bind settings for `server.ts`.
+- `VERCEL_PROJECT_PRODUCTION_URL`, `VITE_PUBLIC_BASE_URL`, or `PUBLIC_BASE_URL`: public host for webhook setup.
+- `ASSET_PRELOAD_*`: optional static asset preload/cache/gzip controls in `server.ts`.
 
 ---
 
@@ -48,179 +78,167 @@ bun run convex:deploy   # Deploy Convex backend to production
 
 ### General Principles
 
-1. **Prefer explicit over implicit** - Be clear about types and imports
-2. **Keep components small and focused** - Extract logic into separate components/files
-3. **Use TypeScript properly** - Avoid `any`, use proper type annotations
-4. **Handle errors explicitly** - Use try/catch with user-friendly error messages
+1. Prefer explicit types and imports.
+2. Keep route components and UI helpers focused; extract repeated UI into `src/components`.
+3. Use TypeScript strictly. Avoid `any`; use Convex `Id<"table">` and `Doc<"table">` for documents.
+4. Handle async errors with `try`/`catch`, log the original error, and show a short user-facing message.
+5. Preserve existing mobile-first Telegram Mini App patterns.
 
-### Imports
+### Imports and Aliases
 
-Organize imports in the following order (Oxfmt will enforce this):
+Oxfmt sorts imports. Keep the current alias conventions:
 
-1. External libraries (Solid, TanStack, etc.)
-2. Internal packages (Convex, etc.)
-3. Absolute imports (`@/...`)
-4. Relative imports (`./`, `../`)
+- Use `#/*` for files under `src/*`.
+- Use `@/*` for repo-root imports such as `@/convex/_generated/api`, `@/convex/_generated/dataModel`, and `@/lib/utils`.
+- Use explicit type imports: `import type { Id } from "...";`
+- Do not edit generated files in `src/routeTree.gen.ts` or `convex/_generated/*` by hand.
+
+Example:
 
 ```typescript
-// Good
-import { createSignal } from "solid-js";
-import { ArrowLeftRight } from "lucide-solid";
+import { createFileRoute } from "@tanstack/solid-router";
+import type { FunctionReturnType } from "convex/server";
+import { Show } from "solid-js";
+
+import Loading from "#/components/ui/loading";
+import { useQuery } from "#/solid-convex";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useMutation } from "../solid-convex";
-import { TelegramMainButton } from "../../telegram-main-button";
-import { SettleUp } from "./settle-up";
-
-// Avoid - don't mix import styles
-import { api } from "@/convex/_generated/api";
-import { createSignal } from "solid-js";
 ```
 
-### Types
+### Types and Naming
 
-- Use `type` for object shapes, unions, and primitives
-- Use `interface` for component props
-- Always import types explicitly: `import type { Id } from "..."`
-- Use Convex's `Id<"tableName">` for document IDs
+- Use `type` for object shapes, unions, and aliases.
+- Use `interface` for component props when extending JSX/native element props.
+- Components are PascalCase.
+- Functions and signals are camelCase.
+- Prefer kebab-case for new `src` component/helper files. Keep existing route, Convex, and generated filenames as they are.
+- Constants are UPPER_SNAKE_CASE only for true configuration constants.
 
-```typescript
-// Good
-type MemberBalance = {
-	memberId: Id<"users">;
-	memberName: string;
-	balance: number;
-};
+### Solid and TanStack Start
 
-interface SettleUpProps {
-	currencyBalances: CurrencyBalances;
-	currentUserId: Id<"users">;
-}
+- Routes live in `src/routes` and use TanStack Router file-based routing.
+- Solid JSX uses `class`, not `className`.
+- Prefer `createSignal`, `createMemo`, `createEffect`, `Show`, `For`, `Switch`, and `Match` for reactive UI.
+- Use `createServerFn` for server-side route helpers, as in `src/telegram-membership.ts`.
+- App providers are wired through `src/routes/__root.tsx` and `src/providers.tsx`.
+- Telegram app state is initialized in `src/routes/app/route.tsx` and exposed through `src/telegram-launch.tsx`.
+- Use `TelegramMainButton` for Telegram main-button actions instead of in-page primary buttons when the flow expects the native Telegram control.
 
-// Bad
-const memberId: any = "...";
+Current route shape:
+
+```text
+src/routes/
+├── __root.tsx
+├── index.tsx
+├── api/bot.ts
+└── app/
+    ├── route.tsx
+    ├── index.tsx
+    └── groups/$groupId/
+        ├── route.tsx
+        ├── index.tsx
+        ├── add-expense.tsx
+        └── settings.tsx
 ```
 
-### Naming Conventions
+### Styling
 
-- **Components**: PascalCase (e.g., `GroupView`, `SettleUp`)
-- **Functions**: camelCase (e.g., `handleSettle`, `calculateBalance`)
-- **Types/Interfaces**: PascalCase (e.g., `MemberBalance`, `CurrencyData`)
-- **Files**: kebab-case (e.g., `group-view.tsx`, `settle-up.tsx`)
-- **Constants**: UPPER_SNAKE_CASE for config values, camelCase otherwise
-
-### Solid/TanStack Patterns
-
-- Routes live in `src/routes` and use TanStack Router file-based routing
-- Solid JSX uses `class` instead of React `className`
-- Use `createSignal`, `createMemo`, `createEffect`, `Show`, and `For` for reactive UI
-- Extract complex UI/logic into separate components
-- Do not use React hooks or Next.js APIs
-
-```typescript
-// Good - extract to separate component
-export function SettleUp({ ... }: SettleUpProps) {
-  const mutation = useMutation(api.groups.settleUp);
-  // ...
-}
-```
+- Tailwind CSS is imported from `src/styles.css`.
+- Keep mobile-first layouts; this app is designed for Telegram on phones.
+- Use existing color conventions: blue/cyan app chrome, green for positive balances, red for negative/destructive states, gray surfaces for neutral UI.
+- Use dark mode variants consistently.
+- Existing UI commonly uses `rounded-2xl` cards, `rounded-xl` inputs/list rows, and `rounded-full` icon/avatar/native-action affordances.
+- Shared class merging lives in `lib/utils.ts` as `cn()`.
 
 ### Convex Backend
 
-- Use `protectedMutation` and `protectedQuery` for authenticated operations
-- Always validate user membership in groups before operations
-- Use the validation helper pattern for shared validation logic
+Before editing Convex code, read `convex/_generated/ai/guidelines.md`.
 
-```typescript
-// Good - validate with helper
-const { group, memberIds } = await getGroupWithParticipantValidation(
-	ctx.db,
-	{ telegramChatId, telegramUserId, payerId, items },
-	ctx.userId,
-);
+Current backend files:
 
-// Bad - duplicate validation logic in each mutation
-```
+- `convex/schema.ts`: schema, auth tables, users, groups, group membership, expenses, and `ExpenseType`.
+- `convex/groups.ts`: group creation, dashboard data, membership checks, expenses, settlements, and group settings.
+- `convex/auth.ts`: Convex Auth setup with the custom Telegram provider.
+- `convex/telegramProvider.ts`: validates Telegram init data and creates/links Convex Auth users.
+- `convex/lib/utils.ts`: `protectedQuery` and `protectedMutation` wrappers using `getAuthUserId`.
+- `convex/http.ts`: mounts Convex Auth HTTP routes.
 
-### Error Handling
+Backend rules:
 
-- Use try/catch for async operations
-- Show user-friendly alerts/messages for errors
-- Log errors to console for debugging
+- Use `protectedQuery` and `protectedMutation` for authenticated public operations.
+- Always include Convex argument validators.
+- Never trust client-passed IDs for authorization. Derive the authenticated user with Convex Auth and verify Telegram user/group membership server-side.
+- For group expense writes, reuse or extend the shared participant validation pattern in `getGroupWithParticipantValidation`.
+- Keep queries index-backed where possible. Add indexes in `convex/schema.ts` before introducing new query shapes.
+- Amounts are stored as numbers. Expense `items` contain exact split amounts per user.
+- Multi-currency balances are calculated per currency; do not collapse currencies into a single total.
 
-```typescript
-// Good
-try {
-  await mutation({ ... });
-} catch (error) {
-  console.error("Failed to settle:", error);
-  alert("Failed to settle. Please try again.");
-}
-```
+### Telegram Integration
 
-### Tailwind CSS
-
-- Use dark mode variants: `dark:bg-gray-800`, `dark:text-white`
-- Follow existing color patterns (green for positive, red for negative)
-- Use existing border/shadow patterns from the codebase
-- Use `rounded-2xl` for cards, `rounded-full` for buttons/avatars
-
-```typescript
-// Good - consistent with codebase
-class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-5"
-class="bg-green-50 dark:bg-green-900/20 text-green-600"
-
-// Bad - inconsistent
-class="bg-gray-100 rounded-lg shadow-md"
-```
-
-### Database Schema (Convex)
-
-- Define schemas in `convex/schema.ts`
-- Use proper indexes for query performance
-- Document relationships in comments
+- `/api/bot` is the Telegram webhook endpoint implemented as a TanStack Start API route.
+- Webhook requests must include `x-telegram-bot-api-secret-token` matching `TELEGRAM_BOT_SECRET_TOKEN`.
+- The Gramio bot creates or retrieves a Convex group when it receives `/start` in a group or when the bot is added to a group.
+- Telegram Mini App auth uses raw init data from `@tma.js/sdk`, passed to `signIn("telegram", { initData })`.
+- Group pages verify Telegram chat membership through `checkTelegramMembership` before rendering group content.
 
 ---
 
 ## File Organization
 
-```
+```text
 nanasplits/
-├── src/                    # TanStack Start app
-│   ├── routes/             # File-based TanStack routes
-│   │   ├── app.$id.tsx
-│   │   ├── app.$id.group.$groupId.index.tsx
-│   │   ├── app.$id.group.$groupId.add-expense.tsx
-│   │   └── api/bot.ts
-│   ├── solid-convex.tsx    # Solid Convex auth/query wrappers
-│   └── styles.css
-├── convex/                # Convex backend
-│   ├── groups.ts          # Group-related mutations/queries
-│   ├── schema.ts          # Database schema
-│   └── lib/               # Utilities
-├── components/           # Shared UI components
-│   └── ui/               # Reusable UI (Button, Input, etc.)
-└── AGENTS.md            # This file
+├── src/
+│   ├── routes/                  # TanStack Start file routes and API route
+│   ├── components/              # Telegram and shared UI components
+│   │   └── ui/                  # Button, loading, currency input
+│   ├── providers.tsx            # App provider wiring
+│   ├── solid-convex.tsx         # Solid Convex auth/query/mutation wrappers
+│   ├── telegram-launch.tsx      # Telegram launch params context
+│   ├── telegram-membership.ts   # Server function for group membership checks
+│   ├── currencies.tsx           # Currency metadata/options
+│   ├── env.ts                   # Environment helpers
+│   ├── router.tsx               # Router factory
+│   ├── routeTree.gen.ts         # Generated TanStack route tree
+│   └── styles.css               # Tailwind entry
+├── convex/
+│   ├── schema.ts
+│   ├── groups.ts
+│   ├── auth.ts
+│   ├── auth.config.ts
+│   ├── telegramProvider.ts
+│   ├── http.ts
+│   ├── session.ts
+│   ├── lib/utils.ts
+│   └── _generated/              # Generated Convex files
+├── lib/utils.ts                 # Shared cn() helper
+├── scripts/setup-telegram-webhook.ts
+├── server.ts                    # Bun production server
+├── vite.config.ts
+├── package.json
+└── AGENTS.md
 ```
 
 ---
 
 ## Testing
 
-This project does not currently have a test suite. If adding tests:
+There is no committed test suite and no `test` package script. Vitest, jsdom, and Testing Library DOM are installed, so prefer Vitest for new tests unless the project adopts another runner.
 
-- Use the same testing framework as the team agrees on
-- Place tests alongside components (`ComponentName.test.tsx`)
-- Run specific tests with appropriate tooling
+When adding tests:
+
+- Put focused tests near the code they cover.
+- For Convex functions, follow the generated Convex testing guidance in `convex/_generated/ai/guidelines.md`.
+- Add or document a runnable test command if you introduce the first test suite.
 
 ---
 
 ## Notes
 
-- This is a Telegram Mini App - the UI is designed for mobile within Telegram
-- The app uses Telegram authentication via `@tma.js/sdk`
-- All monetary amounts are stored as numbers (not strings)
-- Multi-currency support is built into the balance calculation
+- `src/routeTree.gen.ts` is generated by TanStack Router tooling.
+- `convex/_generated/*` is generated by Convex.
+- Do not revert user changes unless explicitly asked.
+- Keep all user-facing money behavior multi-currency aware.
 
 <!-- convex-ai-start -->
 
