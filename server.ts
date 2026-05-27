@@ -1,7 +1,7 @@
 import path from "node:path";
 
 const SERVER_PORT = Number(process.env.PORT ?? 3000);
-const SERVER_HOST = process.env.HOST ?? "0.0.0.0";
+const SERVER_HOST = process.env.HOST ?? "::";
 const CLIENT_DIRECTORY = "./dist/client";
 const SERVER_ENTRY_POINT = "./dist/server/server.js";
 
@@ -328,7 +328,10 @@ async function initializeServer() {
 		},
 	});
 
-	const displayHost = SERVER_HOST === "0.0.0.0" ? "localhost" : SERVER_HOST;
+	const displayHost =
+		SERVER_HOST === "::" || SERVER_HOST === "0.0.0.0"
+			? "localhost"
+			: SERVER_HOST;
 	log.success(
 		`Server listening on http://${displayHost}:${(server.port ?? SERVER_PORT).toString()}`,
 	);
