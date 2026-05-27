@@ -17,13 +17,13 @@ import {
 } from "lucide-solid";
 import { createMemo, createSignal, For, Show } from "solid-js";
 
+import { TelegramMainButton } from "#/components/telegram-main-button";
+import { useMutation, useQuery } from "#/solid-convex";
+import { useTelegramLaunch } from "#/telegram-launch";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
-import { useMutation, useQuery } from "#/solid-convex";
-import { TelegramMainButton } from "#/components/telegram-main-button";
-
-export const Route = createFileRoute("/app/$id/group/$groupId/")({
+export const Route = createFileRoute("/app/groups/$groupId/")({
 	component: GroupIndexRoute,
 });
 
@@ -47,11 +47,11 @@ type CurrencyBalances = Record<string, CurrencyData>;
 
 function GroupIndexRoute() {
 	const params = Route.useParams();
-	const { id, groupId } = params();
-	const telegramUserId = Number(id);
+	const { groupId } = params();
 	const telegramChatId = Number(groupId);
+	const { telegramUserId } = useTelegramLaunch();
 
-	if (Number.isNaN(telegramUserId) || Number.isNaN(telegramChatId)) {
+	if (Number.isNaN(telegramChatId)) {
 		return (
 			<div class="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6 dark:from-gray-900 dark:to-gray-800">
 				<Empty text="Invalid Telegram group id." />
@@ -59,12 +59,28 @@ function GroupIndexRoute() {
 		);
 	}
 
+	return (
+		<Show when={telegramUserId()} fallback={<Loading />}>
+			{(currentTelegramUserId) => (
+				<GroupIndexData
+					telegramChatId={telegramChatId}
+					telegramUserId={currentTelegramUserId()}
+				/>
+			)}
+		</Show>
+	);
+}
+
+function GroupIndexData(props: {
+	telegramChatId: number;
+	telegramUserId: number;
+}) {
 	const groupData = useQuery(api.groups.getListOfExpenses, {
-		telegramChatId,
+		telegramChatId: props.telegramChatId,
 	});
 	const isRegisteredMemberOfGroup = useQuery(api.groups.isUserMemberOfGroup, {
-		telegramChatId,
-		telegramUserId,
+		telegramChatId: props.telegramChatId,
+		telegramUserId: props.telegramUserId,
 	});
 
 	return (
@@ -78,9 +94,9 @@ function GroupIndexRoute() {
 				{(data) => (
 					<GroupView
 						groupData={data()}
-						groupIdNumber={telegramChatId}
+						groupIdNumber={props.telegramChatId}
 						isRegisteredMemberOfGroup={isRegisteredMemberOfGroup() === true}
-						telegramUserId={telegramUserId}
+						telegramUserId={props.telegramUserId}
 					/>
 				)}
 			</Show>
@@ -181,7 +197,6 @@ function GroupView(props: {
 		void navigate({
 			params: {
 				groupId: String(props.groupIdNumber),
-				id: String(props.telegramUserId),
 			},
 			search: {
 				currency: expense.currency,
@@ -191,7 +206,7 @@ function GroupView(props: {
 				items: JSON.stringify(expense.items),
 				payerId: expense.payerId,
 			},
-			to: "/app/$id/group/$groupId/add-expense",
+			to: "/app/groups/$groupId/add-expense",
 		});
 	};
 
@@ -227,9 +242,8 @@ function GroupView(props: {
 							class="rounded-full p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
 							params={{
 								groupId: String(props.groupIdNumber),
-								id: String(props.telegramUserId),
 							}}
-							to="/app/$id/group/$groupId/settings"
+							to="/app/groups/$groupId/settings"
 						>
 							<Settings class="h-5 w-5 text-gray-500 dark:text-gray-400" />
 						</Link>
@@ -710,7 +724,6 @@ function AddExpenseButton(props: {
 			class="fixed right-6 bottom-6 flex h-14 w-14 items-center justify-center rounded-full bg-blue-500 text-white shadow-lg transition-all hover:scale-110 hover:bg-blue-600 focus:scale-95 focus:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 active:scale-95"
 			params={{
 				groupId: String(props.telegramChatId),
-				id: String(props.telegramUserId),
 			}}
 			search={{
 				currency: null,
@@ -720,7 +733,7 @@ function AddExpenseButton(props: {
 				items: null,
 				payerId: null,
 			}}
-			to="/app/$id/group/$groupId/add-expense"
+			to="/app/groups/$groupId/add-expense"
 		>
 			<Plus class="h-6 w-6" />
 		</Link>

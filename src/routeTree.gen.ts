@@ -11,12 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/app/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as ApiBotRouteImport } from './routes/api/bot'
-import { Route as AppIdRouteRouteImport } from './routes/app/$id/route'
-import { Route as AppIdGroupGroupIdRouteRouteImport } from './routes/app/$id/group/$groupId/route'
-import { Route as AppIdGroupGroupIdIndexRouteImport } from './routes/app/$id/group/$groupId/index'
-import { Route as AppIdGroupGroupIdSettingsRouteImport } from './routes/app/$id/group/$groupId/settings'
-import { Route as AppIdGroupGroupIdAddExpenseRouteImport } from './routes/app/$id/group/$groupId/add-expense'
+import { Route as AppGroupsGroupIdRouteRouteImport } from './routes/app/groups/$groupId/route'
+import { Route as AppGroupsGroupIdIndexRouteImport } from './routes/app/groups/$groupId/index'
+import { Route as AppGroupsGroupIdSettingsRouteImport } from './routes/app/groups/$groupId/settings'
+import { Route as AppGroupsGroupIdAddExpenseRouteImport } from './routes/app/groups/$groupId/add-expense'
 
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/app',
@@ -28,99 +28,97 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const ApiBotRoute = ApiBotRouteImport.update({
   id: '/api/bot',
   path: '/api/bot',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppIdRouteRoute = AppIdRouteRouteImport.update({
-  id: '/$id',
-  path: '/$id',
+const AppGroupsGroupIdRouteRoute = AppGroupsGroupIdRouteRouteImport.update({
+  id: '/groups/$groupId',
+  path: '/groups/$groupId',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppIdGroupGroupIdRouteRoute = AppIdGroupGroupIdRouteRouteImport.update({
-  id: '/group/$groupId',
-  path: '/group/$groupId',
-  getParentRoute: () => AppIdRouteRoute,
-} as any)
-const AppIdGroupGroupIdIndexRoute = AppIdGroupGroupIdIndexRouteImport.update({
+const AppGroupsGroupIdIndexRoute = AppGroupsGroupIdIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AppIdGroupGroupIdRouteRoute,
+  getParentRoute: () => AppGroupsGroupIdRouteRoute,
 } as any)
-const AppIdGroupGroupIdSettingsRoute =
-  AppIdGroupGroupIdSettingsRouteImport.update({
+const AppGroupsGroupIdSettingsRoute =
+  AppGroupsGroupIdSettingsRouteImport.update({
     id: '/settings',
     path: '/settings',
-    getParentRoute: () => AppIdGroupGroupIdRouteRoute,
+    getParentRoute: () => AppGroupsGroupIdRouteRoute,
   } as any)
-const AppIdGroupGroupIdAddExpenseRoute =
-  AppIdGroupGroupIdAddExpenseRouteImport.update({
+const AppGroupsGroupIdAddExpenseRoute =
+  AppGroupsGroupIdAddExpenseRouteImport.update({
     id: '/add-expense',
     path: '/add-expense',
-    getParentRoute: () => AppIdGroupGroupIdRouteRoute,
+    getParentRoute: () => AppGroupsGroupIdRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
-  '/app/$id': typeof AppIdRouteRouteWithChildren
   '/api/bot': typeof ApiBotRoute
-  '/app/$id/group/$groupId': typeof AppIdGroupGroupIdRouteRouteWithChildren
-  '/app/$id/group/$groupId/add-expense': typeof AppIdGroupGroupIdAddExpenseRoute
-  '/app/$id/group/$groupId/settings': typeof AppIdGroupGroupIdSettingsRoute
-  '/app/$id/group/$groupId/': typeof AppIdGroupGroupIdIndexRoute
+  '/app/': typeof AppIndexRoute
+  '/app/groups/$groupId': typeof AppGroupsGroupIdRouteRouteWithChildren
+  '/app/groups/$groupId/add-expense': typeof AppGroupsGroupIdAddExpenseRoute
+  '/app/groups/$groupId/settings': typeof AppGroupsGroupIdSettingsRoute
+  '/app/groups/$groupId/': typeof AppGroupsGroupIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/app': typeof AppRouteRouteWithChildren
-  '/app/$id': typeof AppIdRouteRouteWithChildren
   '/api/bot': typeof ApiBotRoute
-  '/app/$id/group/$groupId/add-expense': typeof AppIdGroupGroupIdAddExpenseRoute
-  '/app/$id/group/$groupId/settings': typeof AppIdGroupGroupIdSettingsRoute
-  '/app/$id/group/$groupId': typeof AppIdGroupGroupIdIndexRoute
+  '/app': typeof AppIndexRoute
+  '/app/groups/$groupId/add-expense': typeof AppGroupsGroupIdAddExpenseRoute
+  '/app/groups/$groupId/settings': typeof AppGroupsGroupIdSettingsRoute
+  '/app/groups/$groupId': typeof AppGroupsGroupIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
-  '/app/$id': typeof AppIdRouteRouteWithChildren
   '/api/bot': typeof ApiBotRoute
-  '/app/$id/group/$groupId': typeof AppIdGroupGroupIdRouteRouteWithChildren
-  '/app/$id/group/$groupId/add-expense': typeof AppIdGroupGroupIdAddExpenseRoute
-  '/app/$id/group/$groupId/settings': typeof AppIdGroupGroupIdSettingsRoute
-  '/app/$id/group/$groupId/': typeof AppIdGroupGroupIdIndexRoute
+  '/app/': typeof AppIndexRoute
+  '/app/groups/$groupId': typeof AppGroupsGroupIdRouteRouteWithChildren
+  '/app/groups/$groupId/add-expense': typeof AppGroupsGroupIdAddExpenseRoute
+  '/app/groups/$groupId/settings': typeof AppGroupsGroupIdSettingsRoute
+  '/app/groups/$groupId/': typeof AppGroupsGroupIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/app'
-    | '/app/$id'
     | '/api/bot'
-    | '/app/$id/group/$groupId'
-    | '/app/$id/group/$groupId/add-expense'
-    | '/app/$id/group/$groupId/settings'
-    | '/app/$id/group/$groupId/'
+    | '/app/'
+    | '/app/groups/$groupId'
+    | '/app/groups/$groupId/add-expense'
+    | '/app/groups/$groupId/settings'
+    | '/app/groups/$groupId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/app'
-    | '/app/$id'
     | '/api/bot'
-    | '/app/$id/group/$groupId/add-expense'
-    | '/app/$id/group/$groupId/settings'
-    | '/app/$id/group/$groupId'
+    | '/app'
+    | '/app/groups/$groupId/add-expense'
+    | '/app/groups/$groupId/settings'
+    | '/app/groups/$groupId'
   id:
     | '__root__'
     | '/'
     | '/app'
-    | '/app/$id'
     | '/api/bot'
-    | '/app/$id/group/$groupId'
-    | '/app/$id/group/$groupId/add-expense'
-    | '/app/$id/group/$groupId/settings'
-    | '/app/$id/group/$groupId/'
+    | '/app/'
+    | '/app/groups/$groupId'
+    | '/app/groups/$groupId/add-expense'
+    | '/app/groups/$groupId/settings'
+    | '/app/groups/$groupId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,6 +143,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/api/bot': {
       id: '/api/bot'
       path: '/api/bot'
@@ -152,80 +157,62 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiBotRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app/$id': {
-      id: '/app/$id'
-      path: '/$id'
-      fullPath: '/app/$id'
-      preLoaderRoute: typeof AppIdRouteRouteImport
+    '/app/groups/$groupId': {
+      id: '/app/groups/$groupId'
+      path: '/groups/$groupId'
+      fullPath: '/app/groups/$groupId'
+      preLoaderRoute: typeof AppGroupsGroupIdRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/app/$id/group/$groupId': {
-      id: '/app/$id/group/$groupId'
-      path: '/group/$groupId'
-      fullPath: '/app/$id/group/$groupId'
-      preLoaderRoute: typeof AppIdGroupGroupIdRouteRouteImport
-      parentRoute: typeof AppIdRouteRoute
-    }
-    '/app/$id/group/$groupId/': {
-      id: '/app/$id/group/$groupId/'
+    '/app/groups/$groupId/': {
+      id: '/app/groups/$groupId/'
       path: '/'
-      fullPath: '/app/$id/group/$groupId/'
-      preLoaderRoute: typeof AppIdGroupGroupIdIndexRouteImport
-      parentRoute: typeof AppIdGroupGroupIdRouteRoute
+      fullPath: '/app/groups/$groupId/'
+      preLoaderRoute: typeof AppGroupsGroupIdIndexRouteImport
+      parentRoute: typeof AppGroupsGroupIdRouteRoute
     }
-    '/app/$id/group/$groupId/settings': {
-      id: '/app/$id/group/$groupId/settings'
+    '/app/groups/$groupId/settings': {
+      id: '/app/groups/$groupId/settings'
       path: '/settings'
-      fullPath: '/app/$id/group/$groupId/settings'
-      preLoaderRoute: typeof AppIdGroupGroupIdSettingsRouteImport
-      parentRoute: typeof AppIdGroupGroupIdRouteRoute
+      fullPath: '/app/groups/$groupId/settings'
+      preLoaderRoute: typeof AppGroupsGroupIdSettingsRouteImport
+      parentRoute: typeof AppGroupsGroupIdRouteRoute
     }
-    '/app/$id/group/$groupId/add-expense': {
-      id: '/app/$id/group/$groupId/add-expense'
+    '/app/groups/$groupId/add-expense': {
+      id: '/app/groups/$groupId/add-expense'
       path: '/add-expense'
-      fullPath: '/app/$id/group/$groupId/add-expense'
-      preLoaderRoute: typeof AppIdGroupGroupIdAddExpenseRouteImport
-      parentRoute: typeof AppIdGroupGroupIdRouteRoute
+      fullPath: '/app/groups/$groupId/add-expense'
+      preLoaderRoute: typeof AppGroupsGroupIdAddExpenseRouteImport
+      parentRoute: typeof AppGroupsGroupIdRouteRoute
     }
   }
 }
 
-interface AppIdGroupGroupIdRouteRouteChildren {
-  AppIdGroupGroupIdAddExpenseRoute: typeof AppIdGroupGroupIdAddExpenseRoute
-  AppIdGroupGroupIdSettingsRoute: typeof AppIdGroupGroupIdSettingsRoute
-  AppIdGroupGroupIdIndexRoute: typeof AppIdGroupGroupIdIndexRoute
+interface AppGroupsGroupIdRouteRouteChildren {
+  AppGroupsGroupIdAddExpenseRoute: typeof AppGroupsGroupIdAddExpenseRoute
+  AppGroupsGroupIdSettingsRoute: typeof AppGroupsGroupIdSettingsRoute
+  AppGroupsGroupIdIndexRoute: typeof AppGroupsGroupIdIndexRoute
 }
 
-const AppIdGroupGroupIdRouteRouteChildren: AppIdGroupGroupIdRouteRouteChildren =
-  {
-    AppIdGroupGroupIdAddExpenseRoute: AppIdGroupGroupIdAddExpenseRoute,
-    AppIdGroupGroupIdSettingsRoute: AppIdGroupGroupIdSettingsRoute,
-    AppIdGroupGroupIdIndexRoute: AppIdGroupGroupIdIndexRoute,
-  }
+const AppGroupsGroupIdRouteRouteChildren: AppGroupsGroupIdRouteRouteChildren = {
+  AppGroupsGroupIdAddExpenseRoute: AppGroupsGroupIdAddExpenseRoute,
+  AppGroupsGroupIdSettingsRoute: AppGroupsGroupIdSettingsRoute,
+  AppGroupsGroupIdIndexRoute: AppGroupsGroupIdIndexRoute,
+}
 
-const AppIdGroupGroupIdRouteRouteWithChildren =
-  AppIdGroupGroupIdRouteRoute._addFileChildren(
-    AppIdGroupGroupIdRouteRouteChildren,
+const AppGroupsGroupIdRouteRouteWithChildren =
+  AppGroupsGroupIdRouteRoute._addFileChildren(
+    AppGroupsGroupIdRouteRouteChildren,
   )
 
-interface AppIdRouteRouteChildren {
-  AppIdGroupGroupIdRouteRoute: typeof AppIdGroupGroupIdRouteRouteWithChildren
-}
-
-const AppIdRouteRouteChildren: AppIdRouteRouteChildren = {
-  AppIdGroupGroupIdRouteRoute: AppIdGroupGroupIdRouteRouteWithChildren,
-}
-
-const AppIdRouteRouteWithChildren = AppIdRouteRoute._addFileChildren(
-  AppIdRouteRouteChildren,
-)
-
 interface AppRouteRouteChildren {
-  AppIdRouteRoute: typeof AppIdRouteRouteWithChildren
+  AppIndexRoute: typeof AppIndexRoute
+  AppGroupsGroupIdRouteRoute: typeof AppGroupsGroupIdRouteRouteWithChildren
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
-  AppIdRouteRoute: AppIdRouteRouteWithChildren,
+  AppIndexRoute: AppIndexRoute,
+  AppGroupsGroupIdRouteRoute: AppGroupsGroupIdRouteRouteWithChildren,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(

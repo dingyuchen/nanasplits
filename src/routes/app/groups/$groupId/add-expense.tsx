@@ -20,15 +20,15 @@ import {
 } from "solid-js";
 import { z } from "zod";
 
+import { TelegramMainButton } from "#/components/telegram-main-button";
 import { Button } from "#/components/ui/button";
 import { CurrencyInput } from "#/components/ui/currency-input";
 import Loading from "#/components/ui/loading";
-import { api } from "@/convex/_generated/api";
-import type { Doc, Id } from "@/convex/_generated/dataModel";
-
 import { CurrencyDropdownOptions, currencySigns } from "#/currencies";
 import { useMutation, useQuery } from "#/solid-convex";
-import { TelegramMainButton } from "#/components/telegram-main-button";
+import { useTelegramLaunch } from "#/telegram-launch";
+import { api } from "@/convex/_generated/api";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 
 type EditExpenseSearchParams = {
 	expenseId: string | null;
@@ -39,7 +39,7 @@ type EditExpenseSearchParams = {
 	items: string | null;
 };
 
-export const Route = createFileRoute("/app/$id/group/$groupId/add-expense")({
+export const Route = createFileRoute("/app/groups/$groupId/add-expense")({
 	validateSearch: (search): EditExpenseSearchParams => ({
 		currency: stringSearchParam(search.currency),
 		date: stringSearchParam(search.date),
@@ -96,16 +96,37 @@ type SubItem = {
 function AddExpenseRoute() {
 	const params = Route.useParams();
 	const search = Route.useSearch();
-	const { id, groupId } = params();
-	const telegramUserId = Number(id);
+	const { groupId } = params();
 	const telegramChatId = Number(groupId);
+	const { telegramUserId } = useTelegramLaunch();
 
-	if (Number.isNaN(telegramUserId) || Number.isNaN(telegramChatId)) {
+	if (Number.isNaN(telegramChatId)) {
 		return <Loading message="Invalid group." />;
 	}
 
+	return (
+		<Show
+			when={telegramUserId()}
+			fallback={<Loading message="Loading page..." />}
+		>
+			{(currentTelegramUserId) => (
+				<AddExpenseData
+					searchParams={search()}
+					telegramChatId={telegramChatId}
+					telegramUserId={currentTelegramUserId()}
+				/>
+			)}
+		</Show>
+	);
+}
+
+function AddExpenseData(props: {
+	searchParams: EditExpenseSearchParams;
+	telegramChatId: number;
+	telegramUserId: number;
+}) {
 	const groupData = useQuery(api.groups.getListOfExpenses, {
-		telegramChatId,
+		telegramChatId: props.telegramChatId,
 	});
 
 	return (
@@ -113,9 +134,9 @@ function AddExpenseRoute() {
 			{(data) => (
 				<EditExpensePage
 					groupData={data()}
-					searchParams={search()}
-					telegramChatId={telegramChatId}
-					telegramUserId={telegramUserId}
+					searchParams={props.searchParams}
+					telegramChatId={props.telegramChatId}
+					telegramUserId={props.telegramUserId}
 				/>
 			)}
 		</Show>
@@ -853,9 +874,8 @@ function EditExpensePage(props: {
 			void navigate({
 				params: {
 					groupId: String(props.telegramChatId),
-					id: String(props.telegramUserId),
 				},
-				to: "/app/$id/group/$groupId",
+				to: "/app/groups/$groupId",
 			});
 		} catch (error) {
 			console.error("Failed to save expense:", error);
@@ -878,9 +898,8 @@ function EditExpensePage(props: {
 							void navigate({
 								params: {
 									groupId: String(props.telegramChatId),
-									id: String(props.telegramUserId),
 								},
-								to: "/app/$id/group/$groupId",
+								to: "/app/groups/$groupId",
 							})
 						}
 					>

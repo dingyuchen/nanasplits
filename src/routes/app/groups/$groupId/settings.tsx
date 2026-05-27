@@ -3,13 +3,13 @@ import type { FunctionReturnType } from "convex/server";
 import { ArrowLeft, Check, Globe, Loader2, Users } from "lucide-solid";
 import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 
-import { api } from "@/convex/_generated/api";
-
+import { TelegramMainButton } from "#/components/telegram-main-button";
 import { currencySigns } from "#/currencies";
 import { useMutation, useQuery } from "#/solid-convex";
-import { TelegramMainButton } from "#/components/telegram-main-button";
+import { useTelegramLaunch } from "#/telegram-launch";
+import { api } from "@/convex/_generated/api";
 
-export const Route = createFileRoute("/app/$id/group/$groupId/settings")({
+export const Route = createFileRoute("/app/groups/$groupId/settings")({
 	component: GroupSettingsRoute,
 });
 
@@ -19,16 +19,32 @@ type GroupData = NonNullable<
 
 function GroupSettingsRoute() {
 	const params = Route.useParams();
-	const { id, groupId } = params();
-	const telegramUserId = Number(id);
+	const { groupId } = params();
 	const telegramChatId = Number(groupId);
+	const { telegramUserId } = useTelegramLaunch();
 
-	if (Number.isNaN(telegramUserId) || Number.isNaN(telegramChatId)) {
+	if (Number.isNaN(telegramChatId)) {
 		return <Loading />;
 	}
 
+	return (
+		<Show when={telegramUserId()} fallback={<Loading />}>
+			{(currentTelegramUserId) => (
+				<GroupSettingsData
+					telegramChatId={telegramChatId}
+					telegramUserId={currentTelegramUserId()}
+				/>
+			)}
+		</Show>
+	);
+}
+
+function GroupSettingsData(props: {
+	telegramChatId: number;
+	telegramUserId: number;
+}) {
 	const groupData = useQuery(api.groups.getListOfExpenses, {
-		telegramChatId,
+		telegramChatId: props.telegramChatId,
 	});
 
 	return (
@@ -36,8 +52,8 @@ function GroupSettingsRoute() {
 			{(data) => (
 				<GroupSettings
 					groupData={data()}
-					telegramChatId={telegramChatId}
-					telegramUserId={telegramUserId}
+					telegramChatId={props.telegramChatId}
+					telegramUserId={props.telegramUserId}
 				/>
 			)}
 		</Show>
@@ -97,9 +113,8 @@ function GroupSettings(props: {
 							void navigate({
 								params: {
 									groupId: String(props.telegramChatId),
-									id: String(props.telegramUserId),
 								},
-								to: "/app/$id/group/$groupId",
+								to: "/app/groups/$groupId",
 							})
 						}
 					>

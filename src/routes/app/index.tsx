@@ -10,30 +10,25 @@ import {
 } from "lucide-solid";
 import { For, type JSX, Show } from "solid-js";
 
+import { useQuery } from "#/solid-convex";
+import { useTelegramLaunch } from "#/telegram-launch";
 import { api } from "@/convex/_generated/api";
 
-import { useQuery } from "#/solid-convex";
-
-export const Route = createFileRoute("/app/$id")({
+export const Route = createFileRoute("/app/")({
 	component: DashboardRoute,
 });
 
 function DashboardRoute() {
-	const params = Route.useParams();
-	const { id } = params();
-	const userId = Number(id);
-
-	if (Number.isNaN(userId)) {
-		return (
-			<Shell>
-				<EmptyState title="Invalid user" text="Telegram user id is invalid." />
-			</Shell>
-		);
-	}
+	const { telegramUserId } = useTelegramLaunch();
 
 	return (
 		<Shell>
-			<Dashboard userId={userId} />
+			<Show
+				when={telegramUserId()}
+				fallback={<Loading message="Getting your data..." />}
+			>
+				{(userId) => <Dashboard userId={userId()} />}
+			</Show>
 		</Shell>
 	);
 }
@@ -46,20 +41,14 @@ function Dashboard({ userId }: { userId: number }) {
 			when={dashboardData()}
 			fallback={<Loading message="Getting your data..." />}
 		>
-			{(data) => <DashboardContent data={data()} userId={userId} />}
+			{(data) => <DashboardContent data={data()} />}
 		</Show>
 	);
 }
 
 type DashboardData = FunctionReturnType<typeof api.groups.getDashboardData>;
 
-function DashboardContent({
-	data,
-	userId,
-}: {
-	data: DashboardData;
-	userId: number;
-}) {
+function DashboardContent({ data }: { data: DashboardData }) {
 	const { stats, groupsWithPendingSplits, balancesByCurrency } = data;
 
 	return (
@@ -109,10 +98,9 @@ function DashboardContent({
 									<Link
 										class="block rounded-xl border border-gray-200 p-4 transition-all hover:border-blue-500/50 dark:border-gray-700"
 										params={{
-											id: String(userId),
 											groupId: String(group.telegramChatId),
 										}}
-										to="/app/$id/group/$groupId"
+										to="/app/groups/$groupId"
 									>
 										<div class="mb-3 flex items-start justify-between">
 											<div>

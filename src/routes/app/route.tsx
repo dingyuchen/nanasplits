@@ -24,16 +24,16 @@ import {
 	Switch,
 } from "solid-js";
 
+import { TelegramMainButton } from "#/components/telegram-main-button";
+import { TelegramRequiredPage } from "#/components/telegram-required";
 import Loading from "#/components/ui/loading";
-
 import {
 	Authenticated,
 	AuthLoading,
 	Unauthenticated,
 	useAuthActions,
 } from "#/solid-convex";
-import { TelegramMainButton } from "#/components/telegram-main-button";
-import { TelegramRequiredPage } from "#/components/telegram-required";
+import { TelegramLaunchProvider, useTelegramLaunch } from "#/telegram-launch";
 
 export const Route = createFileRoute("/app")({
 	component: AppRoute,
@@ -110,7 +110,9 @@ function AppRoute() {
 					<SignInPanel />
 				</Unauthenticated>
 				<Authenticated>
-					<AppOutlet launchParams={launchParams()} />
+					<TelegramLaunchProvider launchParams={launchParams}>
+						<AppOutlet />
+					</TelegramLaunchProvider>
 				</Authenticated>
 			</Match>
 		</Switch>
@@ -141,43 +143,25 @@ function SignInPanel() {
 	);
 }
 
-function AppOutlet(props: { launchParams: LaunchParams | null }) {
+function AppOutlet() {
 	const location = useLocation();
 	const navigate = useNavigate();
+	const { launchParams, startParam } = useTelegramLaunch();
 
 	createEffect(() => {
 		if (location().pathname !== "/app") return;
+		if (launchParams() === null) return;
 
-		const launchParams = props.launchParams;
-		if (launchParams === null) return;
-
-		const userId = launchParams?.tgWebAppData?.user?.id;
-		if (userId === undefined) return;
-
-		const groupId =
-			launchParams.tgWebAppStartParam ?? launchParams.tgWebAppData?.start_param;
-
+		const groupId = startParam();
 		if (groupId !== undefined && groupId !== "") {
 			void navigate({
-				params: { id: String(userId), groupId },
+				params: { groupId },
 				replace: true,
-				to: "/app/$id/group/$groupId",
+				to: "/app/groups/$groupId",
 			});
 			return;
 		}
-
-		void navigate({
-			params: { id: String(userId) },
-			replace: true,
-			to: "/app/$id",
-		});
 	});
 
-	return (
-		<Switch fallback={<Outlet />}>
-			<Match when={location().pathname === "/app"}>
-				<Loading message="Opening NanaSplits..." />
-			</Match>
-		</Switch>
-	);
+	return <Outlet />;
 }
