@@ -8,9 +8,9 @@ import {
 import { type JSX, Suspense } from "solid-js";
 import { HydrationScript } from "solid-js/web";
 
-import { AppProviders } from "../providers";
+import { AppProviders } from "#/providers";
 
-import appCss from "../styles.css?url";
+import appCss from "#/styles.css?url";
 
 export const Route = createRootRoute({
 	head: () => ({

@@ -26,9 +26,9 @@ import Loading from "@/components/ui/loading";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 
-import { CurrencyDropdownOptions, currencySigns } from "../currencies";
-import { useMutation, useQuery } from "../solid-convex";
-import { TelegramMainButton } from "../telegram-main-button";
+import { CurrencyDropdownOptions, currencySigns } from "#/currencies";
+import { useMutation, useQuery } from "#/solid-convex";
+import { TelegramMainButton } from "#/components/telegram-main-button";
 
 type EditExpenseSearchParams = {
 	expenseId: string | null;

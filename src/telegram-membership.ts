@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/solid-start";
 import { Bot } from "gramio";
 import { z } from "zod";
 
-import { getServerEnv } from "./env";
+import { getServerEnv } from "#/env";
 
 const membershipInput = z.object({
 	chatId: z.number(),

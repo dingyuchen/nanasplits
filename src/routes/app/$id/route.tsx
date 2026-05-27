@@ -12,7 +12,7 @@ import { For, type JSX, Show } from "solid-js";
 
 import { api } from "@/convex/_generated/api";
 
-import { useQuery } from "../solid-convex";
+import { useQuery } from "#/solid-convex";
 
 export const Route = createFileRoute("/app/$id")({
 	component: DashboardRoute,

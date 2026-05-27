@@ -5,9 +5,9 @@ import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
 
 import { api } from "@/convex/_generated/api";
 
-import { currencySigns } from "../currencies";
-import { useMutation, useQuery } from "../solid-convex";
-import { TelegramMainButton } from "../telegram-main-button";
+import { currencySigns } from "#/currencies";
+import { useMutation, useQuery } from "#/solid-convex";
+import { TelegramMainButton } from "#/components/telegram-main-button";
 
 export const Route = createFileRoute("/app/$id/group/$groupId/settings")({
 	component: GroupSettingsRoute,

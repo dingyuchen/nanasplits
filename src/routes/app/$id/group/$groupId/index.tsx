@@ -20,8 +20,8 @@ import { createMemo, createSignal, For, Show } from "solid-js";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
-import { useMutation, useQuery } from "../solid-convex";
-import { TelegramMainButton } from "../telegram-main-button";
+import { useMutation, useQuery } from "#/solid-convex";
+import { TelegramMainButton } from "#/components/telegram-main-button";
 
 export const Route = createFileRoute("/app/$id/group/$groupId/")({
 	component: GroupIndexRoute,

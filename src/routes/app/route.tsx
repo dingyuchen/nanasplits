@@ -31,9 +31,9 @@ import {
 	AuthLoading,
 	Unauthenticated,
 	useAuthActions,
-} from "../solid-convex";
-import { TelegramMainButton } from "../telegram-main-button";
-import { TelegramRequiredPage } from "../telegram-required";
+} from "#/solid-convex";
+import { TelegramMainButton } from "#/components/telegram-main-button";
+import { TelegramRequiredPage } from "#/components/telegram-required";
 
 export const Route = createFileRoute("/app")({
 	component: AppRoute,

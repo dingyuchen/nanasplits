@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet } from "@tanstack/solid-router";
 import { ShieldAlert } from "lucide-solid";
 
-import { checkTelegramMembership } from "../telegram-membership";
+import { checkTelegramMembership } from "#/telegram-membership";
 
 export const Route = createFileRoute("/app/$id/group/$groupId")({
 	loader: async ({ params }) => {
