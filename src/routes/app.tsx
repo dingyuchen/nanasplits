@@ -23,7 +23,9 @@ import {
 	onMount,
 	Switch,
 } from "solid-js";
+
 import Loading from "@/components/ui/loading";
+
 import {
 	Authenticated,
 	AuthLoading,

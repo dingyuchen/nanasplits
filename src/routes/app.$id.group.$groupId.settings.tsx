@@ -2,7 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/solid-router";
 import type { FunctionReturnType } from "convex/server";
 import { ArrowLeft, Check, Globe, Loader2, Users } from "lucide-solid";
 import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
+
 import { api } from "@/convex/_generated/api";
+
 import { currencySigns } from "../currencies";
 import { useMutation, useQuery } from "../solid-convex";
 import { TelegramMainButton } from "../telegram-main-button";

@@ -1,11 +1,11 @@
 import { splitProps, type JSX } from "solid-js";
+
 import { cn } from "@/lib/utils";
 
-export interface CurrencyInputProps
-	extends Omit<
-		JSX.InputHTMLAttributes<HTMLInputElement>,
-		"value" | "onInput" | "type"
-	> {
+export interface CurrencyInputProps extends Omit<
+	JSX.InputHTMLAttributes<HTMLInputElement>,
+	"value" | "onInput" | "type"
+> {
 	/** The amount value in dollars (e.g., 12.34) */
 	value: number;
 	/** Callback when the amount changes, receives value in dollars */
@@ -35,7 +35,9 @@ export function CurrencyInput(props: CurrencyInputProps) {
 		return (cents / 100).toFixed(2);
 	};
 
-	const handleInput: JSX.EventHandler<HTMLInputElement, InputEvent> = (event) => {
+	const handleInput: JSX.EventHandler<HTMLInputElement, InputEvent> = (
+		event,
+	) => {
 		const digits = event.currentTarget.value.replace(/\D/g, "");
 		const cents = Math.min(Number.parseInt(digits, 10) || 0, maxCents());
 		local.onValueChange(cents / 100);

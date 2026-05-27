@@ -3,6 +3,7 @@
 ## Project Overview
 
 Nanasplits is a Telegram-based expense splitting app built with:
+
 - **Frontend**: TanStack Start, TanStack Router, SolidJS, Vite
 - **Backend**: Convex (serverless database + API)
 - **Styling**: Tailwind CSS 4 with `@tailwindcss/vite`
@@ -15,24 +16,28 @@ Nanasplits is a Telegram-based expense splitting app built with:
 ## Commands
 
 ### Development
+
 ```bash
 bun run dev              # Start development server
 bun run convex:dev      # Start Convex dev server (required for local development)
 ```
 
 ### Building
+
 ```bash
 bun run build           # Build production app
 bun run start           # Start production server
 ```
 
 ### Linting & Formatting
+
 ```bash
-bun run lint            # Run Biome linter (check only)
-bun run format         # Format code with Biome
+bun run lint            # Run Oxlint
+bun run format         # Format code with Oxfmt
 ```
 
 ### Database
+
 ```bash
 bun run convex:deploy   # Deploy Convex backend to production
 ```
@@ -50,7 +55,8 @@ bun run convex:deploy   # Deploy Convex backend to production
 
 ### Imports
 
-Organize imports in the following order (Biome will enforce this):
+Organize imports in the following order (Oxfmt will enforce this):
+
 1. External libraries (Solid, TanStack, etc.)
 2. Internal packages (Convex, etc.)
 3. Absolute imports (`@/...`)
@@ -81,14 +87,14 @@ import { createSignal } from "solid-js";
 ```typescript
 // Good
 type MemberBalance = {
-  memberId: Id<"users">;
-  memberName: string;
-  balance: number;
+	memberId: Id<"users">;
+	memberName: string;
+	balance: number;
 };
 
 interface SettleUpProps {
-  currencyBalances: CurrencyBalances;
-  currentUserId: Id<"users">;
+	currencyBalances: CurrencyBalances;
+	currentUserId: Id<"users">;
 }
 
 // Bad
@@ -128,9 +134,9 @@ export function SettleUp({ ... }: SettleUpProps) {
 ```typescript
 // Good - validate with helper
 const { group, memberIds } = await getGroupWithParticipantValidation(
-  ctx.db,
-  { telegramChatId, telegramUserId, payerId, items },
-  ctx.userId,
+	ctx.db,
+	{ telegramChatId, telegramUserId, payerId, items },
+	ctx.userId,
 );
 
 // Bad - duplicate validation logic in each mutation
@@ -202,6 +208,7 @@ nanasplits/
 ## Testing
 
 This project does not currently have a test suite. If adding tests:
+
 - Use the same testing framework as the team agrees on
 - Place tests alongside components (`ComponentName.test.tsx`)
 - Run specific tests with appropriate tooling

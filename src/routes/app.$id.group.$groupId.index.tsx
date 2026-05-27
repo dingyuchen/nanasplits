@@ -16,8 +16,10 @@ import {
 	Wallet,
 } from "lucide-solid";
 import { createMemo, createSignal, For, Show } from "solid-js";
+
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+
 import { useMutation, useQuery } from "../solid-convex";
 import { TelegramMainButton } from "../telegram-main-button";
 

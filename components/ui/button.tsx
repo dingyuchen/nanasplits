@@ -1,4 +1,5 @@
 import { splitProps, type JSX } from "solid-js";
+
 import { cn } from "@/lib/utils";
 
 export interface ButtonProps extends JSX.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -7,11 +8,7 @@ export interface ButtonProps extends JSX.ButtonHTMLAttributes<HTMLButtonElement>
 }
 
 export function Button(props: ButtonProps) {
-	const [local, buttonProps] = splitProps(props, [
-		"class",
-		"variant",
-		"size",
-	]);
+	const [local, buttonProps] = splitProps(props, ["class", "variant", "size"]);
 	const variant = () => local.variant ?? "default";
 	const size = () => local.size ?? "default";
 

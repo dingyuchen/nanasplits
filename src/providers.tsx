@@ -1,4 +1,5 @@
 import type { JSX } from "solid-js";
+
 import { getConvexUrl } from "./env";
 import { SolidConvexProvider } from "./solid-convex";
 

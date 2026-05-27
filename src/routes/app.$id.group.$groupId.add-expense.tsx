@@ -19,11 +19,13 @@ import {
 	untrack,
 } from "solid-js";
 import { z } from "zod";
+
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import Loading from "@/components/ui/loading";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
+
 import { CurrencyDropdownOptions, currencySigns } from "../currencies";
 import { useMutation, useQuery } from "../solid-convex";
 import { TelegramMainButton } from "../telegram-main-button";
@@ -1130,7 +1132,9 @@ function EditExpensePage(props: {
 
 					<button
 						class="hidden w-full items-center justify-center gap-2 rounded-xl border-2 border-blue-200 border-dashed py-3 font-medium text-blue-500 text-sm transition-colors hover:bg-blue-50 hover:text-blue-600 dark:border-blue-800 dark:hover:bg-blue-900/20"
-						ref={submitButtonRef}
+						ref={(element) => {
+							submitButtonRef = element;
+						}}
 						type="submit"
 					>
 						Submit
