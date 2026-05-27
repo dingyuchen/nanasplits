@@ -6,9 +6,9 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "vite dev --port 3000",
+    "dev": "bun --bun vite dev --port 3000",
     "build": "bun --bun vite build",
-    "start": "bun --bun .output/server/index.mjs",
+    "start": "bun --bun server.ts",
     "preview": "bun --bun vite preview",
     "lint": "biome lint",
     "format": "biome format --write",
@@ -30,7 +30,6 @@
     "convex-helpers": "^0.1.118",
     "gramio": "^0.10.0",
     "lucide-solid": "^1.16.0",
-    "nitro": "npm:nitro-nightly@^3.0.260429-beta",
     "solid-js": "^1.9.13",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.0",
