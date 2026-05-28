@@ -88,7 +88,13 @@ minimal policy shape is:
 		"tag:gh-action-runner": ["autogroup:admin"],
 		"tag:vps": ["autogroup:admin"]
 	},
-	"acls": [{ "action": "accept", "src": ["tag:gh-action-runner"], "dst": ["tag:vps:22"] }],
+	"acls": [
+		{
+			"action": "accept",
+			"src": ["tag:gh-action-runner"],
+			"dst": ["tag:vps:22"]
+		}
+	],
 	"ssh": [
 		{
 			"action": "accept",
