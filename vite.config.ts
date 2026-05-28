@@ -11,7 +11,12 @@ const config = defineConfig({
 	resolve: { dedupe: ["@tanstack/router-core"], tsconfigPaths: true },
 	plugins: [
 		devtools(),
-		tanstackStart(),
+		tanstackStart({
+			prerender: {
+				enabled: true,
+				autoStaticPathsDiscovery: true,
+			},
+		}),
 		viteSolid({ ssr: true }),
 		tailwindcss(),
 	],

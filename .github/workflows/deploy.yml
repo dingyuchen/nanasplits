@@ -38,15 +38,14 @@ jobs:
       - name: Build Linux x64 binary
         run: bun run build:binary
         env:
-          BUN_COMPILE_TARGET: bun-linux-x64
-          VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL }}
+          BUN_COMPILE_TARGET: bun-linux-x64-modern
 
       - name: Connect to tailnet
         uses: tailscale/github-action@v4
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
+          tags: tag:github-action-runner
           ping: ${{ secrets.VPS_TAILSCALE_HOST }}
 
       - name: Deploy over Tailscale SSH
@@ -75,6 +74,8 @@ jobs:
 
           ssh "${ssh_options[@]}" "${remote}" "mkdir -p '${DEPLOY_ROOT}/bin'"
           scp "${ssh_options[@]}" dist/nanasplits "${remote}:${release}"
+          ssh "${ssh_options[@]}" "${remote}" "rm -rf '${DEPLOY_ROOT}/dist/client' && mkdir -p '${DEPLOY_ROOT}/dist'"
+          scp -r "${ssh_options[@]}" dist/client "${remote}:${DEPLOY_ROOT}/dist/client"
           ssh "${ssh_options[@]}" "${remote}" "chmod 755 '${release}'"
           ssh "${ssh_options[@]}" "${remote}" \
             "TARGET='${target}' RELEASE='${release}' DEPLOY_ROOT='${DEPLOY_ROOT}' SERVICES='${services}' bash -s" <<'EOF'
