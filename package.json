@@ -8,6 +8,7 @@
 	"scripts": {
 		"dev": "bun --bun vite dev --port 3000",
 		"build": "bun --bun vite build",
+		"build:binary": "bun run build && bun --bun scripts/build-standalone.ts",
 		"start": "bun --bun server.ts",
 		"preview": "bun --bun vite preview",
 		"lint": "oxlint",

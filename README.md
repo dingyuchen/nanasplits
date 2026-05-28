@@ -22,8 +22,14 @@ bun run convex:dev
 
 ```bash
 bun run build
+bun run build:binary
 bun run start
 ```
+
+`build:binary` first creates the TanStack Start production build, then compiles
+the server and embedded client assets into `dist/nanasplits` with
+`bun build --compile --target=bun-linux-x64`. The resulting Linux x64 binary can
+run without Bun or `node_modules` on the VPS.
 
 ## Quality
 
@@ -41,3 +47,109 @@ bun x tsc --noEmit
 - Solid JSX uses `class` instead of React `className`.
 - Convex browser/auth bindings for Solid are wrapped in `src/solid-convex.tsx`.
 - Telegram bot webhook handling lives in `src/routes/api/bot.ts`.
+
+## VPS Deployment
+
+Pushes to `main` deploy the production binary and restart three instances on
+ports `3001`, `3002`, and `3003`. Pushes to `dev` deploy the preview binary and
+restart the single instance on port `3000`. Caddy is expected to already proxy
+to those ports.
+
+The GitHub workflow builds on GitHub-hosted runners, joins the tailnet with
+`tailscale/github-action`, copies the compiled binary to
+`/home/hermes/nanasplits`, and restarts `systemd` units over Tailscale SSH.
+
+### GitHub Secrets
+
+Configure these repository secrets:
+
+```text
+TS_OAUTH_CLIENT_ID     Tailscale OAuth client ID
+TS_OAUTH_SECRET        Tailscale OAuth client secret with auth_keys write scope
+VPS_TAILSCALE_HOST     VPS MagicDNS name or Tailscale IP
+VITE_CONVEX_URL        Convex deployment URL used at build time
+```
+
+### Tailscale
+
+Create a Tailscale OAuth client that can create ephemeral `tag:ci` nodes. Enable
+Tailscale SSH on the VPS:
+
+```bash
+sudo tailscale set --ssh
+```
+
+The tailnet policy needs to allow `tag:ci` to SSH to the VPS as `hermes`. A
+minimal policy shape is:
+
+```json
+{
+	"tagOwners": {
+		"tag:ci": ["autogroup:admin"],
+		"tag:vps": ["autogroup:admin"]
+	},
+	"acls": [{ "action": "accept", "src": ["tag:ci"], "dst": ["tag:vps:22"] }],
+	"ssh": [
+		{
+			"action": "accept",
+			"src": ["tag:ci"],
+			"dst": ["tag:vps"],
+			"users": ["hermes"]
+		}
+	]
+}
+```
+
+Tag the VPS with `tag:vps`, or adjust the policy to match the VPS identity you
+use.
+
+### VPS Files
+
+Create the deploy directory and install the systemd units:
+
+```bash
+sudo mkdir -p /home/hermes/nanasplits/bin
+sudo chown -R hermes:hermes /home/hermes/nanasplits
+sudo cp deploy/systemd/nanasplits-main@.service /etc/systemd/system/
+sudo cp deploy/systemd/nanasplits-dev.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable nanasplits-main@3001.service
+sudo systemctl enable nanasplits-main@3002.service
+sudo systemctl enable nanasplits-main@3003.service
+sudo systemctl enable nanasplits-dev.service
+```
+
+Create `/home/hermes/nanasplits/main.env` and
+`/home/hermes/nanasplits/dev.env`. Use different Convex or Telegram values in
+`dev.env` if preview should point at separate services.
+
+```bash
+HOST=127.0.0.1
+NEXT_PUBLIC_CONVEX_URL=https://your-convex-deployment.convex.cloud
+VITE_CONVEX_URL=https://your-convex-deployment.convex.cloud
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token
+TELEGRAM_BOT_SECRET_TOKEN=your-telegram-webhook-secret
+CONVEX_SITE_URL=https://your-convex-auth-site
+PUBLIC_BASE_URL=https://your-public-app-host
+ASSET_PRELOAD_MAX_SIZE=0
+```
+
+Lock the files down after editing:
+
+```bash
+chmod 600 /home/hermes/nanasplits/main.env /home/hermes/nanasplits/dev.env
+```
+
+Allow the `hermes` user to restart only these units from deploy jobs. Adjust
+`/usr/bin/systemctl` if `command -v systemctl` returns a different path:
+
+```text
+hermes ALL=(root) NOPASSWD: /usr/bin/systemctl restart nanasplits-main@3001.service nanasplits-main@3002.service nanasplits-main@3003.service, /usr/bin/systemctl restart nanasplits-dev.service, /usr/bin/systemctl is-active --quiet nanasplits-main@3001.service nanasplits-main@3002.service nanasplits-main@3003.service, /usr/bin/systemctl is-active --quiet nanasplits-dev.service
+```
+
+The first successful workflow run creates these symlinks:
+
+```text
+/home/hermes/nanasplits/main -> /home/hermes/nanasplits/bin/nanasplits-main-<sha>
+/home/hermes/nanasplits/dev  -> /home/hermes/nanasplits/bin/nanasplits-dev-<sha>
+```

@@ -1,0 +1,93 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DEPLOY_ROOT: /home/hermes/nanasplits
+  DEPLOY_USER: hermes
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check
+        run: bun run check
+
+      - name: Build Linux x64 binary
+        run: bun run build:binary
+        env:
+          BUN_COMPILE_TARGET: bun-linux-x64
+          VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL }}
+
+      - name: Connect to tailnet
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          ping: ${{ secrets.VPS_TAILSCALE_HOST }}
+
+      - name: Deploy over Tailscale SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          case "${GITHUB_REF_NAME}" in
+            main)
+              target="main"
+              services="nanasplits-main@3001.service nanasplits-main@3002.service nanasplits-main@3003.service"
+              ;;
+            dev)
+              target="dev"
+              services="nanasplits-dev.service"
+              ;;
+            *)
+              echo "Unsupported deploy branch: ${GITHUB_REF_NAME}" >&2
+              exit 1
+              ;;
+          esac
+
+          remote="${DEPLOY_USER}@${{ secrets.VPS_TAILSCALE_HOST }}"
+          release="${DEPLOY_ROOT}/bin/nanasplits-${target}-${GITHUB_SHA}"
+          ssh_options=(-o StrictHostKeyChecking=accept-new)
+
+          ssh "${ssh_options[@]}" "${remote}" "mkdir -p '${DEPLOY_ROOT}/bin'"
+          scp "${ssh_options[@]}" dist/nanasplits "${remote}:${release}"
+          ssh "${ssh_options[@]}" "${remote}" "chmod 755 '${release}'"
+          ssh "${ssh_options[@]}" "${remote}" \
+            "TARGET='${target}' RELEASE='${release}' DEPLOY_ROOT='${DEPLOY_ROOT}' SERVICES='${services}' bash -s" <<'EOF'
+          set -euo pipefail
+
+          ln -sfn "${RELEASE}" "${DEPLOY_ROOT}/${TARGET}"
+          sudo systemctl restart ${SERVICES}
+          sudo systemctl is-active --quiet ${SERVICES}
+          find "${DEPLOY_ROOT}/bin" \
+            -maxdepth 1 \
+            -type f \
+            -name "nanasplits-${TARGET}-*" \
+            ! -name "$(basename "${RELEASE}")" \
+            -mtime +14 \
+            -delete
+          EOF
