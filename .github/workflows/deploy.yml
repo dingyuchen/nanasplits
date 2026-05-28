@@ -28,7 +28,8 @@ jobs:
   deploy:
     name: Build and deploy
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' || github.event.pull_request.merged == true }}
+    environment:
+      name: Production
 
     steps:
       - name: Checkout
