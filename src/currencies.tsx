@@ -1,3 +1,4 @@
+// taken from telegram docs: https://core.telegram.org/bots/payments#supported-currencies
 export const currencies = {
 	AED: {
 		code: "AED",

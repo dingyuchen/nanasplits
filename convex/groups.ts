@@ -26,6 +26,18 @@ type ExpenseItem = {
 	splits: { userId: Id<"users">; amount: number }[];
 };
 
+function normalizeCurrencyCode(currency: string) {
+	const code = currency.trim().toUpperCase();
+	if (!/^[A-Z]{3}$/.test(code)) {
+		throw new Error("Currency must be a 3-letter ISO code");
+	}
+	return code;
+}
+
+function roundMoney(amount: number) {
+	return Math.round((amount + Number.EPSILON) * 100) / 100;
+}
+
 /**
  * Validates expense participants and returns the group with member IDs
  */
@@ -582,6 +594,94 @@ export const settleUp = protectedMutation({
 		});
 
 		return expenseId;
+	},
+});
+
+/**
+ * Convert a settle-up balance from one currency to another.
+ *
+ * This inserts two transfer entries: one offsets the original-currency balance,
+ * and the other recreates that balance in the converted currency.
+ */
+export const convertSettleUpCurrency = protectedMutation({
+	args: {
+		telegramChatId: v.number(),
+		telegramUserId: v.number(),
+		payerId: v.id("users"),
+		receiverId: v.id("users"),
+		fromCurrency: v.string(),
+		toCurrency: v.string(),
+		amount: v.number(),
+		convertedAmount: v.number(),
+	},
+	handler: async (ctx, args) => {
+		const originalAmount = roundMoney(args.amount);
+		if (!Number.isFinite(originalAmount) || originalAmount <= 0) {
+			throw new Error("Amount must be greater than zero");
+		}
+
+		const fromCurrency = normalizeCurrencyCode(args.fromCurrency);
+		const toCurrency = normalizeCurrencyCode(args.toCurrency);
+		if (fromCurrency === toCurrency) {
+			throw new Error("Choose a different currency to convert to");
+		}
+
+		const convertedAmount = roundMoney(args.convertedAmount);
+		if (!Number.isFinite(convertedAmount) || convertedAmount <= 0) {
+			throw new Error("Converted amount is too small");
+		}
+
+		const { group } = await getGroupWithParticipantValidation(
+			ctx.db,
+			{
+				telegramChatId: args.telegramChatId,
+				telegramUserId: args.telegramUserId,
+				payerId: args.payerId,
+				items: [
+					{
+						name: "Original settlement currency",
+						amount: originalAmount,
+						splits: [{ userId: args.receiverId, amount: originalAmount }],
+					},
+				],
+			},
+			ctx.userId,
+		);
+
+		const date = Date.now();
+		const originalExpenseId = await ctx.db.insert("expenses", {
+			groupId: group._id,
+			currency: fromCurrency,
+			description: `Convert settlement from ${fromCurrency}`,
+			payerId: args.payerId,
+			items: [
+				{
+					name: "Original settlement currency",
+					amount: originalAmount,
+					splits: [{ userId: args.receiverId, amount: originalAmount }],
+				},
+			],
+			date,
+			type: ExpenseType.Transfer,
+		});
+
+		const convertedExpenseId = await ctx.db.insert("expenses", {
+			groupId: group._id,
+			currency: toCurrency,
+			description: `Converted settlement to ${toCurrency}`,
+			payerId: args.receiverId,
+			items: [
+				{
+					name: "Converted settlement currency",
+					amount: convertedAmount,
+					splits: [{ userId: args.payerId, amount: convertedAmount }],
+				},
+			],
+			date,
+			type: ExpenseType.Transfer,
+		});
+
+		return { convertedExpenseId, originalExpenseId };
 	},
 });
 

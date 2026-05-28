@@ -18,6 +18,8 @@ import {
 import { createMemo, createSignal, For, Show } from "solid-js";
 
 import { TelegramMainButton } from "#/components/telegram-main-button";
+import { CurrencyDropdownOptions } from "#/currencies";
+import { getCurrencyConversion } from "#/currency-conversion";
 import { useMutation, useQuery } from "#/solid-convex";
 import { useTelegramLaunch } from "#/telegram-launch";
 import { api } from "@/convex/_generated/api";
@@ -44,6 +46,7 @@ type CurrencyData = {
 };
 
 type CurrencyBalances = Record<string, CurrencyData>;
+type ConversionQuote = Awaited<ReturnType<typeof getCurrencyConversion>>;
 
 function GroupIndexRoute() {
 	const params = Route.useParams();
@@ -285,6 +288,7 @@ function GroupView(props: {
 						<SettleUp
 							currencyBalances={currencyBalances()}
 							currentUserId={userId()}
+							defaultCurrency={props.groupData.defaultCurrency}
 							groupIdNumber={props.groupIdNumber}
 							telegramUserId={props.telegramUserId}
 						/>
@@ -587,16 +591,25 @@ function ExpenseRow(props: {
 function SettleUp(props: {
 	currencyBalances: CurrencyBalances;
 	currentUserId: Id<"users">;
+	defaultCurrency: string;
 	groupIdNumber: number;
 	telegramUserId: number;
 }) {
 	const settleUp = useMutation(api.groups.settleUp);
+	const convertSettleUpCurrency = useMutation(
+		api.groups.convertSettleUpCurrency,
+	);
 	const [settleDialog, setSettleDialog] = createSignal<{
 		memberId: Id<"users">;
 		memberName: string;
 		amount: number;
 		currency: string;
+		targetCurrency: string;
 	} | null>(null);
+	const [conversionQuote, setConversionQuote] =
+		createSignal<ConversionQuote | null>(null);
+	const [convertedAmount, setConvertedAmount] = createSignal("");
+	const [isFetchingConversion, setIsFetchingConversion] = createSignal(false);
 
 	const balanceEntries = () =>
 		Object.entries(props.currencyBalances).flatMap(([currency, currencyData]) =>
@@ -608,14 +621,43 @@ function SettleUp(props: {
 				})),
 		);
 
+	const getSettlementParticipants = (dialog: {
+		amount: number;
+		memberId: Id<"users">;
+	}) => ({
+		payerId: dialog.amount > 0 ? dialog.memberId : props.currentUserId,
+		receiverId: dialog.amount > 0 ? props.currentUserId : dialog.memberId,
+	});
+
+	const defaultTargetCurrency = (sourceCurrency: string) => {
+		if (props.defaultCurrency !== sourceCurrency) return props.defaultCurrency;
+		return sourceCurrency === "USD" ? "EUR" : "USD";
+	};
+
+	const closeDialog = () => {
+		setSettleDialog(null);
+		setConversionQuote(null);
+		setConvertedAmount("");
+	};
+
+	const updateTargetCurrency = (
+		dialog: NonNullable<ReturnType<typeof settleDialog>>,
+		targetCurrency: string,
+	) => {
+		setSettleDialog({
+			...dialog,
+			targetCurrency,
+		});
+		setConversionQuote(null);
+		setConvertedAmount("");
+	};
+
 	const handleSettle = async () => {
 		const dialog = settleDialog();
 		if (!dialog) return;
 
 		try {
-			const payerId = dialog.amount > 0 ? dialog.memberId : props.currentUserId;
-			const receiverId =
-				dialog.amount > 0 ? props.currentUserId : dialog.memberId;
+			const { payerId, receiverId } = getSettlementParticipants(dialog);
 
 			await settleUp({
 				amount: Math.abs(dialog.amount),
@@ -625,10 +667,70 @@ function SettleUp(props: {
 				telegramChatId: props.groupIdNumber,
 				telegramUserId: props.telegramUserId,
 			});
-			setSettleDialog(null);
+			closeDialog();
 		} catch (error) {
 			console.error("Failed to settle:", error);
 			alert("Failed to settle. Please try again.");
+		}
+	};
+
+	const handleGetConversion = async () => {
+		const dialog = settleDialog();
+		if (!dialog) return;
+
+		if (dialog.currency === dialog.targetCurrency) {
+			alert("Choose a different currency to convert to.");
+			return;
+		}
+
+		try {
+			setIsFetchingConversion(true);
+			const quote = await getCurrencyConversion({
+				data: {
+					amount: Math.abs(dialog.amount),
+					fromCurrency: dialog.currency,
+					toCurrency: dialog.targetCurrency,
+				},
+			});
+
+			setConversionQuote(quote);
+			setConvertedAmount(quote.convertedAmount.toFixed(2));
+		} catch (error) {
+			console.error("Failed to convert settlement:", error);
+			alert("Failed to fetch a conversion rate. Please try again.");
+		} finally {
+			setIsFetchingConversion(false);
+		}
+	};
+
+	const handleConfirmConversion = async () => {
+		const dialog = settleDialog();
+		const quote = conversionQuote();
+		if (!dialog || !quote) return;
+
+		const finalConvertedAmount = Number(convertedAmount());
+		if (!Number.isFinite(finalConvertedAmount) || finalConvertedAmount <= 0) {
+			alert("Enter a converted amount greater than zero.");
+			return;
+		}
+
+		try {
+			const { payerId, receiverId } = getSettlementParticipants(dialog);
+
+			await convertSettleUpCurrency({
+				amount: Math.abs(dialog.amount),
+				convertedAmount: finalConvertedAmount,
+				fromCurrency: dialog.currency,
+				payerId,
+				receiverId,
+				telegramChatId: props.groupIdNumber,
+				telegramUserId: props.telegramUserId,
+				toCurrency: dialog.targetCurrency,
+			});
+			closeDialog();
+		} catch (error) {
+			console.error("Failed to convert settlement:", error);
+			alert("Failed to convert settlement. Please try again.");
 		}
 	};
 
@@ -665,6 +767,7 @@ function SettleUp(props: {
 											currency,
 											memberId: member.memberId,
 											memberName: member.memberName,
+											targetCurrency: defaultTargetCurrency(currency),
 										})
 									}
 								>
@@ -700,20 +803,89 @@ function SettleUp(props: {
 											dialog().currency,
 										)} to ${dialog().memberName}?`}
 							</p>
-							<div class="flex gap-3">
+							<div class="mb-6">
+								<label
+									class="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
+									for="settle-target-currency"
+								>
+									Convert balance to
+								</label>
+								<select
+									class="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+									id="settle-target-currency"
+									value={dialog().targetCurrency}
+									onInput={(event) =>
+										updateTargetCurrency(dialog(), event.currentTarget.value)
+									}
+								>
+									<CurrencyDropdownOptions />
+								</select>
+								<Show when={conversionQuote()}>
+									{(quote) => (
+										<div class="mt-3">
+											<label
+												class="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
+												for="converted-settlement-amount"
+											>
+												Converted amount
+											</label>
+											<input
+												class="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+												id="converted-settlement-amount"
+												inputMode="decimal"
+												type="number"
+												min="0.01"
+												step="0.01"
+												value={convertedAmount()}
+												onInput={(event) =>
+													setConvertedAmount(event.currentTarget.value)
+												}
+											/>
+											<p class="mt-2 text-gray-500 text-xs dark:text-gray-400">
+												Rate {quote().rate.toFixed(6)}
+												<Show when={quote().rateDate}>
+													{(rateDate) => ` on ${rateDate()}`}
+												</Show>
+											</p>
+										</div>
+									)}
+								</Show>
+								<div class="mt-3 grid grid-cols-2 gap-2">
+									<button
+										class="rounded-sm border border-cyan-600 px-3 py-2 font-medium text-cyan-700 text-sm transition-colors hover:bg-cyan-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 dark:border-cyan-500 dark:text-cyan-300 dark:hover:bg-cyan-950/30 dark:disabled:border-gray-700 dark:disabled:text-gray-500"
+										disabled={
+											dialog().currency === dialog().targetCurrency ||
+											isFetchingConversion()
+										}
+										type="button"
+										onClick={handleGetConversion}
+									>
+										{isFetchingConversion() ? "Fetching..." : "Get rate"}
+									</button>
+									<button
+										class="rounded-sm bg-cyan-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:bg-cyan-500 dark:hover:bg-cyan-600 dark:disabled:bg-gray-700"
+										disabled={!conversionQuote()}
+										type="button"
+										onClick={handleConfirmConversion}
+									>
+										Confirm conversion
+									</button>
+								</div>
+							</div>
+							<div class="grid grid-cols-2 gap-2">
 								<button
-									class="flex-1 rounded-sm border border-gray-300 px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+									class="rounded-sm border border-gray-300 px-3 py-2 font-medium text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
 									type="button"
-									onClick={() => setSettleDialog(null)}
+									onClick={closeDialog}
 								>
 									Cancel
 								</button>
 								<button
-									class="flex-1 rounded-sm bg-gray-950 px-4 py-2 font-medium text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
+									class="rounded-sm bg-gray-950 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
 									type="button"
 									onClick={handleSettle}
 								>
-									Confirm
+									Settle
 								</button>
 							</div>
 						</div>
