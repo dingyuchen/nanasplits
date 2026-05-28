@@ -29,7 +29,6 @@ jobs:
     name: Build and deploy
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' || github.event.pull_request.merged == true }}
-    environment: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref_name }}
 
     steps:
       - name: Checkout
