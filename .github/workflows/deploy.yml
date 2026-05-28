@@ -3,8 +3,8 @@ name: Deploy
 on:
   push:
     branches:
-      - main
-      - dev
+      - master
+      - preview
 
 concurrency:
   group: deploy-${{ github.ref_name }}
