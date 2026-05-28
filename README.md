@@ -77,11 +77,7 @@ VITE_CONVEX_URL        Convex deployment URL used at build time
 ### Tailscale
 
 Create a Tailscale OAuth client that can create ephemeral `tag:gh-action-runner` nodes. Enable
-Tailscale SSH on the VPS:
-
-```bash
-sudo tailscale set --ssh
-```
+Tailscale SSH on the VPS.
 
 The tailnet policy needs to allow `tag:gh-action-runner` to SSH to the VPS as `hermes`. A
 minimal policy shape is:
@@ -115,40 +111,44 @@ use.
 
 ### VPS Files
 
-Create the deploy directory and install the systemd units:
+For app-owned files, SSH to the VPS as `hermes`:
 
 ```bash
-sudo mkdir -p /home/hermes/nanasplits/bin
-sudo chown -R hermes:hermes /home/hermes/nanasplits
-sudo cp deploy/systemd/*.service deploy/systemd/*.path /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable nanasplits-main@3001.service
-sudo systemctl enable nanasplits-main@3002.service
-sudo systemctl enable nanasplits-main@3003.service
-sudo systemctl enable nanasplits-dev.service
-sudo systemctl enable --now nanasplits-main-deploy.path
-sudo systemctl enable --now nanasplits-dev-deploy.path
+ssh hermes@<vps-tailscale-host>
+mkdir -p ~/nanasplits/bin
 ```
 
-Create `/home/hermes/nanasplits/main.env` and
-`/home/hermes/nanasplits/dev.env`. Use different Convex or Telegram values in
-`dev.env` if preview should point at separate services.
+For first-time setup, install the files in `deploy/systemd` as system units and
+enable them. Run these commands in a privileged shell on the VPS, from this repo
+checkout:
 
 ```bash
-HOST=127.0.0.1
-NEXT_PUBLIC_CONVEX_URL=https://your-convex-deployment.convex.cloud
+cp deploy/systemd/*.service deploy/systemd/*.path /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable nanasplits-main@3001.service nanasplits-main@3002.service nanasplits-main@3003.service
+systemctl enable nanasplits-dev.service
+systemctl enable --now nanasplits-main-deploy.path nanasplits-dev-deploy.path
+```
+
+The services run the app as `hermes` and the path units watch
+`/home/hermes/nanasplits/main` and `/home/hermes/nanasplits/dev`.
+
+Create `~/nanasplits/main.env` and `~/nanasplits/dev.env`. Use different
+Convex or Telegram values in `dev.env` if preview should point at separate
+services.
+
+```bash
 VITE_CONVEX_URL=https://your-convex-deployment.convex.cloud
 TELEGRAM_BOT_TOKEN=your-telegram-bot-token
 TELEGRAM_BOT_SECRET_TOKEN=your-telegram-webhook-secret
 CONVEX_SITE_URL=https://your-convex-auth-site
 PUBLIC_BASE_URL=https://your-public-app-host
-ASSET_PRELOAD_MAX_SIZE=0
 ```
 
 Lock the files down after editing:
 
 ```bash
-chmod 600 /home/hermes/nanasplits/main.env /home/hermes/nanasplits/dev.env
+chmod 600 ~/nanasplits/main.env ~/nanasplits/dev.env
 ```
 
 The first successful workflow run creates these symlinks:
