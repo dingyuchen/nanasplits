@@ -1,66 +1,155 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NanaSplits
 
-## Getting Started
+Telegram-based expense splitting app built with Solid, TanStack Start, Convex,
+Tailwind CSS, and Gramio.
 
-First, run the development server:
+## Development
+
+Use Bun for all project commands.
 
 ```bash
-bun dev
+bun install
+bun run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Convex local development also needs:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+bun run convex:dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Build
 
-## TODOs
+```bash
+bun run build
+bun run build:binary
+bun run start
+```
 
-- [x] expense validation
-- [x] expense date picker
-- [x] edit splits
-- [x] split by types
-- [x] split validation
-- [x] Tally amounts correctly, tally different currencies separately
-    - [x] all tallies are grouped by currency
-    - [x] incoming and outgoing per member != self, per currency
-    - [x] aggregate per currency for total incoming, outgoing
-- [ ] Remove member query from group-view and use member only query in group-settings
-- [x] Fix `app/[id]` page
-- [ ] Settle up per group
-    - [ ] aggregate tally for total incoming, outgoing
-- [ ] Request to settle
-    - [ ] profile settings page
-        - [ ] allow edit signature
-    - [ ] Send a messsage with group tally (aggregated on self only)
-        - [ ] include mention, value per user
-    - [ ] supply button for triggering transfer expense
+`build:binary` first creates the TanStack Start production build, then compiles
+the server and embedded client assets into `dist/nanasplits` with
+`bun build --compile --target=bun-linux-x64`. The resulting Linux x64 binary can
+run without Bun or `node_modules` on the VPS.
 
----
-- [ ] expense categories/tag
-- [ ] /intro bot command
-- [ ] currency conversion
-- [ ] use preloaded querying for group page
-- [ ] notify when all members have joined
-- [ ] clear group and associated data when "leave" event is detected
-- [ ] simplify transactions
-- [ ] group settings page
+## Quality
 
-### Moonshot
+```bash
+bun run lint
+bun run format
+bun run check
+bun x tsc --noEmit
+```
 
-- [ ] use AI to create an expense given receipt and natural language description of split
+## Framework Notes
 
-## Learn More
+- UI routes live in `src/routes` and use `@tanstack/solid-router`.
+- The app shell is `src/routes/__root.tsx`.
+- Solid JSX uses `class` instead of React `className`.
+- Convex browser/auth bindings for Solid are wrapped in `src/solid-convex.tsx`.
+- Telegram bot webhook handling lives in `src/routes/api/bot.ts`.
 
-To learn more about Next.js, take a look at the following resources:
+## VPS Deployment
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Pushes to `main` deploy the production binary and restart three instances on
+ports `3001`, `3002`, and `3003`. Pushes to `dev` deploy the preview binary and
+restart the single instance on port `3000`. Caddy is expected to already proxy
+to those ports.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The GitHub workflow builds on GitHub-hosted runners, joins the tailnet with
+`tailscale/github-action`, copies the compiled binary to
+`/home/hermes/nanasplits`, and restarts `systemd` units over Tailscale SSH.
 
-## Deploy on Vercel
+### GitHub Secrets
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Configure these repository secrets:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```text
+TS_OAUTH_CLIENT_ID     Tailscale OAuth client ID
+TS_OAUTH_SECRET        Tailscale OAuth client secret with auth_keys write scope
+VPS_TAILSCALE_HOST     VPS MagicDNS name or Tailscale IP
+VITE_CONVEX_URL        Convex deployment URL used at build time
+```
+
+### Tailscale
+
+Create a Tailscale OAuth client that can create ephemeral `tag:ci` nodes. Enable
+Tailscale SSH on the VPS:
+
+```bash
+sudo tailscale set --ssh
+```
+
+The tailnet policy needs to allow `tag:ci` to SSH to the VPS as `hermes`. A
+minimal policy shape is:
+
+```json
+{
+	"tagOwners": {
+		"tag:ci": ["autogroup:admin"],
+		"tag:vps": ["autogroup:admin"]
+	},
+	"acls": [{ "action": "accept", "src": ["tag:ci"], "dst": ["tag:vps:22"] }],
+	"ssh": [
+		{
+			"action": "accept",
+			"src": ["tag:ci"],
+			"dst": ["tag:vps"],
+			"users": ["hermes"]
+		}
+	]
+}
+```
+
+Tag the VPS with `tag:vps`, or adjust the policy to match the VPS identity you
+use.
+
+### VPS Files
+
+Create the deploy directory and install the systemd units:
+
+```bash
+sudo mkdir -p /home/hermes/nanasplits/bin
+sudo chown -R hermes:hermes /home/hermes/nanasplits
+sudo cp deploy/systemd/nanasplits-main@.service /etc/systemd/system/
+sudo cp deploy/systemd/nanasplits-dev.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable nanasplits-main@3001.service
+sudo systemctl enable nanasplits-main@3002.service
+sudo systemctl enable nanasplits-main@3003.service
+sudo systemctl enable nanasplits-dev.service
+```
+
+Create `/home/hermes/nanasplits/main.env` and
+`/home/hermes/nanasplits/dev.env`. Use different Convex or Telegram values in
+`dev.env` if preview should point at separate services.
+
+```bash
+HOST=127.0.0.1
+NEXT_PUBLIC_CONVEX_URL=https://your-convex-deployment.convex.cloud
+VITE_CONVEX_URL=https://your-convex-deployment.convex.cloud
+TELEGRAM_BOT_TOKEN=your-telegram-bot-token
+TELEGRAM_BOT_SECRET_TOKEN=your-telegram-webhook-secret
+CONVEX_SITE_URL=https://your-convex-auth-site
+PUBLIC_BASE_URL=https://your-public-app-host
+ASSET_PRELOAD_MAX_SIZE=0
+```
+
+Lock the files down after editing:
+
+```bash
+chmod 600 /home/hermes/nanasplits/main.env /home/hermes/nanasplits/dev.env
+```
+
+Allow the `hermes` user to restart only these units from deploy jobs. Adjust
+`/usr/bin/systemctl` if `command -v systemctl` returns a different path:
+
+```text
+hermes ALL=(root) NOPASSWD: /usr/bin/systemctl restart nanasplits-main@3001.service nanasplits-main@3002.service nanasplits-main@3003.service, /usr/bin/systemctl restart nanasplits-dev.service, /usr/bin/systemctl is-active --quiet nanasplits-main@3001.service nanasplits-main@3002.service nanasplits-main@3003.service, /usr/bin/systemctl is-active --quiet nanasplits-dev.service
+```
+
+The first successful workflow run creates these symlinks:
+
+```text
+/home/hermes/nanasplits/main -> /home/hermes/nanasplits/bin/nanasplits-main-<sha>
+/home/hermes/nanasplits/dev  -> /home/hermes/nanasplits/bin/nanasplits-dev-<sha>
+```

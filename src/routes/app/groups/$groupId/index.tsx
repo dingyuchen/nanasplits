@@ -1,0 +1,952 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/solid-router";
+import type { FunctionReturnType } from "convex/server";
+import {
+	ArrowLeftRight,
+	ArrowRight,
+	ChevronDown,
+	ChevronRight,
+	ChevronUp,
+	Loader2,
+	Plus,
+	Receipt,
+	Settings,
+	TrendingDown,
+	TrendingUp,
+	Users,
+	Wallet,
+} from "lucide-solid";
+import { createMemo, createSignal, For, Show } from "solid-js";
+
+import { TelegramMainButton } from "#/components/telegram-main-button";
+import { CurrencyDropdownOptions } from "#/currencies";
+import { getCurrencyConversion } from "#/currency-conversion";
+import { useMutation, useQuery } from "#/solid-convex";
+import { useTelegramLaunch } from "#/telegram-launch";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+
+export const Route = createFileRoute("/app/groups/$groupId/")({
+	component: GroupIndexRoute,
+});
+
+type GroupData = NonNullable<
+	FunctionReturnType<typeof api.groups.getListOfExpenses>
+>;
+type Expense = GroupData["expenses"][number];
+
+type MemberBalance = {
+	memberId: Id<"users">;
+	memberName: string;
+	balance: number;
+};
+
+type CurrencyData = {
+	netBalance: number;
+	memberBalances: Record<string, MemberBalance>;
+};
+
+type CurrencyBalances = Record<string, CurrencyData>;
+type ConversionQuote = Awaited<ReturnType<typeof getCurrencyConversion>>;
+
+function GroupIndexRoute() {
+	const params = Route.useParams();
+	const { groupId } = params();
+	const telegramChatId = Number(groupId);
+	const { telegramUserId } = useTelegramLaunch();
+
+	if (Number.isNaN(telegramChatId)) {
+		return (
+			<div class="min-h-screen bg-slate-50 p-6 dark:bg-gray-950">
+				<Empty text="Invalid Telegram group id." />
+			</div>
+		);
+	}
+
+	return (
+		<Show when={telegramUserId()} fallback={<Loading />}>
+			{(currentTelegramUserId) => (
+				<GroupIndexData
+					telegramChatId={telegramChatId}
+					telegramUserId={currentTelegramUserId()}
+				/>
+			)}
+		</Show>
+	);
+}
+
+function GroupIndexData(props: {
+	telegramChatId: number;
+	telegramUserId: number;
+}) {
+	const groupData = useQuery(api.groups.getListOfExpenses, {
+		telegramChatId: props.telegramChatId,
+	});
+	const isRegisteredMemberOfGroup = useQuery(api.groups.isUserMemberOfGroup, {
+		telegramChatId: props.telegramChatId,
+		telegramUserId: props.telegramUserId,
+	});
+
+	return (
+		<Show
+			when={
+				groupData() !== undefined && isRegisteredMemberOfGroup() !== undefined
+			}
+			fallback={<Loading />}
+		>
+			<Show when={groupData()} fallback={<Empty text="Group not found." />}>
+				{(data) => (
+					<GroupView
+						groupData={data()}
+						groupIdNumber={props.telegramChatId}
+						isRegisteredMemberOfGroup={isRegisteredMemberOfGroup() === true}
+						telegramUserId={props.telegramUserId}
+					/>
+				)}
+			</Show>
+		</Show>
+	);
+}
+
+function GroupView(props: {
+	groupData: GroupData;
+	groupIdNumber: number;
+	isRegisteredMemberOfGroup: boolean;
+	telegramUserId: number;
+}) {
+	const navigate = useNavigate();
+	const [membersCollapsed, setMembersCollapsed] = createSignal(true);
+	const addUserToGroup = useMutation(api.groups.addUserToGroup);
+	const currentUserId = createMemo(
+		() =>
+			props.groupData.members.find(
+				(member) => member.telegramUserId === props.telegramUserId,
+			)?._id,
+	);
+
+	const currencyBalances = createMemo<CurrencyBalances>(() => {
+		const current = currentUserId();
+		if (!current) return {};
+
+		const balances: CurrencyBalances = {};
+
+		const getOrCreateCurrency = (currency: string): CurrencyData => {
+			if (!(currency in balances)) {
+				balances[currency] = { netBalance: 0, memberBalances: {} };
+			}
+			return balances[currency];
+		};
+
+		const getOrCreateMemberBalance = (
+			currencyData: CurrencyData,
+			memberId: Id<"users">,
+		): MemberBalance => {
+			if (!(memberId in currencyData.memberBalances)) {
+				const member = props.groupData.members.find((m) => m._id === memberId);
+				currencyData.memberBalances[memberId] = {
+					memberId,
+					memberName: member?.firstName || member?.username || "Unknown",
+					balance: 0,
+				};
+			}
+			return currencyData.memberBalances[memberId];
+		};
+
+		for (const expense of props.groupData.expenses) {
+			const currencyData = getOrCreateCurrency(expense.currency);
+			const isCurrentUserPayer = expense.payerId === current;
+
+			for (const item of expense.items) {
+				for (const split of item.splits) {
+					if (isCurrentUserPayer) {
+						if (split.userId !== current) {
+							currencyData.netBalance += split.amount;
+							getOrCreateMemberBalance(currencyData, split.userId).balance +=
+								split.amount;
+						}
+					} else if (split.userId === current) {
+						currencyData.netBalance -= split.amount;
+						getOrCreateMemberBalance(currencyData, expense.payerId).balance -=
+							split.amount;
+					}
+				}
+			}
+		}
+
+		return balances;
+	});
+
+	const calculateUserBalance = (expense: Expense) => {
+		const current = currentUserId();
+		if (!current) return 0;
+
+		const totalAmount = expense.items.reduce(
+			(sum, item) => sum + item.amount,
+			0,
+		);
+		let userOwes = 0;
+
+		for (const item of expense.items) {
+			for (const split of item.splits) {
+				if (split.userId === current) {
+					userOwes += split.amount;
+				}
+			}
+		}
+
+		return expense.payerId === current ? totalAmount - userOwes : -userOwes;
+	};
+
+	const handleEditExpense = (expense: Expense) => {
+		void navigate({
+			params: {
+				groupId: String(props.groupIdNumber),
+			},
+			search: {
+				currency: expense.currency,
+				date: String(expense.date),
+				description: expense.description,
+				expenseId: expense._id,
+				items: JSON.stringify(expense.items),
+				payerId: expense.payerId,
+			},
+			to: "/app/groups/$groupId/add-expense",
+		});
+	};
+
+	const handleJoinGroup = async () => {
+		try {
+			await addUserToGroup({
+				telegramChatId: props.groupIdNumber,
+				telegramUserId: props.telegramUserId,
+			});
+		} catch (error) {
+			console.error("Failed to join group:", error);
+			alert("Failed to join group. Please try again.");
+		}
+	};
+
+	return (
+		<div class="relative min-h-screen bg-slate-50 pb-20 text-gray-950 dark:bg-gray-950 dark:text-white">
+			<Show when={!props.isRegisteredMemberOfGroup}>
+				<div class="absolute inset-0 z-40 bg-black/50" />
+			</Show>
+
+			<div class="mx-auto max-w-2xl space-y-4 px-4 pt-6">
+				<header class="border-gray-200 border-b pb-5 dark:border-gray-800">
+					<div class="mb-3 flex items-start justify-between gap-3">
+						<div>
+							<p class="mb-2 font-medium text-cyan-700 text-xs uppercase dark:text-cyan-300">
+								Group
+							</p>
+							<h1 class="font-semibold text-3xl tracking-tight">
+								{props.groupData.title}
+							</h1>
+							<p class="mt-2 text-gray-500 text-sm dark:text-gray-400">
+								{props.groupData.memberCount} members
+							</p>
+						</div>
+						<Link
+							class="rounded-sm border border-gray-200 bg-white p-2 transition-colors hover:border-cyan-500 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-cyan-700"
+							params={{
+								groupId: String(props.groupIdNumber),
+							}}
+							to="/app/groups/$groupId/settings"
+						>
+							<Settings class="h-5 w-5 text-gray-500 dark:text-gray-400" />
+						</Link>
+					</div>
+				</header>
+
+				<section class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+					<h2 class="mb-4 font-semibold text-gray-900 text-sm uppercase dark:text-white">
+						Your balance
+					</h2>
+
+					<Show
+						when={Object.keys(currencyBalances()).length > 0}
+						fallback={
+							<div class="rounded-sm border border-dashed border-gray-200 py-6 text-center text-gray-500 text-sm dark:border-gray-800 dark:text-gray-400">
+								<p>No expenses yet</p>
+							</div>
+						}
+					>
+						<div class="space-y-2">
+							<For each={Object.entries(currencyBalances())}>
+								{([currency, currencyData]) => (
+									<CurrencyBalanceCard
+										currency={currency}
+										currencyData={currencyData}
+									/>
+								)}
+							</For>
+						</div>
+					</Show>
+				</section>
+
+				<Show when={props.isRegisteredMemberOfGroup && currentUserId()}>
+					{(userId) => (
+						<SettleUp
+							currencyBalances={currencyBalances()}
+							currentUserId={userId()}
+							defaultCurrency={props.groupData.defaultCurrency}
+							groupIdNumber={props.groupIdNumber}
+							telegramUserId={props.telegramUserId}
+						/>
+					)}
+				</Show>
+
+				<section>
+					<button
+						class="mb-2 flex w-full items-center gap-2 px-1"
+						type="button"
+						onClick={() => setMembersCollapsed(!membersCollapsed())}
+					>
+						<Users class="h-4 w-4 text-gray-500" />
+						<h2 class="font-semibold text-gray-900 text-sm uppercase dark:text-white">
+							Members ({props.groupData.memberCount})
+						</h2>
+						<Show
+							when={membersCollapsed()}
+							fallback={<ChevronUp class="ml-auto h-5 w-5 text-gray-500" />}
+						>
+							<ChevronDown class="ml-auto h-5 w-5 text-gray-500" />
+						</Show>
+					</button>
+					<Show when={!membersCollapsed()}>
+						<div class="rounded-sm border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+							<div class="flex flex-wrap gap-2">
+								<For each={props.groupData.members}>
+									{(member) => (
+										<div class="flex items-center gap-2 rounded-sm border border-gray-200 bg-slate-50 px-2.5 py-1.5 dark:border-gray-800 dark:bg-gray-950">
+											<div class="flex h-6 w-6 items-center justify-center rounded-sm bg-cyan-50 font-bold text-cyan-700 text-xs dark:bg-cyan-950/50 dark:text-cyan-300">
+												{(
+													member.firstName?.[0] ||
+													member.username?.[0] ||
+													"?"
+												).toUpperCase()}
+											</div>
+											<span class="text-sm font-medium text-gray-700 dark:text-gray-200">
+												{member.firstName} {member.lastName}
+											</span>
+										</div>
+									)}
+								</For>
+							</div>
+						</div>
+					</Show>
+				</section>
+
+				<section>
+					<div class="mb-2 flex items-center gap-2 px-1">
+						<Receipt class="h-4 w-4 text-gray-500" />
+						<h2 class="font-semibold text-gray-900 text-sm uppercase dark:text-white">
+							Expenses
+						</h2>
+					</div>
+
+					<div class="space-y-3">
+						<Show
+							when={props.groupData.expenses.length > 0}
+							fallback={
+								<div class="rounded-sm border border-dashed border-gray-200 bg-white py-8 text-center text-gray-500 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
+									<p>No expenses yet</p>
+								</div>
+							}
+						>
+							<For each={props.groupData.expenses}>
+								{(expense) => (
+									<ExpenseRow
+										expense={expense}
+										onEdit={() => handleEditExpense(expense)}
+										telegramUserId={props.telegramUserId}
+										userBalance={calculateUserBalance(expense)}
+									/>
+								)}
+							</For>
+						</Show>
+					</div>
+				</section>
+			</div>
+
+			<Show
+				when={props.isRegisteredMemberOfGroup}
+				fallback={
+					<TelegramMainButton
+						once
+						text="Join Group"
+						onClick={handleJoinGroup}
+					/>
+				}
+			>
+				<AddExpenseButton
+					telegramChatId={props.groupIdNumber}
+					telegramUserId={props.telegramUserId}
+				/>
+			</Show>
+		</div>
+	);
+}
+
+function CurrencyBalanceCard(props: {
+	currency: string;
+	currencyData: CurrencyData;
+}) {
+	const isPositive = () => props.currencyData.netBalance >= 0;
+	const memberBalanceEntries = () =>
+		Object.values(props.currencyData.memberBalances).filter(
+			(member) => member.balance !== 0,
+		);
+
+	return (
+		<div
+			class={`rounded-sm border p-3 ${
+				isPositive()
+					? "border-green-200 bg-green-50 dark:border-green-900/70 dark:bg-green-950/30"
+					: "border-red-200 bg-red-50 dark:border-red-900/70 dark:bg-red-950/30"
+			}`}
+		>
+			<div class="flex items-center justify-between">
+				<div>
+					<span
+						class={`mb-1 block font-medium text-xs uppercase ${
+							isPositive()
+								? "text-green-700 dark:text-green-300"
+								: "text-red-700 dark:text-red-300"
+						}`}
+					>
+						{props.currency}
+					</span>
+					<p
+						class={`font-semibold text-2xl ${
+							isPositive()
+								? "text-green-600 dark:text-green-400"
+								: "text-red-600 dark:text-red-400"
+						}`}
+					>
+						{isPositive() ? "+" : ""}
+						{formatCurrencyAmount(
+							props.currencyData.netBalance,
+							props.currency,
+						)}
+					</p>
+				</div>
+				<div
+					class={`rounded-sm p-2 ${
+						isPositive()
+							? "bg-green-100 text-green-600 dark:bg-green-800/30"
+							: "bg-red-100 text-red-600 dark:bg-red-800/30"
+					}`}
+				>
+					<Show when={isPositive()} fallback={<TrendingDown class="h-5 w-5" />}>
+						<TrendingUp class="h-5 w-5" />
+					</Show>
+				</div>
+			</div>
+
+			<Show when={memberBalanceEntries().length > 0}>
+				<div class="mt-3 space-y-2 border-gray-200 border-t pt-3 dark:border-gray-800">
+					<For each={memberBalanceEntries()}>
+						{(member) => {
+							const isMemberPositive = member.balance > 0;
+							return (
+								<div class="flex items-center justify-between">
+									<div class="flex items-center gap-2">
+										<div class="flex h-6 w-6 items-center justify-center rounded-sm bg-white/50 font-bold text-gray-600 text-xs dark:bg-gray-800/50 dark:text-gray-300">
+											{member.memberName[0]?.toUpperCase() || "?"}
+										</div>
+										<span class="text-sm text-gray-700 dark:text-gray-200">
+											{member.memberName}
+										</span>
+										<div class="flex items-center gap-1 text-xs">
+											<span class="text-gray-500 dark:text-gray-400">
+												{isMemberPositive ? "owes you" : "you owe"}
+											</span>
+											<ArrowRight
+												class={`h-3 w-3 ${
+													isMemberPositive ? "text-green-500" : "text-red-500"
+												}`}
+											/>
+										</div>
+									</div>
+									<span
+										class={`text-sm font-semibold ${
+											isMemberPositive
+												? "text-green-600 dark:text-green-400"
+												: "text-red-600 dark:text-red-400"
+										}`}
+									>
+										{formatCurrencyAmount(
+											Math.abs(member.balance),
+											props.currency,
+										)}
+									</span>
+								</div>
+							);
+						}}
+					</For>
+				</div>
+			</Show>
+		</div>
+	);
+}
+
+function ExpenseRow(props: {
+	expense: Expense;
+	onEdit: () => void;
+	telegramUserId: number;
+	userBalance: number;
+}) {
+	const isMe = () => props.expense.payerTelegramUserId === props.telegramUserId;
+	const isInvolved = () => props.userBalance !== 0;
+	const totalAmount = () =>
+		props.expense.items.reduce((sum, item) => sum + item.amount, 0);
+	const isTransfer = () => props.expense.type === "transfer";
+	const styles = () => {
+		if (!isInvolved()) {
+			return {
+				amountPrefix: "",
+				amountText: "text-gray-500 dark:text-gray-400",
+				cardOpacity: "opacity-60",
+				iconBg:
+					"bg-gray-100 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500",
+			};
+		}
+
+		if (isTransfer()) {
+			return {
+				amountPrefix: "",
+				amountText: "text-purple-600 dark:text-purple-400",
+				cardOpacity: "",
+				iconBg:
+					"bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400",
+			};
+		}
+
+		if (props.userBalance > 0) {
+			return {
+				amountPrefix: "+",
+				amountText: "text-green-600 dark:text-green-400",
+				cardOpacity: "",
+				iconBg:
+					"bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400",
+			};
+		}
+
+		return {
+			amountPrefix: "-",
+			amountText: "text-red-600 dark:text-red-400",
+			cardOpacity: "",
+			iconBg: "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400",
+		};
+	};
+
+	return (
+		<button
+			class={`flex w-full cursor-pointer items-center justify-between rounded-sm border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:border-cyan-500 hover:bg-slate-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-cyan-700 dark:hover:bg-gray-900 ${styles().cardOpacity}`}
+			type="button"
+			onClick={props.onEdit}
+		>
+			<div class="flex items-center gap-3">
+				<div
+					class={`flex h-9 w-9 items-center justify-center rounded-sm ${styles().iconBg}`}
+				>
+					<Show when={isTransfer()} fallback={<Wallet class="h-5 w-5" />}>
+						<ArrowLeftRight class="h-5 w-5" />
+					</Show>
+				</div>
+				<div class="text-left">
+					<p class="font-medium text-gray-900 dark:text-white">
+						{props.expense.description}
+					</p>
+					<p class="text-xs text-gray-500 dark:text-gray-400">
+						{isTransfer()
+							? `Settled with ${props.expense.payerName}`
+							: `${isMe() ? "You" : props.expense.payerName} paid • ${formatDate(props.expense.date)}`}
+					</p>
+				</div>
+			</div>
+			<div class="flex items-center gap-2">
+				<div class="text-right">
+					<span class={`font-bold ${styles().amountText}`}>
+						{styles().amountPrefix}
+						{formatCurrencyAmount(
+							isInvolved() || isTransfer()
+								? Math.abs(props.userBalance)
+								: totalAmount(),
+							props.expense.currency,
+						)}
+					</span>
+					<Show when={!isTransfer() && isInvolved()}>
+						<p class="text-xs text-gray-500 dark:text-gray-400">
+							{formatCurrencyAmount(totalAmount(), props.expense.currency)}
+						</p>
+					</Show>
+				</div>
+				<ChevronRight class="h-4 w-4 text-gray-400" />
+			</div>
+		</button>
+	);
+}
+
+function SettleUp(props: {
+	currencyBalances: CurrencyBalances;
+	currentUserId: Id<"users">;
+	defaultCurrency: string;
+	groupIdNumber: number;
+	telegramUserId: number;
+}) {
+	const settleUp = useMutation(api.groups.settleUp);
+	const convertSettleUpCurrency = useMutation(
+		api.groups.convertSettleUpCurrency,
+	);
+	const [settleDialog, setSettleDialog] = createSignal<{
+		memberId: Id<"users">;
+		memberName: string;
+		amount: number;
+		currency: string;
+		targetCurrency: string;
+	} | null>(null);
+	const [conversionQuote, setConversionQuote] =
+		createSignal<ConversionQuote | null>(null);
+	const [convertedAmount, setConvertedAmount] = createSignal("");
+	const [isFetchingConversion, setIsFetchingConversion] = createSignal(false);
+
+	const balanceEntries = () =>
+		Object.entries(props.currencyBalances).flatMap(([currency, currencyData]) =>
+			Object.entries(currencyData.memberBalances)
+				.filter(([, member]) => member.balance !== 0)
+				.map(([memberId, member]) => ({
+					currency,
+					member: { ...member, memberId: memberId as Id<"users"> },
+				})),
+		);
+
+	const getSettlementParticipants = (dialog: {
+		amount: number;
+		memberId: Id<"users">;
+	}) => ({
+		payerId: dialog.amount > 0 ? dialog.memberId : props.currentUserId,
+		receiverId: dialog.amount > 0 ? props.currentUserId : dialog.memberId,
+	});
+
+	const defaultTargetCurrency = (sourceCurrency: string) => {
+		if (props.defaultCurrency !== sourceCurrency) return props.defaultCurrency;
+		return sourceCurrency === "USD" ? "EUR" : "USD";
+	};
+
+	const closeDialog = () => {
+		setSettleDialog(null);
+		setConversionQuote(null);
+		setConvertedAmount("");
+	};
+
+	const updateTargetCurrency = (
+		dialog: NonNullable<ReturnType<typeof settleDialog>>,
+		targetCurrency: string,
+	) => {
+		setSettleDialog({
+			...dialog,
+			targetCurrency,
+		});
+		setConversionQuote(null);
+		setConvertedAmount("");
+	};
+
+	const handleSettle = async () => {
+		const dialog = settleDialog();
+		if (!dialog) return;
+
+		try {
+			const { payerId, receiverId } = getSettlementParticipants(dialog);
+
+			await settleUp({
+				amount: Math.abs(dialog.amount),
+				currency: dialog.currency,
+				payerId,
+				receiverId,
+				telegramChatId: props.groupIdNumber,
+				telegramUserId: props.telegramUserId,
+			});
+			closeDialog();
+		} catch (error) {
+			console.error("Failed to settle:", error);
+			alert("Failed to settle. Please try again.");
+		}
+	};
+
+	const handleGetConversion = async () => {
+		const dialog = settleDialog();
+		if (!dialog) return;
+
+		if (dialog.currency === dialog.targetCurrency) {
+			alert("Choose a different currency to convert to.");
+			return;
+		}
+
+		try {
+			setIsFetchingConversion(true);
+			const quote = await getCurrencyConversion({
+				data: {
+					amount: Math.abs(dialog.amount),
+					fromCurrency: dialog.currency,
+					toCurrency: dialog.targetCurrency,
+				},
+			});
+
+			setConversionQuote(quote);
+			setConvertedAmount(quote.convertedAmount.toFixed(2));
+		} catch (error) {
+			console.error("Failed to convert settlement:", error);
+			alert("Failed to fetch a conversion rate. Please try again.");
+		} finally {
+			setIsFetchingConversion(false);
+		}
+	};
+
+	const handleConfirmConversion = async () => {
+		const dialog = settleDialog();
+		const quote = conversionQuote();
+		if (!dialog || !quote) return;
+
+		const finalConvertedAmount = Number(convertedAmount());
+		if (!Number.isFinite(finalConvertedAmount) || finalConvertedAmount <= 0) {
+			alert("Enter a converted amount greater than zero.");
+			return;
+		}
+
+		try {
+			const { payerId, receiverId } = getSettlementParticipants(dialog);
+
+			await convertSettleUpCurrency({
+				amount: Math.abs(dialog.amount),
+				convertedAmount: finalConvertedAmount,
+				fromCurrency: dialog.currency,
+				payerId,
+				receiverId,
+				telegramChatId: props.groupIdNumber,
+				telegramUserId: props.telegramUserId,
+				toCurrency: dialog.targetCurrency,
+			});
+			closeDialog();
+		} catch (error) {
+			console.error("Failed to convert settlement:", error);
+			alert("Failed to convert settlement. Please try again.");
+		}
+	};
+
+	return (
+		<section>
+			<div class="mb-2 flex items-center gap-2 px-1">
+				<ArrowLeftRight class="h-4 w-4 text-gray-500" />
+				<h2 class="font-semibold text-gray-900 text-sm uppercase dark:text-white">
+					Settle Up
+				</h2>
+			</div>
+			<div class="rounded-sm border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+				<Show
+					when={balanceEntries().length > 0}
+					fallback={
+						<p class="py-2 text-center text-sm text-gray-500 dark:text-gray-400">
+							All settled up!
+						</p>
+					}
+				>
+					<div class="-mb-2 flex flex-wrap gap-2 overflow-x-auto pb-2">
+						<For each={balanceEntries()}>
+							{({ currency, member }) => (
+								<button
+									class={`flex items-center gap-2 whitespace-nowrap rounded-sm border px-3 py-1.5 font-medium text-sm transition-colors ${
+										member.balance > 0
+											? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-900/70 dark:bg-green-950/30 dark:text-green-300"
+											: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300"
+									}`}
+									type="button"
+									onClick={() =>
+										setSettleDialog({
+											amount: member.balance,
+											currency,
+											memberId: member.memberId,
+											memberName: member.memberName,
+											targetCurrency: defaultTargetCurrency(currency),
+										})
+									}
+								>
+									<span>
+										{member.balance > 0 ? "Collect from" : "Pay"}{" "}
+										{member.memberName}
+									</span>
+									<span class="font-bold">
+										{formatCurrencyAmount(Math.abs(member.balance), currency)}
+									</span>
+								</button>
+							)}
+						</For>
+					</div>
+				</Show>
+			</div>
+
+			<Show when={settleDialog()}>
+				{(dialog) => (
+					<div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
+						<div class="w-full max-w-sm rounded-sm bg-white p-5 shadow-xl dark:bg-gray-900">
+							<h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+								Confirm Settlement
+							</h3>
+							<p class="mb-6 text-gray-600 dark:text-gray-300">
+								{dialog().amount > 0
+									? `Collect ${formatCurrencyAmount(
+											dialog().amount,
+											dialog().currency,
+										)} from ${dialog().memberName}?`
+									: `Pay ${formatCurrencyAmount(
+											Math.abs(dialog().amount),
+											dialog().currency,
+										)} to ${dialog().memberName}?`}
+							</p>
+							<div class="mb-6">
+								<label
+									class="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
+									for="settle-target-currency"
+								>
+									Convert balance to
+								</label>
+								<select
+									class="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+									id="settle-target-currency"
+									value={dialog().targetCurrency}
+									onInput={(event) =>
+										updateTargetCurrency(dialog(), event.currentTarget.value)
+									}
+								>
+									<CurrencyDropdownOptions />
+								</select>
+								<Show when={conversionQuote()}>
+									{(quote) => (
+										<div class="mt-3">
+											<label
+												class="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
+												for="converted-settlement-amount"
+											>
+												Converted amount
+											</label>
+											<input
+												class="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+												id="converted-settlement-amount"
+												inputMode="decimal"
+												type="number"
+												min="0.01"
+												step="0.01"
+												value={convertedAmount()}
+												onInput={(event) =>
+													setConvertedAmount(event.currentTarget.value)
+												}
+											/>
+											<p class="mt-2 text-gray-500 text-xs dark:text-gray-400">
+												Rate {quote().rate.toFixed(6)}
+												<Show when={quote().rateDate}>
+													{(rateDate) => ` on ${rateDate()}`}
+												</Show>
+											</p>
+										</div>
+									)}
+								</Show>
+								<div class="mt-3 grid grid-cols-2 gap-2">
+									<button
+										class="rounded-sm border border-cyan-600 px-3 py-2 font-medium text-cyan-700 text-sm transition-colors hover:bg-cyan-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 dark:border-cyan-500 dark:text-cyan-300 dark:hover:bg-cyan-950/30 dark:disabled:border-gray-700 dark:disabled:text-gray-500"
+										disabled={
+											dialog().currency === dialog().targetCurrency ||
+											isFetchingConversion()
+										}
+										type="button"
+										onClick={handleGetConversion}
+									>
+										{isFetchingConversion() ? "Fetching..." : "Get rate"}
+									</button>
+									<button
+										class="rounded-sm bg-cyan-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:bg-cyan-500 dark:hover:bg-cyan-600 dark:disabled:bg-gray-700"
+										disabled={!conversionQuote()}
+										type="button"
+										onClick={handleConfirmConversion}
+									>
+										Confirm conversion
+									</button>
+								</div>
+							</div>
+							<div class="grid grid-cols-2 gap-2">
+								<button
+									class="rounded-sm border border-gray-300 px-3 py-2 font-medium text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+									type="button"
+									onClick={closeDialog}
+								>
+									Cancel
+								</button>
+								<button
+									class="rounded-sm bg-gray-950 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
+									type="button"
+									onClick={handleSettle}
+								>
+									Settle
+								</button>
+							</div>
+						</div>
+					</div>
+				)}
+			</Show>
+		</section>
+	);
+}
+
+function AddExpenseButton(props: {
+	telegramChatId: number;
+	telegramUserId: number;
+}) {
+	return (
+		<Link
+			aria-label="Add expense"
+			class="fixed right-6 bottom-6 flex h-14 w-14 items-center justify-center rounded-sm bg-gray-950 text-white shadow-lg transition-all hover:bg-gray-800 focus:scale-95 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 active:scale-95 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
+			params={{
+				groupId: String(props.telegramChatId),
+			}}
+			search={{
+				currency: null,
+				date: null,
+				description: "",
+				expenseId: null,
+				items: null,
+				payerId: null,
+			}}
+			to="/app/groups/$groupId/add-expense"
+		>
+			<Plus class="h-6 w-6" />
+		</Link>
+	);
+}
+
+function Loading() {
+	return (
+		<div class="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-gray-950">
+			<Loader2 class="mx-auto mb-4 h-8 w-8 animate-spin text-cyan-600 dark:text-cyan-400" />
+		</div>
+	);
+}
+
+function Empty(props: { text: string }) {
+	return (
+		<p class="rounded-sm border border-gray-200 bg-white p-6 text-center text-gray-600 text-sm shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
+			{props.text}
+		</p>
+	);
+}
+
+function formatDate(timestamp: number) {
+	return new Intl.DateTimeFormat("en-US", {
+		day: "numeric",
+		month: "short",
+	}).format(new Date(timestamp));
+}
+
+function formatCurrencyAmount(amount: number, currency: string) {
+	return new Intl.NumberFormat("en-US", { currency, style: "currency" }).format(
+		amount,
+	);
+}

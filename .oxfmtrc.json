@@ -1,0 +1,27 @@
+{
+	"$schema": "./node_modules/oxfmt/configuration_schema.json",
+	"useTabs": true,
+	"tabWidth": 2,
+	"printWidth": 80,
+	"singleQuote": false,
+	"jsxSingleQuote": false,
+	"quoteProps": "as-needed",
+	"trailingComma": "all",
+	"semi": true,
+	"arrowParens": "always",
+	"bracketSameLine": false,
+	"bracketSpacing": true,
+	"sortImports": true,
+	"overrides": [
+		{
+			"files": ["src/routeTree.gen.ts"],
+			"options": {
+				"useTabs": false,
+				"singleQuote": true,
+				"jsxSingleQuote": true,
+				"semi": false,
+				"sortImports": false
+			}
+		}
+	]
+}
