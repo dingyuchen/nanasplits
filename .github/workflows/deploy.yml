@@ -13,12 +13,14 @@ on:
       - closed
 
 concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 env:
+  DEPLOY_BRANCH: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref_name }}
   DEPLOY_ROOT: /home/hermes/nanasplits
   DEPLOY_USER: hermes
 
@@ -26,7 +28,8 @@ jobs:
   deploy:
     name: Build and deploy
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
+    if: ${{ github.event_name == 'push' || github.event.pull_request.merged == true }}
+    environment: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref_name }}
 
     steps:
       - name: Checkout
@@ -78,9 +81,12 @@ jobs:
           release="${DEPLOY_ROOT}/bin/nanasplits-${target}-${GITHUB_SHA}"
           ssh_options=(-o StrictHostKeyChecking=accept-new)
 
+          # shellcheck disable=SC2029
           ssh "${ssh_options[@]}" "${remote}" "mkdir -p '${DEPLOY_ROOT}/bin'"
           scp "${ssh_options[@]}" dist/nanasplits "${remote}:${release}"
+          # shellcheck disable=SC2029
           ssh "${ssh_options[@]}" "${remote}" "chmod 755 '${release}'"
+          # shellcheck disable=SC2029
           ssh "${ssh_options[@]}" "${remote}" \
             "TARGET='${target}' RELEASE='${release}' DEPLOY_ROOT='${DEPLOY_ROOT}' SERVICES='${services}' bash -s" <<'EOF'
           set -euo pipefail
