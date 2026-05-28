@@ -74,8 +74,6 @@ jobs:
 
           ssh "${ssh_options[@]}" "${remote}" "mkdir -p '${DEPLOY_ROOT}/bin'"
           scp "${ssh_options[@]}" dist/nanasplits "${remote}:${release}"
-          ssh "${ssh_options[@]}" "${remote}" "rm -rf '${DEPLOY_ROOT}/dist/client' && mkdir -p '${DEPLOY_ROOT}/dist'"
-          scp -r "${ssh_options[@]}" dist/client "${remote}:${DEPLOY_ROOT}/dist/client"
           ssh "${ssh_options[@]}" "${remote}" "chmod 755 '${release}'"
           ssh "${ssh_options[@]}" "${remote}" \
             "TARGET='${target}' RELEASE='${release}' DEPLOY_ROOT='${DEPLOY_ROOT}' SERVICES='${services}' bash -s" <<'EOF'

@@ -41,6 +41,10 @@ type AssetMetadata = {
 	type: string;
 };
 
+type EmbeddedFile = Blob & {
+	name?: string;
+};
+
 type InMemoryAsset = {
 	raw: Uint8Array<ArrayBuffer>;
 	gzip?: Uint8Array<ArrayBuffer>;
@@ -169,6 +173,23 @@ function createResponseHandler(asset: InMemoryAsset): StaticRouteHandler {
 	};
 }
 
+async function createEmbeddedAssetHandler(
+	blob: Blob,
+	route: string,
+): Promise<StaticRouteHandler> {
+	const bytes = new Uint8Array(await blob.arrayBuffer());
+	const mimeType = blob.type || "application/octet-stream";
+	const asset: InMemoryAsset = {
+		raw: bytes,
+		gzip: compressDataIfAppropriate(bytes, mimeType),
+		etag: ENABLE_ETAG ? computeEtag(bytes) : undefined,
+		type: mimeType,
+		cacheControl: getCacheControl(route),
+	};
+
+	return createResponseHandler(asset);
+}
+
 function createOnDemandHandler(
 	filepath: string,
 	metadata: AssetMetadata,
@@ -193,6 +214,12 @@ function createOnDemandHandler(
 async function initializeStaticRoutes(
 	clientDirectory: string,
 ): Promise<StaticRouteResult> {
+	const embeddedRoutes = await initializeEmbeddedStaticRoutes();
+
+	if (embeddedRoutes) {
+		return embeddedRoutes;
+	}
+
 	const routes: Record<string, StaticRouteHandler> = {};
 	const loaded: AssetMetadata[] = [];
 	const skipped: AssetMetadata[] = [];
@@ -276,6 +303,48 @@ async function initializeStaticRoutes(
 	}
 
 	return { routes, loaded, skipped };
+}
+
+async function initializeEmbeddedStaticRoutes(): Promise<StaticRouteResult | null> {
+	const embeddedFiles = (Bun.embeddedFiles ?? []) as EmbeddedFile[];
+	const clientFiles = embeddedFiles
+		.map((file) => ({ file, name: file.name ?? "" }))
+		.filter(({ name }) => name.startsWith("dist/client/"));
+
+	if (clientFiles.length === 0) {
+		return null;
+	}
+
+	const routes: Record<string, StaticRouteHandler> = {};
+	const loaded: AssetMetadata[] = [];
+	let totalBytes = 0;
+
+	log.info("Loading embedded static assets");
+
+	for (const { file, name } of clientFiles.sort((left, right) =>
+		left.name.localeCompare(right.name),
+	)) {
+		const route = `/${name.slice("dist/client/".length)}`;
+		routes[route] = await createEmbeddedAssetHandler(file, route);
+		loaded.push({
+			route,
+			size: file.size,
+			type: file.type || "application/octet-stream",
+		});
+		totalBytes += file.size;
+	}
+
+	log.success(
+		`Loaded ${loaded.length.toString()} embedded files (${(totalBytes / 1024 / 1024).toFixed(2)} MB)`,
+	);
+
+	if (VERBOSE) {
+		for (const file of loaded) {
+			log.info(`embedded ${file.route} ${file.type}`);
+		}
+	}
+
+	return { routes, loaded, skipped: [] };
 }
 
 async function loadStartHandler(): Promise<StartHandler> {

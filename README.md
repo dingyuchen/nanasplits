@@ -29,11 +29,10 @@ bun run start
 `build:binary` first creates the TanStack Start production build, then compiles
 `server.ts` and the generated TanStack Start server bundle into
 `dist/nanasplits` with Bun's standalone executable support. The build uses
-`--compile`, `--minify`, `--sourcemap`, and `--bytecode`, and defaults to
-`bun-linux-x64-modern` unless `BUN_COMPILE_TARGET` is set. The resulting Linux
-x64 binary can run without Bun or `node_modules` on the VPS; `server.ts` still
-serves browser assets from `dist/client`, which the deploy workflow copies next
-to the executable.
+`--compile`, `--minify`, `--sourcemap`, and `--bytecode`, and embeds
+`dist/client` into the executable with Bun file imports. Bun targets the local
+platform by default. The resulting binary can run without Bun, `node_modules`,
+or a separate client asset directory on the VPS.
 
 ## Quality
 
