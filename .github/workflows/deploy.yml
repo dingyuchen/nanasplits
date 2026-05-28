@@ -64,12 +64,10 @@ jobs:
 
           case "${DEPLOY_BRANCH}" in
             master)
-              target="master"
-              services="nanasplits-main@3001.service nanasplits-main@3002.service nanasplits-main@3003.service"
+              target="main"
               ;;
             dev)
               target="dev"
-              services="nanasplits-dev.service"
               ;;
             *)
               echo "Unsupported deploy branch: ${DEPLOY_BRANCH}" >&2
@@ -88,14 +86,10 @@ jobs:
           ssh "${ssh_options[@]}" "${remote}" "chmod 755 '${release}'"
           # shellcheck disable=SC2029
           ssh "${ssh_options[@]}" "${remote}" \
-            "TARGET='${target}' RELEASE='${release}' DEPLOY_ROOT='${DEPLOY_ROOT}' SERVICES='${services}' bash -s" <<'EOF'
+            "TARGET='${target}' RELEASE='${release}' DEPLOY_ROOT='${DEPLOY_ROOT}' bash -s" <<'EOF'
           set -euo pipefail
 
           ln -sfn "${RELEASE}" "${DEPLOY_ROOT}/${TARGET}"
-          sudo systemctl restart ${SERVICES}
-          for service in ${SERVICES}; do
-            sudo systemctl is-active --quiet "${service}"
-          done
           find "${DEPLOY_ROOT}/bin" \
             -maxdepth 1 \
             -type f \

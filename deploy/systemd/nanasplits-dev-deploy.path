@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch NanaSplits preview release symlink
+
+[Path]
+PathChanged=/home/hermes/nanasplits/dev
+Unit=nanasplits-dev-restart.service
+
+[Install]
+WantedBy=multi-user.target

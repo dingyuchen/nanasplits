@@ -53,14 +53,15 @@ bun x tsc --noEmit
 
 ## VPS Deployment
 
-Pushes to `master` deploy the production binary and restart three instances on
-ports `3001`, `3002`, and `3003`. Pushes to `dev` deploy the preview binary and
-restart the single instance on port `3000`. Caddy is expected to already proxy
-to those ports.
+Pushes to `master` deploy the production binary for three instances on ports
+`3001`, `3002`, and `3003`. Pushes to `dev` deploy the preview binary for the
+single instance on port `3000`. Caddy is expected to already proxy to those
+ports.
 
 The GitHub workflow builds on GitHub-hosted runners, joins the tailnet with
 `tailscale/github-action`, copies the compiled binary to
-`/home/hermes/nanasplits`, and restarts `systemd` units over Tailscale SSH.
+`/home/hermes/nanasplits`, and updates a release symlink. Root-owned `systemd`
+path units on the VPS watch those symlinks and restart the app services locally.
 
 ### GitHub Secrets
 
@@ -119,13 +120,14 @@ Create the deploy directory and install the systemd units:
 ```bash
 sudo mkdir -p /home/hermes/nanasplits/bin
 sudo chown -R hermes:hermes /home/hermes/nanasplits
-sudo cp deploy/systemd/nanasplits-main@.service /etc/systemd/system/
-sudo cp deploy/systemd/nanasplits-dev.service /etc/systemd/system/
+sudo cp deploy/systemd/*.service deploy/systemd/*.path /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable nanasplits-main@3001.service
 sudo systemctl enable nanasplits-main@3002.service
 sudo systemctl enable nanasplits-main@3003.service
 sudo systemctl enable nanasplits-dev.service
+sudo systemctl enable --now nanasplits-main-deploy.path
+sudo systemctl enable --now nanasplits-dev-deploy.path
 ```
 
 Create `/home/hermes/nanasplits/main.env` and
@@ -147,13 +149,6 @@ Lock the files down after editing:
 
 ```bash
 chmod 600 /home/hermes/nanasplits/main.env /home/hermes/nanasplits/dev.env
-```
-
-Allow the `hermes` user to restart only these units from deploy jobs. Adjust
-`/usr/bin/systemctl` if `command -v systemctl` returns a different path:
-
-```text
-hermes ALL=(root) NOPASSWD: /usr/bin/systemctl restart nanasplits-main@3001.service nanasplits-main@3002.service nanasplits-main@3003.service, /usr/bin/systemctl restart nanasplits-dev.service, /usr/bin/systemctl is-active --quiet nanasplits-main@3001.service nanasplits-main@3002.service nanasplits-main@3003.service, /usr/bin/systemctl is-active --quiet nanasplits-dev.service
 ```
 
 The first successful workflow run creates these symlinks:

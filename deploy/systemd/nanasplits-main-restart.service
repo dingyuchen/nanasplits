@@ -1,0 +1,6 @@
+[Unit]
+Description=Restart NanaSplits production instances after deploy
+
+[Service]
+Type=oneshot
+ExecStart=systemctl restart nanasplits-main@3001.service nanasplits-main@3002.service nanasplits-main@3003.service

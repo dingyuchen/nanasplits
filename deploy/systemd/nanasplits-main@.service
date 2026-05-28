@@ -9,7 +9,6 @@ User=hermes
 Group=hermes
 WorkingDirectory=/home/hermes/nanasplits
 EnvironmentFile=/home/hermes/nanasplits/main.env
-Environment=HOST=127.0.0.1
 Environment=PORT=%i
 ExecStart=/home/hermes/nanasplits/main
 Restart=always

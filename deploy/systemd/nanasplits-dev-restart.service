@@ -1,0 +1,6 @@
+[Unit]
+Description=Restart NanaSplits preview instance after deploy
+
+[Service]
+Type=oneshot
+ExecStart=systemctl restart nanasplits-dev.service
