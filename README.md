@@ -53,7 +53,7 @@ bun x tsc --noEmit
 
 ## VPS Deployment
 
-Pushes to `main` deploy the production binary and restart three instances on
+Pushes to `master` deploy the production binary and restart three instances on
 ports `3001`, `3002`, and `3003`. Pushes to `dev` deploy the preview binary and
 restart the single instance on port `3000`. Caddy is expected to already proxy
 to those ports.
@@ -91,11 +91,11 @@ minimal policy shape is:
 		"tag:gh-action-runner": ["autogroup:admin"],
 		"tag:vps": ["autogroup:admin"]
 	},
-	"acls": [
+	"grants": [
 		{
-			"action": "accept",
 			"src": ["tag:gh-action-runner"],
-			"dst": ["tag:vps:22"]
+			"dst": ["tag:vps"],
+			"ip": ["tcp:22"]
 		}
 	],
 	"ssh": [
