@@ -4,10 +4,15 @@ on:
   push:
     branches:
       - master
-      - preview
+      - dev
+  pull_request:
+    branches:
+      - master
+      - dev
+    types:
+      - closed
 
 concurrency:
-  group: deploy-${{ github.ref_name }}
   cancel-in-progress: true
 
 permissions:
@@ -53,9 +58,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          case "${GITHUB_REF_NAME}" in
-            main)
-              target="main"
+          case "${DEPLOY_BRANCH}" in
+            master)
+              target="master"
               services="nanasplits-main@3001.service nanasplits-main@3002.service nanasplits-main@3003.service"
               ;;
             dev)
@@ -63,7 +68,7 @@ jobs:
               services="nanasplits-dev.service"
               ;;
             *)
-              echo "Unsupported deploy branch: ${GITHUB_REF_NAME}" >&2
+              echo "Unsupported deploy branch: ${DEPLOY_BRANCH}" >&2
               exit 1
               ;;
           esac
