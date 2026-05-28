@@ -72,27 +72,27 @@ VITE_CONVEX_URL        Convex deployment URL used at build time
 
 ### Tailscale
 
-Create a Tailscale OAuth client that can create ephemeral `tag:ci` nodes. Enable
+Create a Tailscale OAuth client that can create ephemeral `tag:gh-action-runner` nodes. Enable
 Tailscale SSH on the VPS:
 
 ```bash
 sudo tailscale set --ssh
 ```
 
-The tailnet policy needs to allow `tag:ci` to SSH to the VPS as `hermes`. A
+The tailnet policy needs to allow `tag:gh-action-runner` to SSH to the VPS as `hermes`. A
 minimal policy shape is:
 
 ```json
 {
 	"tagOwners": {
-		"tag:ci": ["autogroup:admin"],
+		"tag:gh-action-runner": ["autogroup:admin"],
 		"tag:vps": ["autogroup:admin"]
 	},
-	"acls": [{ "action": "accept", "src": ["tag:ci"], "dst": ["tag:vps:22"] }],
+	"acls": [{ "action": "accept", "src": ["tag:gh-action-runner"], "dst": ["tag:vps:22"] }],
 	"ssh": [
 		{
 			"action": "accept",
-			"src": ["tag:ci"],
+			"src": ["tag:gh-action-runner"],
 			"dst": ["tag:vps"],
 			"users": ["hermes"]
 		}
