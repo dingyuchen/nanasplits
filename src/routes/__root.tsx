@@ -42,11 +42,11 @@ function RootErrorComponent(props: ErrorComponentProps) {
 
 	return (
 		<main class="flex min-h-screen items-center justify-center bg-gray-50 px-6 py-12 text-gray-900 dark:bg-gray-950 dark:text-white">
-			<div class="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-lg dark:bg-gray-900">
+			<div class="w-full max-w-sm rounded-sm border border-gray-200 bg-white p-6 text-center shadow-sm dark:border-gray-800 dark:bg-gray-900">
 				<h1 class="font-semibold text-xl">Unable to load NanaSplits</h1>
 				<p class="mt-3 text-gray-600 text-sm dark:text-gray-300">{message()}</p>
 				<button
-					class="mt-6 rounded-full bg-blue-600 px-5 py-2.5 font-semibold text-sm text-white transition hover:bg-blue-700"
+					class="mt-6 rounded-sm bg-gray-950 px-5 py-2.5 font-semibold text-sm text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
 					onClick={() => props.reset()}
 					type="button"
 				>

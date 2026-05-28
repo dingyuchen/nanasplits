@@ -2,9 +2,8 @@ import { createFileRoute } from "@tanstack/solid-router";
 import { ConvexHttpClient } from "convex/browser";
 import { Bot, blockquote, bold, format, InlineKeyboard, italic } from "gramio";
 
-import { api } from "@/convex/_generated/api";
-
 import { getConvexUrl, getServerEnv } from "#/env";
+import { api } from "@/convex/_generated/api";
 
 const message = format`
     👋 ${bold`Welcome to Nanasplits!`} 🍌

@@ -11,3 +11,21 @@
 		"Segoe UI",
 		sans-serif;
 }
+
+html {
+	background: #f8fafc;
+}
+
+body {
+	margin: 0;
+	background: #f8fafc;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) {
+	html,
+	body {
+		background: #030712;
+	}
+}

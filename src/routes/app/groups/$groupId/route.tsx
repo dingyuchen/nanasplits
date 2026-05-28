@@ -10,7 +10,9 @@ export const Route = createFileRoute("/app/groups/$groupId")({
 	component: GroupLayoutRoute,
 });
 
-type TelegramMembership = Awaited<ReturnType<typeof checkTelegramMembership>>;
+type TelegramMembership =
+	| Awaited<ReturnType<typeof checkTelegramMembership>>
+	| { isMember: false; status: "error" | "invalid" };
 
 function GroupLayoutRoute() {
 	const params = Route.useParams();
@@ -54,12 +56,12 @@ function GroupLayoutRoute() {
 
 function AccessDenied() {
 	return (
-		<div class="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 to-white p-6 dark:from-gray-900 dark:to-gray-800">
+		<div class="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-gray-950">
 			<div class="max-w-md text-center">
-				<div class="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-red-50 p-6 dark:bg-red-900/20">
-					<ShieldAlert class="h-12 w-12 text-red-500 dark:text-red-400" />
+				<div class="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-sm bg-red-50 p-3 dark:bg-red-950/30">
+					<ShieldAlert class="h-8 w-8 text-red-600 dark:text-red-400" />
 				</div>
-				<h1 class="mb-3 text-2xl font-bold text-gray-900 dark:text-white">
+				<h1 class="mb-3 font-semibold text-2xl tracking-tight text-gray-900 dark:text-white">
 					Access Denied
 				</h1>
 				<p class="mb-6 text-gray-600 dark:text-gray-400">

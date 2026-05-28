@@ -103,32 +103,38 @@ function GroupSettings(props: {
 	};
 
 	return (
-		<div class="min-h-screen bg-gradient-to-b from-blue-50 to-white pb-20 dark:from-gray-900 dark:to-gray-800">
-			<div class="bg-gradient-to-r from-blue-500 to-cyan-500 p-6 text-white dark:from-blue-600 dark:to-cyan-600">
-				<div class="mb-2 flex items-center gap-3">
-					<button
-						class="-ml-2 rounded-full p-2 transition-colors hover:bg-white/10"
-						type="button"
-						onClick={() =>
-							void navigate({
-								params: {
-									groupId: String(props.telegramChatId),
-								},
-								to: "/app/groups/$groupId",
-							})
-						}
-					>
-						<ArrowLeft class="h-5 w-5" />
-					</button>
-					<h1 class="text-2xl font-bold">Group Settings</h1>
+		<div class="min-h-screen bg-slate-50 pb-20 text-gray-950 dark:bg-gray-950 dark:text-white">
+			<div class="border-gray-200 border-b bg-white dark:border-gray-800 dark:bg-gray-950">
+				<div class="mx-auto max-w-2xl p-4">
+					<div class="mb-2 flex items-center gap-3">
+						<button
+							class="rounded-sm border border-gray-200 bg-white p-2 transition-colors hover:border-cyan-500 dark:border-gray-800 dark:bg-gray-900"
+							type="button"
+							onClick={() =>
+								void navigate({
+									params: {
+										groupId: String(props.telegramChatId),
+									},
+									to: "/app/groups/$groupId",
+								})
+							}
+						>
+							<ArrowLeft class="h-5 w-5" />
+						</button>
+						<h1 class="font-semibold text-2xl tracking-tight">
+							Group Settings
+						</h1>
+					</div>
+					<p class="ml-14 text-gray-500 text-sm dark:text-gray-400">
+						{props.groupData.title}
+					</p>
 				</div>
-				<p class="ml-8 text-sm text-blue-100">{props.groupData.title}</p>
 			</div>
 
-			<div class="space-y-6 px-4 py-6">
-				<div class="rounded-2xl bg-white p-5 shadow-sm dark:bg-gray-800">
+			<div class="mx-auto max-w-2xl space-y-4 px-4 py-4">
+				<div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
 					<div class="mb-4 flex items-center gap-3">
-						<div class="rounded-full bg-blue-100 p-2 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+						<div class="rounded-sm bg-cyan-50 p-2 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300">
 							<Globe class="h-5 w-5" />
 						</div>
 						<div>
@@ -143,7 +149,7 @@ function GroupSettings(props: {
 
 					<div class="relative">
 						<select
-							class="w-full cursor-pointer appearance-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-900 transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+							class="w-full cursor-pointer appearance-none rounded-sm border border-gray-300 bg-white px-3 py-3 text-gray-900 transition-all focus:border-cyan-600 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-white"
 							value={selectedCurrency()}
 							onChange={(event) =>
 								setSelectedCurrency(event.currentTarget.value)
@@ -165,9 +171,9 @@ function GroupSettings(props: {
 					</div>
 				</div>
 
-				<div class="rounded-2xl bg-white p-5 shadow-sm dark:bg-gray-800">
+				<div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
 					<div class="mb-4 flex items-center gap-3">
-						<div class="rounded-full bg-green-100 p-2 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+						<div class="rounded-sm bg-green-50 p-2 text-green-700 dark:bg-green-950/40 dark:text-green-300">
 							<Users class="h-5 w-5" />
 						</div>
 						<div>
@@ -188,17 +194,17 @@ function GroupSettings(props: {
 									member.telegramUserId === props.telegramUserId;
 								return (
 									<div
-										class={`flex items-center gap-3 rounded-xl p-3 ${
+										class={`flex items-center gap-3 rounded-sm border p-3 ${
 											isCurrentUser
-												? "border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
-												: "bg-gray-50 dark:bg-gray-700/50"
+												? "border-cyan-200 bg-cyan-50 dark:border-cyan-900/70 dark:bg-cyan-950/30"
+												: "border-gray-200 bg-slate-50 dark:border-gray-800 dark:bg-gray-950"
 										}`}
 									>
 										<div
-											class={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold ${
+											class={`flex h-10 w-10 items-center justify-center rounded-sm font-bold text-sm ${
 												isCurrentUser
-													? "bg-blue-500 text-white"
-													: "bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-300"
+													? "bg-cyan-700 text-white"
+													: "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-300"
 											}`}
 										>
 											{(
@@ -211,7 +217,7 @@ function GroupSettings(props: {
 											<p class="font-medium text-gray-900 dark:text-white">
 												{member.firstName} {member.lastName}
 												<Show when={isCurrentUser}>
-													<span class="ml-2 text-xs text-blue-600 dark:text-blue-400">
+													<span class="ml-2 text-cyan-700 text-xs dark:text-cyan-300">
 														(You)
 													</span>
 												</Show>
@@ -242,7 +248,7 @@ function GroupSettings(props: {
 			</Show>
 
 			<Show when={showSuccess()}>
-				<div class="fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full bg-green-500 px-4 py-2 text-white shadow-lg">
+				<div class="fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-sm bg-green-600 px-4 py-2 text-white shadow-lg">
 					<Check class="h-4 w-4" />
 					<span class="text-sm font-medium">Settings saved!</span>
 				</div>
@@ -253,9 +259,9 @@ function GroupSettings(props: {
 
 function Loading() {
 	return (
-		<div class="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 to-white p-6 dark:from-gray-900 dark:to-gray-800">
+		<div class="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-gray-950">
 			<div class="text-center">
-				<Loader2 class="mx-auto mb-4 h-12 w-12 animate-spin text-blue-500" />
+				<Loader2 class="mx-auto mb-4 h-8 w-8 animate-spin text-cyan-600 dark:text-cyan-400" />
 			</div>
 		</div>
 	);

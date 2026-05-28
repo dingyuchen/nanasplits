@@ -53,7 +53,7 @@ function GroupIndexRoute() {
 
 	if (Number.isNaN(telegramChatId)) {
 		return (
-			<div class="min-h-screen bg-gradient-to-b from-blue-50 to-white p-6 dark:from-gray-900 dark:to-gray-800">
+			<div class="min-h-screen bg-slate-50 p-6 dark:bg-gray-950">
 				<Empty text="Invalid Telegram group id." />
 			</div>
 		);
@@ -223,23 +223,27 @@ function GroupView(props: {
 	};
 
 	return (
-		<div class="relative min-h-screen bg-gradient-to-b from-blue-50 to-white pb-20 dark:from-gray-900 dark:to-gray-800">
+		<div class="relative min-h-screen bg-slate-50 pb-20 text-gray-950 dark:bg-gray-950 dark:text-white">
 			<Show when={!props.isRegisteredMemberOfGroup}>
 				<div class="absolute inset-0 z-40 bg-black/50" />
 			</Show>
 
-			<div class="bg-gradient-to-r from-blue-500 to-cyan-500 p-6 pb-12 text-white dark:from-blue-600 dark:to-cyan-600">
-				<h1 class="mb-4 text-3xl font-bold">{props.groupData.title}</h1>
-			</div>
-
-			<div class="-mt-12 space-y-6 px-4">
-				<section class="rounded-2xl bg-white p-5 shadow-lg dark:bg-gray-800">
-					<div class="mb-4 flex items-center justify-between">
-						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-							Your Balance
-						</h2>
+			<div class="mx-auto max-w-2xl space-y-4 px-4 pt-6">
+				<header class="border-gray-200 border-b pb-5 dark:border-gray-800">
+					<div class="mb-3 flex items-start justify-between gap-3">
+						<div>
+							<p class="mb-2 font-medium text-cyan-700 text-xs uppercase dark:text-cyan-300">
+								Group
+							</p>
+							<h1 class="font-semibold text-3xl tracking-tight">
+								{props.groupData.title}
+							</h1>
+							<p class="mt-2 text-gray-500 text-sm dark:text-gray-400">
+								{props.groupData.memberCount} members
+							</p>
+						</div>
 						<Link
-							class="rounded-full p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+							class="rounded-sm border border-gray-200 bg-white p-2 transition-colors hover:border-cyan-500 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-cyan-700"
 							params={{
 								groupId: String(props.groupIdNumber),
 							}}
@@ -248,16 +252,22 @@ function GroupView(props: {
 							<Settings class="h-5 w-5 text-gray-500 dark:text-gray-400" />
 						</Link>
 					</div>
+				</header>
+
+				<section class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+					<h2 class="mb-4 font-semibold text-gray-900 text-sm uppercase dark:text-white">
+						Your balance
+					</h2>
 
 					<Show
 						when={Object.keys(currencyBalances()).length > 0}
 						fallback={
-							<div class="py-4 text-center text-gray-500 dark:text-gray-400">
+							<div class="rounded-sm border border-dashed border-gray-200 py-6 text-center text-gray-500 text-sm dark:border-gray-800 dark:text-gray-400">
 								<p>No expenses yet</p>
 							</div>
 						}
 					>
-						<div class="space-y-3">
+						<div class="space-y-2">
 							<For each={Object.entries(currencyBalances())}>
 								{([currency, currencyData]) => (
 									<CurrencyBalanceCard
@@ -283,12 +293,12 @@ function GroupView(props: {
 
 				<section>
 					<button
-						class="mb-3 flex w-full items-center gap-2 px-1"
+						class="mb-2 flex w-full items-center gap-2 px-1"
 						type="button"
 						onClick={() => setMembersCollapsed(!membersCollapsed())}
 					>
-						<Users class="h-5 w-5 text-gray-500" />
-						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+						<Users class="h-4 w-4 text-gray-500" />
+						<h2 class="font-semibold text-gray-900 text-sm uppercase dark:text-white">
 							Members ({props.groupData.memberCount})
 						</h2>
 						<Show
@@ -299,12 +309,12 @@ function GroupView(props: {
 						</Show>
 					</button>
 					<Show when={!membersCollapsed()}>
-						<div class="rounded-2xl bg-white p-4 shadow-sm dark:bg-gray-800">
+						<div class="rounded-sm border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
 							<div class="flex flex-wrap gap-2">
 								<For each={props.groupData.members}>
 									{(member) => (
-										<div class="flex items-center gap-2 rounded-full border border-gray-100 bg-gray-50 px-3 py-1.5 dark:border-gray-700 dark:bg-gray-700/50">
-											<div class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-blue-600">
+										<div class="flex items-center gap-2 rounded-sm border border-gray-200 bg-slate-50 px-2.5 py-1.5 dark:border-gray-800 dark:bg-gray-950">
+											<div class="flex h-6 w-6 items-center justify-center rounded-sm bg-cyan-50 font-bold text-cyan-700 text-xs dark:bg-cyan-950/50 dark:text-cyan-300">
 												{(
 													member.firstName?.[0] ||
 													member.username?.[0] ||
@@ -323,9 +333,9 @@ function GroupView(props: {
 				</section>
 
 				<section>
-					<div class="mb-3 flex items-center gap-2 px-1">
-						<Receipt class="h-5 w-5 text-gray-500" />
-						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+					<div class="mb-2 flex items-center gap-2 px-1">
+						<Receipt class="h-4 w-4 text-gray-500" />
+						<h2 class="font-semibold text-gray-900 text-sm uppercase dark:text-white">
 							Expenses
 						</h2>
 					</div>
@@ -334,7 +344,7 @@ function GroupView(props: {
 						<Show
 							when={props.groupData.expenses.length > 0}
 							fallback={
-								<div class="rounded-2xl bg-white py-8 text-center text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+								<div class="rounded-sm border border-dashed border-gray-200 bg-white py-8 text-center text-gray-500 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
 									<p>No expenses yet</p>
 								</div>
 							}
@@ -385,16 +395,16 @@ function CurrencyBalanceCard(props: {
 
 	return (
 		<div
-			class={`rounded-xl border p-4 ${
+			class={`rounded-sm border p-3 ${
 				isPositive()
-					? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
-					: "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+					? "border-green-200 bg-green-50 dark:border-green-900/70 dark:bg-green-950/30"
+					: "border-red-200 bg-red-50 dark:border-red-900/70 dark:bg-red-950/30"
 			}`}
 		>
-			<div class="mb-3 flex items-center justify-between">
+			<div class="flex items-center justify-between">
 				<div>
 					<span
-						class={`mb-1 block text-sm font-medium ${
+						class={`mb-1 block font-medium text-xs uppercase ${
 							isPositive()
 								? "text-green-700 dark:text-green-300"
 								: "text-red-700 dark:text-red-300"
@@ -403,7 +413,7 @@ function CurrencyBalanceCard(props: {
 						{props.currency}
 					</span>
 					<p
-						class={`text-2xl font-bold ${
+						class={`font-semibold text-2xl ${
 							isPositive()
 								? "text-green-600 dark:text-green-400"
 								: "text-red-600 dark:text-red-400"
@@ -417,27 +427,27 @@ function CurrencyBalanceCard(props: {
 					</p>
 				</div>
 				<div
-					class={`rounded-full p-3 ${
+					class={`rounded-sm p-2 ${
 						isPositive()
 							? "bg-green-100 text-green-600 dark:bg-green-800/30"
 							: "bg-red-100 text-red-600 dark:bg-red-800/30"
 					}`}
 				>
-					<Show when={isPositive()} fallback={<TrendingDown class="h-6 w-6" />}>
-						<TrendingUp class="h-6 w-6" />
+					<Show when={isPositive()} fallback={<TrendingDown class="h-5 w-5" />}>
+						<TrendingUp class="h-5 w-5" />
 					</Show>
 				</div>
 			</div>
 
 			<Show when={memberBalanceEntries().length > 0}>
-				<div class="mt-2 space-y-2 border-gray-200 border-t pt-3 dark:border-gray-700">
+				<div class="mt-3 space-y-2 border-gray-200 border-t pt-3 dark:border-gray-800">
 					<For each={memberBalanceEntries()}>
 						{(member) => {
 							const isMemberPositive = member.balance > 0;
 							return (
 								<div class="flex items-center justify-between">
 									<div class="flex items-center gap-2">
-										<div class="flex h-6 w-6 items-center justify-center rounded-full bg-white/50 text-xs font-bold text-gray-600 dark:bg-gray-800/50 dark:text-gray-300">
+										<div class="flex h-6 w-6 items-center justify-center rounded-sm bg-white/50 font-bold text-gray-600 text-xs dark:bg-gray-800/50 dark:text-gray-300">
 											{member.memberName[0]?.toUpperCase() || "?"}
 										</div>
 										<span class="text-sm text-gray-700 dark:text-gray-200">
@@ -528,13 +538,13 @@ function ExpenseRow(props: {
 
 	return (
 		<button
-			class={`flex w-full cursor-pointer items-center justify-between rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700/50 ${styles().cardOpacity}`}
+			class={`flex w-full cursor-pointer items-center justify-between rounded-sm border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:border-cyan-500 hover:bg-slate-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-cyan-700 dark:hover:bg-gray-900 ${styles().cardOpacity}`}
 			type="button"
 			onClick={props.onEdit}
 		>
 			<div class="flex items-center gap-3">
 				<div
-					class={`flex h-10 w-10 items-center justify-center rounded-full ${styles().iconBg}`}
+					class={`flex h-9 w-9 items-center justify-center rounded-sm ${styles().iconBg}`}
 				>
 					<Show when={isTransfer()} fallback={<Wallet class="h-5 w-5" />}>
 						<ArrowLeftRight class="h-5 w-5" />
@@ -624,13 +634,13 @@ function SettleUp(props: {
 
 	return (
 		<section>
-			<div class="mb-3 flex items-center gap-2 px-1">
-				<ArrowLeftRight class="h-5 w-5 text-gray-500" />
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+			<div class="mb-2 flex items-center gap-2 px-1">
+				<ArrowLeftRight class="h-4 w-4 text-gray-500" />
+				<h2 class="font-semibold text-gray-900 text-sm uppercase dark:text-white">
 					Settle Up
 				</h2>
 			</div>
-			<div class="rounded-2xl bg-white p-4 shadow-sm dark:bg-gray-800">
+			<div class="rounded-sm border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
 				<Show
 					when={balanceEntries().length > 0}
 					fallback={
@@ -643,10 +653,10 @@ function SettleUp(props: {
 						<For each={balanceEntries()}>
 							{({ currency, member }) => (
 								<button
-									class={`flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+									class={`flex items-center gap-2 whitespace-nowrap rounded-sm border px-3 py-1.5 font-medium text-sm transition-colors ${
 										member.balance > 0
-											? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300 dark:hover:bg-green-900/40"
-											: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/40"
+											? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-900/70 dark:bg-green-950/30 dark:text-green-300"
+											: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300"
 									}`}
 									type="button"
 									onClick={() =>
@@ -675,7 +685,7 @@ function SettleUp(props: {
 			<Show when={settleDialog()}>
 				{(dialog) => (
 					<div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-						<div class="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-800">
+						<div class="w-full max-w-sm rounded-sm bg-white p-5 shadow-xl dark:bg-gray-900">
 							<h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
 								Confirm Settlement
 							</h3>
@@ -692,14 +702,14 @@ function SettleUp(props: {
 							</p>
 							<div class="flex gap-3">
 								<button
-									class="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+									class="flex-1 rounded-sm border border-gray-300 px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
 									type="button"
 									onClick={() => setSettleDialog(null)}
 								>
 									Cancel
 								</button>
 								<button
-									class="flex-1 rounded-lg bg-blue-500 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-600"
+									class="flex-1 rounded-sm bg-gray-950 px-4 py-2 font-medium text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
 									type="button"
 									onClick={handleSettle}
 								>
@@ -721,7 +731,7 @@ function AddExpenseButton(props: {
 	return (
 		<Link
 			aria-label="Add expense"
-			class="fixed right-6 bottom-6 flex h-14 w-14 items-center justify-center rounded-full bg-blue-500 text-white shadow-lg transition-all hover:scale-110 hover:bg-blue-600 focus:scale-95 focus:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 active:scale-95"
+			class="fixed right-6 bottom-6 flex h-14 w-14 items-center justify-center rounded-sm bg-gray-950 text-white shadow-lg transition-all hover:bg-gray-800 focus:scale-95 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 active:scale-95 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
 			params={{
 				groupId: String(props.telegramChatId),
 			}}
@@ -742,15 +752,15 @@ function AddExpenseButton(props: {
 
 function Loading() {
 	return (
-		<div class="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 to-white p-6 dark:from-gray-900 dark:to-gray-800">
-			<Loader2 class="mx-auto mb-4 h-12 w-12 animate-spin text-blue-500" />
+		<div class="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-gray-950">
+			<Loader2 class="mx-auto mb-4 h-8 w-8 animate-spin text-cyan-600 dark:text-cyan-400" />
 		</div>
 	);
 }
 
 function Empty(props: { text: string }) {
 	return (
-		<p class="rounded-2xl bg-white p-6 text-center text-gray-600 shadow-lg dark:bg-gray-800 dark:text-gray-300">
+		<p class="rounded-sm border border-gray-200 bg-white p-6 text-center text-gray-600 text-sm shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
 			{props.text}
 		</p>
 	);

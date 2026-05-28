@@ -8,33 +8,33 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
 	return (
-		<main class="min-h-screen bg-gradient-to-b from-yellow-50 via-white to-blue-50 text-gray-950 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 dark:text-white">
-			<section class="mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-6 py-16">
-				<div class="mb-8 inline-flex w-fit items-center gap-2 rounded-full bg-yellow-100 px-4 py-2 font-medium text-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-100">
+		<main class="min-h-screen bg-slate-50 text-gray-950 dark:bg-gray-950 dark:text-white">
+			<section class="mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-6 py-12">
+				<div class="mb-8 inline-flex w-fit items-center gap-2 rounded-sm border border-cyan-200 bg-white px-3 py-2 font-medium text-cyan-700 text-sm shadow-sm dark:border-cyan-900/70 dark:bg-gray-900 dark:text-cyan-300">
 					<Bot class="h-4 w-4" /> Telegram Mini App
 				</div>
-				<h1 class="max-w-3xl text-5xl font-black tracking-tight sm:text-7xl">
-					Split expenses without leaving Telegram.
+				<h1 class="max-w-3xl font-semibold text-5xl tracking-tight sm:text-7xl">
+					NanaSplits
 				</h1>
-				<p class="mt-6 max-w-2xl text-lg leading-8 text-gray-600 dark:text-gray-300">
-					NanaSplits tracks group expenses, calculates balances by currency, and
-					keeps the backend on Convex.
+				<p class="mt-5 max-w-2xl text-gray-600 text-lg leading-8 dark:text-gray-300">
+					Split group expenses inside Telegram with clean balances, precise
+					multi-currency totals, and simple settlement flows.
 				</p>
 				<div class="mt-10 flex flex-wrap gap-3">
 					<Link
-						class="rounded-full bg-blue-600 px-6 py-3 font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700"
+						class="rounded-sm bg-gray-950 px-5 py-3 font-semibold text-sm text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
 						to="/app"
 					>
 						Open Mini App
 					</Link>
 					<a
-						class="rounded-full border border-gray-300 px-6 py-3 font-semibold transition hover:border-blue-500 dark:border-gray-700"
+						class="rounded-sm border border-gray-300 bg-white px-5 py-3 font-semibold text-gray-800 text-sm transition hover:border-cyan-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
 						href="https://t.me/"
 					>
 						Open Telegram
 					</a>
 				</div>
-				<div class="mt-16 grid gap-4 sm:grid-cols-3">
+				<div class="mt-16 grid gap-3 sm:grid-cols-3">
 					<Feature
 						icon={<Users />}
 						title="Groups"
@@ -66,12 +66,12 @@ function Feature({
 	text: string;
 }) {
 	return (
-		<div class="rounded-3xl border border-gray-200 bg-white/80 p-5 shadow-sm backdrop-blur dark:border-gray-800 dark:bg-gray-900/70">
-			<div class="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
+		<div class="rounded-sm border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+			<div class="mb-4 flex h-9 w-9 items-center justify-center rounded-sm bg-cyan-50 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300">
 				{icon}
 			</div>
-			<h2 class="font-bold">{title}</h2>
-			<p class="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-400">
+			<h2 class="font-semibold">{title}</h2>
+			<p class="mt-2 text-gray-600 text-sm leading-6 dark:text-gray-400">
 				{text}
 			</p>
 		</div>

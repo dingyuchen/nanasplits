@@ -420,10 +420,10 @@ function SplitModal(props: {
 
 	return (
 		<div class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
-			<div class="my-8 w-full max-w-md rounded-2xl bg-white shadow-xl dark:bg-gray-800">
-				<div class="flex items-center justify-between border-gray-200 border-b p-6 dark:border-gray-700">
+			<div class="my-8 w-full max-w-md rounded-sm bg-white shadow-xl dark:bg-gray-900">
+				<div class="flex items-center justify-between border-gray-200 border-b p-5 dark:border-gray-800">
 					<div>
-						<h2 class="text-xl font-bold text-gray-900 dark:text-white">
+						<h2 class="font-semibold text-gray-900 text-xl dark:text-white">
 							Split Expense
 						</h2>
 						<p class="text-sm text-gray-500 dark:text-gray-400">
@@ -439,14 +439,14 @@ function SplitModal(props: {
 					</button>
 				</div>
 
-				<div class="space-y-4 p-6">
-					<div class="flex gap-1 rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
+				<div class="space-y-4 p-5">
+					<div class="grid grid-cols-4 gap-1 rounded-sm bg-slate-100 p-1 dark:bg-gray-800">
 						<For each={["equal", "exact", "percentage", "shares"] as const}>
 							{(type) => (
 								<button
-									class={`flex-1 rounded-md py-1.5 text-sm font-medium transition-colors ${
+									class={`rounded-sm py-1.5 font-medium text-sm transition-colors ${
 										splitType() === type
-											? "bg-white text-gray-900 shadow dark:bg-gray-600 dark:text-white"
+											? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
 											: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
 									}`}
 									type="button"
@@ -467,12 +467,12 @@ function SplitModal(props: {
 								const isLastUser = () => member._id === lastSelectedUserId();
 
 								return (
-									<div class="flex items-center justify-between rounded-lg bg-gray-50 p-3 dark:bg-gray-700/50">
+									<div class="flex items-center justify-between rounded-sm border border-gray-200 bg-slate-50 p-3 dark:border-gray-800 dark:bg-gray-950">
 										<div class="flex items-center gap-3">
 											<button
-												class={`flex h-5 w-5 cursor-pointer items-center justify-center rounded border ${
+												class={`flex h-5 w-5 cursor-pointer items-center justify-center rounded-sm border ${
 													isSelected()
-														? "border-blue-500 bg-blue-500 text-white"
+														? "border-cyan-600 bg-cyan-600 text-white"
 														: "border-gray-300 dark:border-gray-600"
 												}`}
 												type="button"
@@ -512,7 +512,7 @@ function SplitModal(props: {
 						</For>
 					</div>
 
-					<div class="border-gray-200 border-t pt-4 dark:border-gray-700">
+					<div class="border-gray-200 border-t pt-4 dark:border-gray-800">
 						<Show when={splitType() === "percentage"}>
 							<div class="mb-2 flex justify-between text-sm font-medium">
 								<span class="text-gray-500 dark:text-gray-400">
@@ -562,7 +562,7 @@ function SplitModal(props: {
 						</div>
 						<Show when={validationError()}>
 							{(error) => (
-								<div class="mb-3 rounded-lg border border-red-200 bg-red-50 p-2 dark:border-red-800 dark:bg-red-900/20">
+								<div class="mb-3 rounded-sm border border-red-200 bg-red-50 p-2 dark:border-red-900/70 dark:bg-red-950/30">
 									<p class="text-sm text-red-600 dark:text-red-400">
 										{error()}
 									</p>
@@ -571,13 +571,13 @@ function SplitModal(props: {
 						</Show>
 						<div class="flex gap-3">
 							<Button
-								class="flex-1 bg-gray-200 text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600"
+								class="flex-1 bg-slate-200 text-gray-900 hover:bg-slate-300 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
 								onClick={props.onClose}
 							>
 								Cancel
 							</Button>
 							<Button
-								class="flex-1 bg-blue-500 text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+								class="flex-1 bg-gray-950 text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
 								disabled={Math.abs(totalAssigned() - props.amount) > 0.01}
 								onClick={handleSave}
 							>
@@ -624,7 +624,7 @@ function SplitAmountControl(props: {
 						>
 							<div class="flex items-center gap-2">
 								<input
-									class="w-14 rounded border border-gray-300 bg-white px-2 py-1 text-right dark:border-gray-600 dark:bg-gray-700"
+									class="w-14 rounded-sm border border-gray-300 bg-white px-2 py-1 text-right dark:border-gray-700 dark:bg-gray-900"
 									min="0"
 									step="1"
 									type="number"
@@ -649,7 +649,7 @@ function SplitAmountControl(props: {
 						fallback={
 							<div class="flex items-center gap-1">
 								<input
-									class="w-16 rounded border border-gray-300 bg-white px-2 py-1 text-right dark:border-gray-600 dark:bg-gray-700"
+									class="w-16 rounded-sm border border-gray-300 bg-white px-2 py-1 text-right dark:border-gray-700 dark:bg-gray-900"
 									max="100"
 									min="0"
 									placeholder="0"
@@ -667,7 +667,7 @@ function SplitAmountControl(props: {
 							</div>
 						}
 					>
-						<span class="rounded bg-blue-50 px-2 py-1 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400">
+						<span class="rounded-sm bg-cyan-50 px-2 py-1 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300">
 							{props.getPercentageForUser(props.memberId).toFixed(1)}%
 						</span>
 					</Show>
@@ -679,7 +679,7 @@ function SplitAmountControl(props: {
 				fallback={
 					<div class="flex items-center gap-1">
 						<CurrencyInput
-							class="w-20 rounded border border-gray-300 bg-white px-2 py-1 text-right dark:border-gray-600 dark:bg-gray-700"
+							class="w-20 rounded-sm border border-gray-300 bg-white px-2 py-1 text-right dark:border-gray-700 dark:bg-gray-900"
 							placeholder="0.00"
 							value={props.getExactAmountForUser(props.memberId)}
 							onValueChange={(value) =>
@@ -690,7 +690,7 @@ function SplitAmountControl(props: {
 					</div>
 				}
 			>
-				<span class="rounded bg-blue-50 px-2 py-1 text-blue-500 dark:bg-blue-900/30 dark:text-blue-400">
+				<span class="rounded-sm bg-cyan-50 px-2 py-1 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300">
 					{props.getExactAmountForUser(props.memberId).toFixed(2)}{" "}
 					{props.currency}
 				</span>
@@ -889,10 +889,11 @@ function EditExpensePage(props: {
 	});
 
 	return (
-		<div class="min-h-screen bg-white pb-20 dark:bg-gray-900">
-			<div class="sticky top-0 z-10 border-gray-200 border-b bg-white dark:border-gray-800 dark:bg-gray-900">
-				<div class="flex items-center gap-4 p-4">
+		<div class="min-h-screen bg-slate-50 pb-20 text-gray-950 dark:bg-gray-950 dark:text-white">
+			<div class="sticky top-0 z-10 border-gray-200 border-b bg-white/95 backdrop-blur dark:border-gray-800 dark:bg-gray-950/95">
+				<div class="mx-auto flex max-w-2xl items-center gap-4 p-4">
 					<button
+						class="rounded-sm border border-gray-200 bg-white p-2 transition-colors hover:border-cyan-500 dark:border-gray-800 dark:bg-gray-900"
 						type="button"
 						onClick={() =>
 							void navigate({
@@ -905,23 +906,23 @@ function EditExpensePage(props: {
 					>
 						<ArrowLeft class="h-4 w-4" />
 					</button>
-					<h1 class="text-xl font-bold text-gray-900 dark:text-white">
+					<h1 class="font-semibold text-gray-900 text-xl dark:text-white">
 						{isEditing() ? "Edit Expense" : "Add Expense"}
 					</h1>
 				</div>
 			</div>
 
 			<div class="mx-auto max-w-2xl p-4">
-				<form class="space-y-2" onSubmit={handleSubmit}>
-					<div>
+				<form class="space-y-4" onSubmit={handleSubmit}>
+					<div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
 						<label
-							class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+							class="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-300"
 							for="description"
 						>
 							Description
 						</label>
 						<input
-							class="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white [&:user-invalid]:border-red-500 focus:[&:user-invalid]:ring-red-500"
+							class="w-full rounded-sm border border-gray-300 bg-white px-3 py-3 text-gray-900 placeholder-gray-400 transition-all focus:border-cyan-600 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-white [&:user-invalid]:border-red-500"
 							id="description"
 							placeholder="e.g., Dinner at restaurant"
 							required
@@ -933,7 +934,7 @@ function EditExpensePage(props: {
 						/>
 					</div>
 
-					<div>
+					<div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
 						<label
 							class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
 							for="date"
@@ -942,7 +943,7 @@ function EditExpensePage(props: {
 						</label>
 						<div class="relative">
 							<input
-								class="w-full appearance-none rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white [&:user-invalid]:border-red-500 focus:[&:user-invalid]:ring-red-500"
+								class="w-full appearance-none rounded-sm border border-gray-300 bg-white px-3 py-3 text-gray-900 placeholder-gray-400 transition-all focus:border-cyan-600 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-white [&:user-invalid]:border-red-500"
 								id="date"
 								max={new Date().toISOString().split("T")[0]}
 								name="date"
@@ -955,14 +956,14 @@ function EditExpensePage(props: {
 						</div>
 					</div>
 
-					<div>
+					<div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
 						<label
 							class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
 							for="amount"
 						>
 							Amount
 						</label>
-						<div class="flex items-center justify-center rounded-xl bg-white pl-3 outline outline-1 -outline-offset-1 outline-gray-300 has-[:focus-within]:-outline-offset-2 has-[:focus-within]:outline-2 has-[:focus-within]:outline-blue-500 has-[input:user-invalid]:outline-red-500 dark:bg-gray-700 dark:outline-gray-600">
+						<div class="flex items-center justify-center rounded-sm bg-white pl-3 outline outline-1 -outline-offset-1 outline-gray-300 has-[:focus-within]:outline-cyan-600 has-[input:user-invalid]:outline-red-500 dark:bg-gray-950 dark:outline-gray-700">
 							<div class="shrink-0 select-none text-base text-gray-500 dark:text-gray-400 sm:text-sm/6">
 								{currencySymbol()}
 							</div>
@@ -981,7 +982,7 @@ function EditExpensePage(props: {
 							<div class="grid shrink-0 grid-cols-1 border-gray-300 border-l focus-within:relative dark:border-gray-600">
 								<select
 									aria-label="Currency"
-									class="col-start-1 row-start-1 w-full appearance-none rounded-r-xl bg-transparent py-3 pr-7 pl-3 text-base text-gray-500 placeholder:text-gray-500 focus:outline-none dark:text-gray-400 sm:text-sm/6"
+									class="col-start-1 row-start-1 w-full appearance-none rounded-r-sm bg-transparent py-3 pr-7 pl-3 text-base text-gray-500 placeholder:text-gray-500 focus:outline-none dark:text-gray-400 sm:text-sm/6"
 									id="currency"
 									value={currency()}
 									onChange={(event) => setCurrency(event.currentTarget.value)}
@@ -1007,7 +1008,7 @@ function EditExpensePage(props: {
 
 					<Show when={payer()}>
 						{(selectedPayer) => (
-							<div>
+							<div class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
 								<label
 									class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
 									for="payer"
@@ -1015,7 +1016,7 @@ function EditExpensePage(props: {
 									Paid by
 								</label>
 								<select
-									class="w-full appearance-none rounded-xl border border-gray-300 bg-white px-4 py-3 text-gray-900 transition-all focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white [&:user-invalid]:border-red-500 focus:[&:user-invalid]:ring-red-500"
+									class="w-full appearance-none rounded-sm border border-gray-300 bg-white px-3 py-3 text-gray-900 transition-all focus:border-cyan-600 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-white [&:user-invalid]:border-red-500"
 									id="payer"
 									value={selectedPayer()._id}
 									onChange={(event) => {
@@ -1041,7 +1042,7 @@ function EditExpensePage(props: {
 					<Show when={!isItemized()}>
 						<div class="flex-1">
 							<button
-								class="flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-600 transition-all hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30"
+								class="flex w-full items-center justify-center gap-2 rounded-sm border border-cyan-200 bg-cyan-50 px-4 py-3 text-cyan-700 text-sm transition-all hover:bg-cyan-100 dark:border-cyan-900/70 dark:bg-cyan-950/30 dark:text-cyan-300"
 								type="button"
 								onClick={() => setShowSimpleSplitModal(true)}
 							>
@@ -1053,7 +1054,7 @@ function EditExpensePage(props: {
 						</div>
 					</Show>
 
-					<div class="space-y-4 pt-2">
+					<div class="space-y-3 pt-1">
 						<div class="flex items-center justify-between">
 							<div class="block text-sm font-medium text-gray-700 dark:text-gray-300">
 								<Show when={isItemized()}>Items & Splits</Show>
@@ -1062,7 +1063,7 @@ function EditExpensePage(props: {
 								when={!isItemized()}
 								fallback={
 									<button
-										class="flex items-center gap-1 font-medium text-red-500 text-sm hover:text-red-600"
+										class="flex items-center gap-1 font-medium text-red-600 text-sm hover:text-red-700"
 										type="button"
 										onClick={handleClearItems}
 									>
@@ -1071,7 +1072,7 @@ function EditExpensePage(props: {
 								}
 							>
 								<button
-									class="flex items-center gap-1 font-medium text-blue-500 text-sm hover:text-blue-600"
+									class="flex items-center gap-1 font-medium text-cyan-700 text-sm hover:text-cyan-800 dark:text-cyan-300"
 									type="button"
 									onClick={handleAddItem}
 								>
@@ -1083,11 +1084,11 @@ function EditExpensePage(props: {
 						<Show when={isItemized()}>
 							<For each={rest()}>
 								{(item, index) => (
-									<div class="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-700/30">
+									<div class="space-y-3 rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
 										<div class="flex items-start gap-3">
 											<div class="flex-1 space-y-3">
 												<input
-													class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white [&:user-invalid]:border-red-500 focus:[&:user-invalid]:ring-red-500"
+													class="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm focus:border-cyan-600 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-white [&:user-invalid]:border-red-500"
 													placeholder="Item name"
 													required
 													type="text"
@@ -1102,7 +1103,7 @@ function EditExpensePage(props: {
 												/>
 											</div>
 											<button
-												class="rounded-lg border border-red-200 bg-white p-2 text-red-500 transition-colors hover:bg-red-500 hover:text-gray-400 dark:border-red-600 dark:bg-gray-700"
+												class="rounded-sm border border-red-200 bg-white p-2 text-red-600 transition-colors hover:bg-red-50 dark:border-red-900/70 dark:bg-gray-950"
 												type="button"
 												onClick={() => handleRemoveItem(index() + 1)}
 											>
@@ -1110,12 +1111,12 @@ function EditExpensePage(props: {
 											</button>
 										</div>
 										<div class="flex items-start gap-3">
-											<div class="flex w-auto items-center justify-center rounded-lg bg-white pl-3 outline outline-1 -outline-offset-1 outline-gray-300 has-[:focus-within]:-outline-offset-2 has-[:focus-within]:outline-2 has-[:focus-within]:outline-blue-500 has-[input:user-invalid]:outline-red-500 dark:bg-gray-700 dark:outline-gray-600">
+											<div class="flex w-auto items-center justify-center rounded-sm bg-white pl-3 outline outline-1 -outline-offset-1 outline-gray-300 has-[:focus-within]:outline-cyan-600 has-[input:user-invalid]:outline-red-500 dark:bg-gray-950 dark:outline-gray-700">
 												<div class="shrink-0 select-none text-center text-gray-500 dark:text-gray-400 sm:text-sm/6">
 													{currencySymbol()}
 												</div>
 												<CurrencyInput
-													class="w-1/2 rounded-lg bg-white py-2 pr-3 pl-1 text-gray-900 text-sm dark:bg-gray-700 dark:text-white"
+													class="w-1/2 rounded-sm bg-white py-2 pr-3 pl-1 text-gray-900 text-sm dark:bg-gray-950 dark:text-white"
 													placeholder="0.00"
 													required
 													value={item.amount}
@@ -1125,7 +1126,7 @@ function EditExpensePage(props: {
 												/>
 											</div>
 											<button
-												class="flex flex-3 items-center justify-center gap-1 rounded-lg bg-blue-100 px-3 py-2 text-blue-600 text-sm transition-colors hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
+												class="flex flex-3 items-center justify-center gap-1 rounded-sm bg-cyan-50 px-3 py-2 text-cyan-700 text-sm transition-colors hover:bg-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-300"
 												type="button"
 												onClick={() => setActiveSplitIndex(index() + 1)}
 											>
@@ -1140,7 +1141,7 @@ function EditExpensePage(props: {
 							</For>
 
 							<button
-								class="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-blue-200 border-dashed py-3 font-medium text-blue-500 text-sm transition-colors hover:bg-blue-50 hover:text-blue-600 dark:border-blue-800 dark:hover:bg-blue-900/20"
+								class="flex w-full items-center justify-center gap-2 rounded-sm border border-cyan-200 border-dashed py-3 font-medium text-cyan-700 text-sm transition-colors hover:bg-cyan-50 dark:border-cyan-900/70 dark:text-cyan-300 dark:hover:bg-cyan-950/30"
 								type="button"
 								onClick={handleAddItem}
 							>
@@ -1150,7 +1151,7 @@ function EditExpensePage(props: {
 					</div>
 
 					<button
-						class="hidden w-full items-center justify-center gap-2 rounded-xl border-2 border-blue-200 border-dashed py-3 font-medium text-blue-500 text-sm transition-colors hover:bg-blue-50 hover:text-blue-600 dark:border-blue-800 dark:hover:bg-blue-900/20"
+						class="hidden w-full items-center justify-center gap-2 rounded-sm border border-cyan-200 border-dashed py-3 font-medium text-cyan-700 text-sm transition-colors hover:bg-cyan-50 dark:border-cyan-900/70 dark:text-cyan-300 dark:hover:bg-cyan-950/30"
 						ref={(element) => {
 							submitButtonRef = element;
 						}}
