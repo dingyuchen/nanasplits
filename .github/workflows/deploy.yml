@@ -82,7 +82,9 @@ jobs:
 
           ln -sfn "${RELEASE}" "${DEPLOY_ROOT}/${TARGET}"
           sudo systemctl restart ${SERVICES}
-          sudo systemctl is-active --quiet ${SERVICES}
+          for service in ${SERVICES}; do
+            sudo systemctl is-active --quiet "${service}"
+          done
           find "${DEPLOY_ROOT}/bin" \
             -maxdepth 1 \
             -type f \
