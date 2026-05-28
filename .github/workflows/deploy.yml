@@ -64,7 +64,7 @@ jobs:
 
           case "${DEPLOY_BRANCH}" in
             master)
-              target="main"
+              target="master"
               ;;
             dev)
               target="dev"

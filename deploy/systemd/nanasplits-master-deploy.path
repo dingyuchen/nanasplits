@@ -2,8 +2,8 @@
 Description=Watch NanaSplits production release symlink
 
 [Path]
-PathChanged=/home/hermes/nanasplits/main
-Unit=nanasplits-main-restart.service
+PathChanged=/home/hermes/nanasplits/master
+Unit=nanasplits-master-restart.service
 
 [Install]
 WantedBy=multi-user.target

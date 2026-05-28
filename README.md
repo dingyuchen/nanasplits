@@ -125,15 +125,15 @@ checkout:
 ```bash
 cp deploy/systemd/*.service deploy/systemd/*.path /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable nanasplits-main@3001.service nanasplits-main@3002.service nanasplits-main@3003.service
+systemctl enable nanasplits-master@3001.service nanasplits-master@3002.service nanasplits-master@3003.service
 systemctl enable nanasplits-dev.service
-systemctl enable --now nanasplits-main-deploy.path nanasplits-dev-deploy.path
+systemctl enable --now nanasplits-master-deploy.path nanasplits-dev-deploy.path
 ```
 
 The services run the app as `hermes` and the path units watch
-`/home/hermes/nanasplits/main` and `/home/hermes/nanasplits/dev`.
+`/home/hermes/nanasplits/master` and `/home/hermes/nanasplits/dev`.
 
-Create `~/nanasplits/main.env` and `~/nanasplits/dev.env`. Use different
+Create `~/nanasplits/master.env` and `~/nanasplits/dev.env`. Use different
 Convex or Telegram values in `dev.env` if preview should point at separate
 services.
 
@@ -148,12 +148,12 @@ PUBLIC_BASE_URL=https://your-public-app-host
 Lock the files down after editing:
 
 ```bash
-chmod 600 ~/nanasplits/main.env ~/nanasplits/dev.env
+chmod 600 ~/nanasplits/master.env ~/nanasplits/dev.env
 ```
 
 The first successful workflow run creates these symlinks:
 
 ```text
-/home/hermes/nanasplits/main -> /home/hermes/nanasplits/bin/nanasplits-main-<sha>
-/home/hermes/nanasplits/dev  -> /home/hermes/nanasplits/bin/nanasplits-dev-<sha>
+/home/hermes/nanasplits/master -> /home/hermes/nanasplits/bin/nanasplits-master-<sha>
+/home/hermes/nanasplits/dev    -> /home/hermes/nanasplits/bin/nanasplits-dev-<sha>
 ```
