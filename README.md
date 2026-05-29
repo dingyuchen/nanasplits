@@ -6,6 +6,7 @@ Tailwind CSS, and Gramio.
 ## Roadmap
 
 - [ ] protect group creation with a http endpoint
+- [ ] encrypt .env variables
 - [ ] notification in group
 - [ ] backfill amount to int
 - [ ] migrate convexdb region to eu west

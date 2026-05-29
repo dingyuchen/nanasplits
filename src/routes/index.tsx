@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/solid-router";
+import { createFileRoute } from "@tanstack/solid-router";
 import { Bot, CreditCard, Shield, Users } from "lucide-solid";
 import type { JSX } from "solid-js";
 
@@ -6,7 +6,35 @@ export const Route = createFileRoute("/")({
 	component: HomePage,
 });
 
+const MASTER_BOT_USERNAME = "nanasplits_bot";
+const DEV_BOT_USERNAME = "bananasplits_bot";
+
+function getTelegramBotUsername() {
+	const deployTarget = import.meta.env.VITE_DEPLOY_TARGET;
+
+	if (deployTarget === "master") {
+		return MASTER_BOT_USERNAME;
+	}
+
+	if (deployTarget === "dev") {
+		return DEV_BOT_USERNAME;
+	}
+
+	const publicBaseUrl =
+		import.meta.env.VITE_PUBLIC_BASE_URL?.toLowerCase() ?? "";
+
+	if (import.meta.env.DEV || publicBaseUrl.includes("dev")) {
+		return DEV_BOT_USERNAME;
+	}
+
+	return MASTER_BOT_USERNAME;
+}
+
 function HomePage() {
+	const telegramBotUsername = getTelegramBotUsername();
+	const telegramBotLink = `https://t.me/${telegramBotUsername}`;
+	const telegramMiniAppLink = `https://t.me/${telegramBotUsername}/app`;
+
 	return (
 		<main class="min-h-screen bg-slate-50 text-gray-950 dark:bg-gray-950 dark:text-white">
 			<section class="mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-6 py-12">
@@ -21,17 +49,17 @@ function HomePage() {
 					multi-currency totals, and simple settlement flows.
 				</p>
 				<div class="mt-10 flex flex-wrap gap-3">
-					<Link
+					<a
 						class="rounded-sm bg-gray-950 px-5 py-3 font-semibold text-sm text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
-						to="/app"
+						href={telegramMiniAppLink}
 					>
 						Open Mini App
-					</Link>
+					</a>
 					<a
 						class="rounded-sm border border-gray-300 bg-white px-5 py-3 font-semibold text-gray-800 text-sm transition hover:border-cyan-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-						href="https://t.me/"
+						href={telegramBotLink}
 					>
-						Open Telegram
+						Open @{telegramBotUsername}
 					</a>
 				</div>
 				<div class="mt-16 grid gap-3 sm:grid-cols-3">
