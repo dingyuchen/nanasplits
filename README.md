@@ -8,6 +8,7 @@ Tailwind CSS, and Gramio.
 - [ ] protect group creation with a http endpoint
 - [ ] notification in group
 - [ ] backfill amount to int
+- [ ] migrate convexdb region to eu west
 - [ ] overhaul UI
 - [ ] add rate limiter
 - [ ] bot inline mode
@@ -70,9 +71,9 @@ ports.
 
 The GitHub workflow builds on GitHub-hosted runners, joins the tailnet with
 `tailscale/github-action`, copies the compiled binary to
-`/home/hermes/nanasplits`, and replaces the stable executable for the target
-environment. Root-owned `systemd` path units on the VPS watch those stable
-executables and restart the app services locally.
+`/home/hermes/nanasplits/bin`, and atomically replaces the stable symlink for
+the target environment. Root-owned `systemd` path units on the VPS watch those
+stable symlinks with `PathMoved=` and restart the app services locally.
 
 ### GitHub Secrets
 
@@ -149,7 +150,10 @@ sudo systemctl enable --now nanasplits-master-deploy.path nanasplits-dev-deploy.
 ```
 
 The services run the app as `hermes` and the path units watch
-`/home/hermes/nanasplits/master` and `/home/hermes/nanasplits/dev`.
+`/home/hermes/nanasplits/master` and `/home/hermes/nanasplits/dev`. Those
+stable paths are symlinks to immutable release binaries under
+`/home/hermes/nanasplits/bin`; deployments update them with an atomic symlink
+swap so the path units can trigger the restart helpers.
 
 Create `~/nanasplits/master.env` and `~/nanasplits/dev.env`. Use different
 Convex or Telegram values in `dev.env` if preview should point at separate
@@ -167,7 +171,7 @@ Lock the files down after editing:
 chmod 600 ~/nanasplits/master.env ~/nanasplits/dev.env
 ```
 
-The first successful workflow run creates these executable files:
+The first successful workflow run creates these stable symlinks:
 
 ```text
 /home/hermes/nanasplits/master
