@@ -82,8 +82,22 @@ jobs:
           remote_binary="${DEPLOY_ROOT}/dist/nanasplits"
           ssh_options=(-o StrictHostKeyChecking=accept-new)
 
-          # shellcheck disable=SC2029
-          ssh "${ssh_options[@]}" "${remote}" "cd '${DEPLOY_ROOT}' && git checkout '${DEPLOY_BRANCH}' && git pull --ff-only origin '${DEPLOY_BRANCH}' && mkdir -p dist"
+          ssh "${ssh_options[@]}" "${remote}" bash -s -- "${DEPLOY_ROOT}" "${DEPLOY_BRANCH}" <<'REMOTE_GIT'
+          set -euo pipefail
+
+          deploy_root="$1"
+          deploy_branch="$2"
+
+          cd "${deploy_root}"
+          git fetch --prune origin
+          if git show-ref --verify --quiet "refs/heads/${deploy_branch}"; then
+            git switch "${deploy_branch}"
+          else
+            git switch --track -c "${deploy_branch}" "origin/${deploy_branch}"
+          fi
+          git pull --ff-only origin "${deploy_branch}"
+          mkdir -p dist
+          REMOTE_GIT
           scp "${ssh_options[@]}" dist/nanasplits "${remote}:${remote_binary}"
           ssh "${ssh_options[@]}" "${remote}" bash -s -- "${DEPLOY_ROOT}" "${remote_binary}" "${target}" <<'REMOTE_DEPLOY'
           set -euo pipefail
