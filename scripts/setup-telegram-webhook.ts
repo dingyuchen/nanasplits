@@ -1,11 +1,7 @@
 import { getPublicBaseUrl, getServerEnv } from "../src/env";
 
-let alt = Bun.argv[2];
-if (typeof alt === "string" && alt.startsWith("https://")) {
-	alt = alt.slice("https://".length).trim();
-} else if (typeof alt !== "string") {
-	alt = "";
-}
+// expect https:// prefix in url
+const alt = Bun.argv[2];
 
 const host = getPublicBaseUrl() || alt;
 if (!host) {
