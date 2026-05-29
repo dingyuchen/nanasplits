@@ -107,18 +107,18 @@ minimal policy shape is:
 	},
 	"ssh": [
 		{
-			"src":    ["autogroup:member"],
-			"dst":    ["autogroup:self", "tag:vps"], // allow any user to ssh into vps; required to access your vps after tagging
-			"users":  ["autogroup:nonroot", "root"],
-			"action": "check",
+			"src": ["autogroup:member"],
+			"dst": ["autogroup:self", "tag:vps"], // allow any user to ssh into vps; required to access your vps after tagging
+			"users": ["autogroup:nonroot", "root"],
+			"action": "check"
 		},
 		{
-			"src":    ["tag:gh-action-runner"],
-			"dst":    ["tag:vps"],
-			"users":  ["autogroup:nonroot"],
-			"action": "accept",
-		},
-	],
+			"src": ["tag:gh-action-runner"],
+			"dst": ["tag:vps"],
+			"users": ["autogroup:nonroot"],
+			"action": "accept"
+		}
+	]
 }
 ```
 
