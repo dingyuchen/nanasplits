@@ -71,7 +71,13 @@ Configure these repository secrets:
 TS_OAUTH_CLIENT_ID     Tailscale OAuth client ID
 TS_OAUTH_SECRET        Tailscale OAuth client secret with auth_keys write scope
 VPS_TAILSCALE_HOST     VPS MagicDNS name or Tailscale IP
-VITE_CONVEX_URL        Convex deployment URL used at build time
+```
+
+Configure these repository variables:
+
+```text
+VITE_CONVEX_URL        Public Convex deployment URL used at build time
+VITE_PUBLIC_BASE_URL   Public app host used at build time, without https://
 ```
 
 ### Tailscale
@@ -123,11 +129,11 @@ enable them. Run these commands in a privileged shell on the VPS, from this repo
 checkout:
 
 ```bash
-cp deploy/systemd/*.service deploy/systemd/*.path /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable nanasplits-master@3001.service nanasplits-master@3002.service nanasplits-master@3003.service
-systemctl enable nanasplits-dev.service
-systemctl enable --now nanasplits-master-deploy.path nanasplits-dev-deploy.path
+sudo cp deploy/systemd/*.service deploy/systemd/*.path /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable nanasplits-master@3001.service nanasplits-master@3002.service nanasplits-master@3003.service
+sudo systemctl enable nanasplits-dev.service
+sudo systemctl enable --now nanasplits-master-deploy.path nanasplits-dev-deploy.path
 ```
 
 The services run the app as `hermes` and the path units watch
@@ -138,11 +144,9 @@ Convex or Telegram values in `dev.env` if preview should point at separate
 services.
 
 ```bash
-VITE_CONVEX_URL=https://your-convex-deployment.convex.cloud
 TELEGRAM_BOT_TOKEN=your-telegram-bot-token
 TELEGRAM_BOT_SECRET_TOKEN=your-telegram-webhook-secret
 CONVEX_SITE_URL=https://your-convex-auth-site
-PUBLIC_BASE_URL=https://your-public-app-host
 ```
 
 Lock the files down after editing:

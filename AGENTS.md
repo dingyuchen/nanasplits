@@ -53,7 +53,7 @@ bun run set:webhook      # Set Telegram webhook using configured public host
 bun run set:webhook https://example.com
 ```
 
-`set:webhook` uses `VERCEL_PROJECT_PRODUCTION_URL`, `VITE_PUBLIC_BASE_URL`, or `PUBLIC_BASE_URL` when present. The optional CLI argument may include `https://`; the script strips it before building `https://<host>/api/bot`.
+`set:webhook` uses `VITE_PUBLIC_BASE_URL` when present. The optional CLI argument may include `https://`; the script strips it before building `https://<host>/api/bot`.
 
 ---
 
@@ -61,7 +61,8 @@ bun run set:webhook https://example.com
 
 Required for local app/backend work:
 
-- `VITE_CONVEX_URL` or `NEXT_PUBLIC_CONVEX_URL`: Convex URL used by the Solid client and bot route.
+- `VITE_CONVEX_URL`: public Convex URL used by the Solid client and bot route at build time.
+- `VITE_PUBLIC_BASE_URL`: public app host used at build time and by `set:webhook`.
 - `TELEGRAM_BOT_TOKEN`: used by Gramio, Telegram Mini App auth validation, and membership checks.
 - `TELEGRAM_BOT_SECRET_TOKEN`: validates incoming Telegram webhook requests and is sent by `set:webhook`.
 - `CONVEX_SITE_URL`: Convex Auth issuer domain in `convex/auth.config.ts`.
@@ -69,7 +70,6 @@ Required for local app/backend work:
 Useful deployment/server env vars:
 
 - `PORT` and `HOST`: production server bind settings for `server.ts`.
-- `VERCEL_PROJECT_PRODUCTION_URL`, `VITE_PUBLIC_BASE_URL`, or `PUBLIC_BASE_URL`: public host for webhook setup.
 - `ASSET_PRELOAD_*`: optional static asset preload/cache/gzip controls in `server.ts`.
 
 ---
