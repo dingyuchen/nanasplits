@@ -65,7 +65,7 @@ Required for local app/backend work:
 - `VITE_PUBLIC_BASE_URL`: public app host used at build time and by `set:webhook`.
 - `TELEGRAM_BOT_TOKEN`: used by Gramio, Telegram Mini App auth validation, and membership checks.
 - `TELEGRAM_BOT_SECRET_TOKEN`: validates incoming Telegram webhook requests and is sent by `set:webhook`.
-- `CONVEX_SITE_URL`: Convex Auth issuer domain in `convex/auth.config.ts`.
+- `VITE_CONVEX_SITE_URL`: Convex Auth issuer domain in `convex/auth.config.ts`.
 
 Useful deployment/server env vars:
 
