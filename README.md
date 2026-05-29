@@ -149,7 +149,7 @@ services.
 ```bash
 TELEGRAM_BOT_TOKEN=your-telegram-bot-token
 TELEGRAM_BOT_SECRET_TOKEN=your-telegram-webhook-secret
-CONVEX_SITE_URL=https://your-convex-auth-site
+VITE_CONVEX_SITE_URL=https://your-convex-auth-site
 ```
 
 Lock the files down after editing:
