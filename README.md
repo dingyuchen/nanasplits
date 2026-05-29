@@ -3,6 +3,14 @@
 Telegram-based expense splitting app built with Solid, TanStack Start, Convex,
 Tailwind CSS, and Gramio.
 
+## Roadmap
+
+- [ ] protect group creation with a http endpoint
+- [ ] backfill amount to int
+- [ ] overhaul UI
+- [ ] add rate limiter
+- [ ] bot inline mode
+
 ## Development
 
 Use Bun for all project commands.
@@ -95,21 +103,20 @@ minimal policy shape is:
 		"tag:gh-action-runner": ["autogroup:admin"],
 		"tag:vps": ["autogroup:admin"]
 	},
-	"grants": [
-		{
-			"src": ["tag:gh-action-runner"],
-			"dst": ["tag:vps"],
-			"ip": ["tcp:22"]
-		}
-	],
 	"ssh": [
 		{
+			"src":    ["autogroup:member"],
+			"dst":    ["autogroup:self", "tag:vps"], // allow any user to ssh into vps; required to access your vps after tagging
+			"users":  ["autogroup:nonroot", "root"],
+			"action": "check",
+		},
+		{
+			"src":    ["tag:gh-action-runner"],
+			"dst":    ["tag:vps"],
+			"users":  ["autogroup:nonroot"],
 			"action": "accept",
-			"src": ["tag:gh-action-runner"],
-			"dst": ["tag:vps"],
-			"users": ["hermes"]
-		}
-	]
+		},
+	],
 }
 ```
 
