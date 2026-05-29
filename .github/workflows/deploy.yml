@@ -84,5 +84,22 @@ jobs:
           # shellcheck disable=SC2029
           ssh "${ssh_options[@]}" "${remote}" "cd '${DEPLOY_ROOT}' && git checkout '${DEPLOY_BRANCH}' && git pull --ff-only origin '${DEPLOY_BRANCH}' && mkdir -p dist"
           scp "${ssh_options[@]}" dist/nanasplits "${remote}:${remote_binary}"
-          # shellcheck disable=SC2029
-          ssh "${ssh_options[@]}" "${remote}" "cd '${DEPLOY_ROOT}' && chmod 755 '${remote_binary}' && DEPLOY_ROOT='${DEPLOY_ROOT}' bun run deploy:local '${target}'"
+          ssh "${ssh_options[@]}" "${remote}" bash -s -- "${DEPLOY_ROOT}" "${remote_binary}" "${target}" <<'REMOTE_DEPLOY'
+          set -euo pipefail
+
+          deploy_root="$1"
+          remote_binary="$2"
+          target="$3"
+
+          chmod 755 "${remote_binary}"
+          export PATH="${HOME}/.bun/bin:${PATH}"
+
+          if ! command -v bun >/dev/null 2>&1; then
+            echo "bun is not available in PATH for non-interactive SSH commands." >&2
+            echo "Checked PATH=${PATH}" >&2
+            exit 127
+          fi
+
+          cd "${deploy_root}"
+          DEPLOY_ROOT="${deploy_root}" bun run deploy:local "${target}"
+          REMOTE_DEPLOY
