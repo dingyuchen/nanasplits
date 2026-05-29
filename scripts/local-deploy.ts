@@ -87,11 +87,6 @@ await Bun.$`chmod 755 ${release}`;
 console.log(`Updating ${stableSymlink}.`);
 await Bun.$`ln -sfn ${release} ${nextSymlink}`;
 await Bun.$`mv -f ${nextSymlink} ${stableSymlink}`;
-if (process.platform === "linux") {
-	await Bun.$`touch --reference ${stableSymlink} ${stableSymlink}`;
-} else {
-	await Bun.$`touch ${stableSymlink}`;
-}
 
 console.log(
 	`Pruning ${target} releases older than ${RELEASE_RETENTION_DAYS} days.`,
