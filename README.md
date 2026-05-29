@@ -6,10 +6,12 @@ Tailwind CSS, and Gramio.
 ## Roadmap
 
 - [ ] protect group creation with a http endpoint
+- [ ] notification in group
 - [ ] backfill amount to int
 - [ ] overhaul UI
 - [ ] add rate limiter
 - [ ] bot inline mode
+- [ ] delete transaction on removal
 
 ## Development
 
