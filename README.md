@@ -124,9 +124,11 @@ ssh hermes@<vps-tailscale-host>
 mkdir -p ~/nanasplits/bin
 ```
 
-For first-time setup, install the files in `deploy/systemd` as system units and
-enable them. Run these commands in a privileged shell on the VPS, from this repo
-checkout:
+For first-time setup, install the files in `deploy/systemd` as system units.
+Enable the long-running app services and the deploy watcher path units; the
+`*-restart.service` units are one-shot helpers triggered by the path units and
+do not need to be enabled. Run these commands in a privileged shell on the VPS,
+from this repo checkout:
 
 ```bash
 sudo cp deploy/systemd/*.service deploy/systemd/*.path /etc/systemd/system/
