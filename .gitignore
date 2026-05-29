@@ -12,3 +12,10 @@ dist-ssr
 .vinxi
 __unconfig*
 todos.json
+
+# Ignore build artifacts and environment files
+bin/
+dev
+dev.env
+master
+master.env
