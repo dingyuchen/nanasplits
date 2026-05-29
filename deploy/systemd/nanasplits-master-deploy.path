@@ -1,5 +1,5 @@
 [Unit]
-Description=Watch NanaSplits production release symlink
+Description=Watch NanaSplits production executable
 
 [Path]
 PathChanged=/home/hermes/nanasplits/master

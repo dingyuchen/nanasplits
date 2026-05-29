@@ -60,8 +60,9 @@ ports.
 
 The GitHub workflow builds on GitHub-hosted runners, joins the tailnet with
 `tailscale/github-action`, copies the compiled binary to
-`/home/hermes/nanasplits`, and updates a release symlink. Root-owned `systemd`
-path units on the VPS watch those symlinks and restart the app services locally.
+`/home/hermes/nanasplits`, and replaces the stable executable for the target
+environment. Root-owned `systemd` path units on the VPS watch those stable
+executables and restart the app services locally.
 
 ### GitHub Secrets
 
@@ -157,9 +158,9 @@ Lock the files down after editing:
 chmod 600 ~/nanasplits/master.env ~/nanasplits/dev.env
 ```
 
-The first successful workflow run creates these symlinks:
+The first successful workflow run creates these executable files:
 
 ```text
-/home/hermes/nanasplits/master -> /home/hermes/nanasplits/bin/nanasplits-master-<sha>
-/home/hermes/nanasplits/dev    -> /home/hermes/nanasplits/bin/nanasplits-dev-<sha>
+/home/hermes/nanasplits/master
+/home/hermes/nanasplits/dev
 ```

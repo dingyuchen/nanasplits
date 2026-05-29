@@ -91,7 +91,9 @@ jobs:
             "TARGET='${target}' RELEASE='${release}' DEPLOY_ROOT='${DEPLOY_ROOT}' bash -s" <<'EOF'
           set -euo pipefail
 
-          ln -sfn "${RELEASE}" "${DEPLOY_ROOT}/${TARGET}"
+          cp "${RELEASE}" "${DEPLOY_ROOT}/${TARGET}.next"
+          chmod 755 "${DEPLOY_ROOT}/${TARGET}.next"
+          mv -f "${DEPLOY_ROOT}/${TARGET}.next" "${DEPLOY_ROOT}/${TARGET}"
           find "${DEPLOY_ROOT}/bin" \
             -maxdepth 1 \
             -type f \
