@@ -5,6 +5,7 @@ dist
 dist-ssr
 *.local
 .env
+.env.*
 .nitro
 .tanstack
 .wrangler
@@ -13,9 +14,9 @@ dist-ssr
 __unconfig*
 todos.json
 
-# Ignore build artifacts and environment files
+# Ignore build artifacts and legacy environment files
 bin/
 dev
-dev.env
 master
+dev.env
 master.env
