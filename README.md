@@ -38,10 +38,6 @@ bun run build:binary
 bun run start
 ```
 
-`build` and `build:binary` load build-time environment from the current Git
-branch: `dev.env` on `dev` and `master.env` on `master`. If the branch-specific
-env file is missing, builds fall back to `.env` and then `.env.local`.
-
 `build:binary` first creates the TanStack Start production build, then compiles
 `server.ts` and the generated TanStack Start server bundle into
 `dist/nanasplits` with Bun's standalone executable support. The build uses
