@@ -56,7 +56,7 @@ function HomePage() {
 						Open Mini App
 					</a>
 					<a
-						class="rounded-sm border border-gray-300 bg-white px-5 py-3 font-semibold text-gray-800 text-sm transition hover:border-cyan-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+						class="rounded-sm border border-gray-300 bg-white px-5 py-3 font-semibold text-gray-800 text-sm transition hover:border-cyan-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:border-cyan-500 dark:hover:bg-gray-800"
 						href={telegramBotLink}
 					>
 						Open @{telegramBotUsername}

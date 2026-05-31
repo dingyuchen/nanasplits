@@ -18,8 +18,12 @@ import {
 import { createMemo, createSignal, For, Show } from "solid-js";
 
 import { TelegramMainButton } from "#/components/telegram-main-button";
-import { CurrencyDropdownOptions } from "#/currencies";
 import { getCurrencyConversion } from "#/currency-conversion";
+import {
+	buildSettleUpConversionOptions,
+	filteredCurrencyCodes,
+	type SettleUpConversionOption,
+} from "#/lib/expense-conversion";
 import { useMutation, useQuery } from "#/solid-convex";
 import { useTelegramLaunch } from "#/telegram-launch";
 import { api } from "@/convex/_generated/api";
@@ -196,6 +200,16 @@ function GroupView(props: {
 		return expense.payerId === current ? totalAmount - userOwes : -userOwes;
 	};
 
+	const conversionOptions = createMemo(() => {
+		const current = currentUserId();
+		if (!current) return [];
+
+		return buildSettleUpConversionOptions({
+			currencyBalances: currencyBalances(),
+			currentUserId: current,
+		});
+	});
+
 	const handleEditExpense = (expense: Expense) => {
 		void navigate({
 			params: {
@@ -337,11 +351,26 @@ function GroupView(props: {
 				</section>
 
 				<section>
-					<div class="mb-2 flex items-center gap-2 px-1">
-						<Receipt class="h-4 w-4 text-gray-500" />
-						<h2 class="font-semibold text-gray-900 text-sm uppercase dark:text-white">
-							Expenses
-						</h2>
+					<div class="mb-2 flex items-center justify-between gap-2 px-1">
+						<div class="flex items-center gap-2">
+							<Receipt class="h-4 w-4 text-gray-500" />
+							<h2 class="font-semibold text-gray-900 text-sm uppercase dark:text-white">
+								Expenses
+							</h2>
+						</div>
+						<Show
+							when={
+								props.isRegisteredMemberOfGroup &&
+								conversionOptions().length > 0
+							}
+						>
+							<ExpenseCurrencyConversionButton
+								defaultCurrency={props.groupData.defaultCurrency}
+								groupIdNumber={props.groupIdNumber}
+								options={conversionOptions()}
+								telegramUserId={props.telegramUserId}
+							/>
+						</Show>
 					</div>
 
 					<div class="space-y-3">
@@ -596,20 +625,12 @@ function SettleUp(props: {
 	telegramUserId: number;
 }) {
 	const settleUp = useMutation(api.groups.settleUp);
-	const convertSettleUpCurrency = useMutation(
-		api.groups.convertSettleUpCurrency,
-	);
 	const [settleDialog, setSettleDialog] = createSignal<{
 		memberId: Id<"users">;
 		memberName: string;
 		amount: number;
 		currency: string;
-		targetCurrency: string;
 	} | null>(null);
-	const [conversionQuote, setConversionQuote] =
-		createSignal<ConversionQuote | null>(null);
-	const [convertedAmount, setConvertedAmount] = createSignal("");
-	const [isFetchingConversion, setIsFetchingConversion] = createSignal(false);
 
 	const balanceEntries = () =>
 		Object.entries(props.currencyBalances).flatMap(([currency, currencyData]) =>
@@ -629,27 +650,8 @@ function SettleUp(props: {
 		receiverId: dialog.amount > 0 ? props.currentUserId : dialog.memberId,
 	});
 
-	const defaultTargetCurrency = (sourceCurrency: string) => {
-		if (props.defaultCurrency !== sourceCurrency) return props.defaultCurrency;
-		return sourceCurrency === "USD" ? "EUR" : "USD";
-	};
-
 	const closeDialog = () => {
 		setSettleDialog(null);
-		setConversionQuote(null);
-		setConvertedAmount("");
-	};
-
-	const updateTargetCurrency = (
-		dialog: NonNullable<ReturnType<typeof settleDialog>>,
-		targetCurrency: string,
-	) => {
-		setSettleDialog({
-			...dialog,
-			targetCurrency,
-		});
-		setConversionQuote(null);
-		setConvertedAmount("");
 	};
 
 	const handleSettle = async () => {
@@ -671,66 +673,6 @@ function SettleUp(props: {
 		} catch (error) {
 			console.error("Failed to settle:", error);
 			alert("Failed to settle. Please try again.");
-		}
-	};
-
-	const handleGetConversion = async () => {
-		const dialog = settleDialog();
-		if (!dialog) return;
-
-		if (dialog.currency === dialog.targetCurrency) {
-			alert("Choose a different currency to convert to.");
-			return;
-		}
-
-		try {
-			setIsFetchingConversion(true);
-			const quote = await getCurrencyConversion({
-				data: {
-					amount: Math.abs(dialog.amount),
-					fromCurrency: dialog.currency,
-					toCurrency: dialog.targetCurrency,
-				},
-			});
-
-			setConversionQuote(quote);
-			setConvertedAmount(quote.convertedAmount.toFixed(2));
-		} catch (error) {
-			console.error("Failed to convert settlement:", error);
-			alert("Failed to fetch a conversion rate. Please try again.");
-		} finally {
-			setIsFetchingConversion(false);
-		}
-	};
-
-	const handleConfirmConversion = async () => {
-		const dialog = settleDialog();
-		const quote = conversionQuote();
-		if (!dialog || !quote) return;
-
-		const finalConvertedAmount = Number(convertedAmount());
-		if (!Number.isFinite(finalConvertedAmount) || finalConvertedAmount <= 0) {
-			alert("Enter a converted amount greater than zero.");
-			return;
-		}
-
-		try {
-			const { payerId, receiverId } = getSettlementParticipants(dialog);
-
-			await convertSettleUpCurrency({
-				amount: Math.abs(dialog.amount),
-				convertedAmount: finalConvertedAmount,
-				fromCurrency: dialog.currency,
-				payerId,
-				receiverId,
-				telegramChatId: props.groupIdNumber,
-				telegramUserId: props.telegramUserId,
-				toCurrency: dialog.targetCurrency,
-			});
-			closeDialog();
-		} catch (error) {
-			console.error("Failed to convert settlement:", error);
-			alert("Failed to convert settlement. Please try again.");
 		}
 	};
 
@@ -757,8 +699,8 @@ function SettleUp(props: {
 								<button
 									class={`flex items-center gap-2 whitespace-nowrap rounded-sm border px-3 py-1.5 font-medium text-sm transition-colors ${
 										member.balance > 0
-											? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-900/70 dark:bg-green-950/30 dark:text-green-300"
-											: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300"
+											? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-900/70 dark:bg-green-950/30 dark:text-green-300 dark:hover:bg-green-900/40"
+											: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-900/40"
 									}`}
 									type="button"
 									onClick={() =>
@@ -767,7 +709,6 @@ function SettleUp(props: {
 											currency,
 											memberId: member.memberId,
 											memberName: member.memberName,
-											targetCurrency: defaultTargetCurrency(currency),
 										})
 									}
 								>
@@ -803,75 +744,6 @@ function SettleUp(props: {
 											dialog().currency,
 										)} to ${dialog().memberName}?`}
 							</p>
-							<div class="mb-6">
-								<label
-									class="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
-									for="settle-target-currency"
-								>
-									Convert balance to
-								</label>
-								<select
-									class="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
-									id="settle-target-currency"
-									value={dialog().targetCurrency}
-									onInput={(event) =>
-										updateTargetCurrency(dialog(), event.currentTarget.value)
-									}
-								>
-									<CurrencyDropdownOptions />
-								</select>
-								<Show when={conversionQuote()}>
-									{(quote) => (
-										<div class="mt-3">
-											<label
-												class="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
-												for="converted-settlement-amount"
-											>
-												Converted amount
-											</label>
-											<input
-												class="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
-												id="converted-settlement-amount"
-												inputMode="decimal"
-												type="number"
-												min="0.01"
-												step="0.01"
-												value={convertedAmount()}
-												onInput={(event) =>
-													setConvertedAmount(event.currentTarget.value)
-												}
-											/>
-											<p class="mt-2 text-gray-500 text-xs dark:text-gray-400">
-												Rate {quote().rate.toFixed(6)}
-												<Show when={quote().rateDate}>
-													{(rateDate) => ` on ${rateDate()}`}
-												</Show>
-											</p>
-										</div>
-									)}
-								</Show>
-								<div class="mt-3 grid grid-cols-2 gap-2">
-									<button
-										class="rounded-sm border border-cyan-600 px-3 py-2 font-medium text-cyan-700 text-sm transition-colors hover:bg-cyan-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 dark:border-cyan-500 dark:text-cyan-300 dark:hover:bg-cyan-950/30 dark:disabled:border-gray-700 dark:disabled:text-gray-500"
-										disabled={
-											dialog().currency === dialog().targetCurrency ||
-											isFetchingConversion()
-										}
-										type="button"
-										onClick={handleGetConversion}
-									>
-										{isFetchingConversion() ? "Fetching..." : "Get rate"}
-									</button>
-									<button
-										class="rounded-sm bg-cyan-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:bg-cyan-500 dark:hover:bg-cyan-600 dark:disabled:bg-gray-700"
-										disabled={!conversionQuote()}
-										type="button"
-										onClick={handleConfirmConversion}
-									>
-										Confirm conversion
-									</button>
-								</div>
-							</div>
 							<div class="grid grid-cols-2 gap-2">
 								<button
 									class="rounded-sm border border-gray-300 px-3 py-2 font-medium text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
@@ -893,6 +765,275 @@ function SettleUp(props: {
 				)}
 			</Show>
 		</section>
+	);
+}
+
+function ExpenseCurrencyConversionButton(props: {
+	defaultCurrency: string;
+	groupIdNumber: number;
+	options: Array<SettleUpConversionOption<Id<"users">>>;
+	telegramUserId: number;
+}) {
+	const convertSettleUpCurrency = useMutation(
+		api.groups.convertSettleUpCurrency,
+	);
+	const [isOpen, setIsOpen] = createSignal(false);
+	const [selectedOptionId, setSelectedOptionId] = createSignal("");
+	const [targetCurrency, setTargetCurrency] = createSignal("");
+	const [conversionQuote, setConversionQuote] =
+		createSignal<ConversionQuote | null>(null);
+	const [convertedAmount, setConvertedAmount] = createSignal("");
+	const [isFetchingConversion, setIsFetchingConversion] = createSignal(false);
+
+	const optionId = (option: SettleUpConversionOption<Id<"users">>) =>
+		option.settlementId;
+
+	const selectedOption = createMemo(() => {
+		const selectedId = selectedOptionId() || optionId(props.options[0]);
+		return (
+			props.options.find((option) => optionId(option) === selectedId) ??
+			props.options[0]
+		);
+	});
+
+	const targetCurrencyOptions = createMemo(() =>
+		filteredCurrencyCodes(selectedOption().currency),
+	);
+
+	const defaultTargetCurrency = (sourceCurrency: string) => {
+		const options = filteredCurrencyCodes(sourceCurrency);
+		if (
+			props.defaultCurrency !== sourceCurrency &&
+			options.includes(props.defaultCurrency)
+		) {
+			return props.defaultCurrency;
+		}
+		return options[0] ?? "USD";
+	};
+
+	const resetQuote = () => {
+		setConversionQuote(null);
+		setConvertedAmount("");
+	};
+
+	const openDialog = () => {
+		const option = props.options[0];
+		setSelectedOptionId(optionId(option));
+		setTargetCurrency(defaultTargetCurrency(option.currency));
+		resetQuote();
+		setIsOpen(true);
+	};
+
+	const closeDialog = () => {
+		setIsOpen(false);
+		resetQuote();
+	};
+
+	const handleSelectOption = (value: string) => {
+		const option = props.options.find(
+			(candidate) => optionId(candidate) === value,
+		);
+		if (!option) return;
+		setSelectedOptionId(value);
+		setTargetCurrency(defaultTargetCurrency(option.currency));
+		resetQuote();
+	};
+
+	const handleGetConversion = async () => {
+		const option = selectedOption();
+		try {
+			setIsFetchingConversion(true);
+			const quote = await getCurrencyConversion({
+				data: {
+					amount: option.amount,
+					fromCurrency: option.currency,
+					toCurrency: targetCurrency(),
+				},
+			});
+
+			setConversionQuote(quote);
+			setConvertedAmount(quote.convertedAmount.toFixed(2));
+		} catch (error) {
+			console.error("Failed to convert settle-up transaction:", error);
+			alert("Failed to fetch a conversion rate. Please try again.");
+		} finally {
+			setIsFetchingConversion(false);
+		}
+	};
+
+	const handleConfirmConversion = async () => {
+		const option = selectedOption();
+		const quote = conversionQuote();
+		if (!quote) return;
+
+		const finalConvertedAmount = Number(convertedAmount());
+		if (!Number.isFinite(finalConvertedAmount) || finalConvertedAmount <= 0) {
+			alert("Enter a converted amount greater than zero.");
+			return;
+		}
+
+		try {
+			await convertSettleUpCurrency({
+				amount: option.amount,
+				convertedAmount: finalConvertedAmount,
+				fromCurrency: option.currency,
+				payerId: option.payerId,
+				receiverId: option.receiverId,
+				telegramChatId: props.groupIdNumber,
+				telegramUserId: props.telegramUserId,
+				toCurrency: targetCurrency(),
+			});
+			closeDialog();
+		} catch (error) {
+			console.error("Failed to convert settle-up transaction:", error);
+			alert("Failed to convert settle-up transaction. Please try again.");
+		}
+	};
+
+	return (
+		<>
+			<button
+				class="inline-flex items-center gap-1.5 rounded-sm border border-cyan-200 bg-cyan-50 px-2.5 py-1.5 font-medium text-cyan-700 text-xs transition-colors hover:bg-cyan-100 dark:border-cyan-900/70 dark:bg-cyan-950/30 dark:text-cyan-300 dark:hover:bg-cyan-900/40"
+				type="button"
+				onClick={openDialog}
+			>
+				<ArrowLeftRight class="h-3.5 w-3.5" /> Convert
+			</button>
+
+			<Show when={isOpen()}>
+				<div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
+					<div class="w-full max-w-sm rounded-sm bg-white p-5 shadow-xl dark:bg-gray-900">
+						<h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+							Convert Transaction
+						</h3>
+						<p class="mb-5 text-gray-600 text-sm dark:text-gray-300">
+							Choose a settle-up balance involving you and one other member,
+							then move that amount to another currency.
+						</p>
+
+						<div class="space-y-4">
+							<div>
+								<label
+									class="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
+									for="conversion-transaction"
+								>
+									Transaction
+								</label>
+								<select
+									class="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+									id="conversion-transaction"
+									value={optionId(selectedOption())}
+									onInput={(event) =>
+										handleSelectOption(event.currentTarget.value)
+									}
+								>
+									<For each={props.options}>
+										{(option) => (
+											<option value={optionId(option)}>
+												{option.counterpartyName} •{" "}
+												{formatCurrencyAmount(option.amount, option.currency)}
+											</option>
+										)}
+									</For>
+								</select>
+								<p class="mt-2 text-gray-500 text-xs dark:text-gray-400">
+									{selectedOption().payerId === selectedOption().counterpartyId
+										? `${selectedOption().counterpartyName} owes you`
+										: `You owe ${selectedOption().counterpartyName}`}{" "}
+									{formatCurrencyAmount(
+										selectedOption().amount,
+										selectedOption().currency,
+									)}
+								</p>
+							</div>
+
+							<div>
+								<label
+									class="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
+									for="conversion-target-currency"
+								>
+									Convert to
+								</label>
+								<div class="flex gap-2">
+									<select
+										class="min-w-0 flex-1 rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+										id="conversion-target-currency"
+										value={targetCurrency()}
+										onInput={(event) => {
+											setTargetCurrency(event.currentTarget.value);
+											resetQuote();
+										}}
+									>
+										<For each={targetCurrencyOptions()}>
+											{(currency) => (
+												<option value={currency}>{currency}</option>
+											)}
+										</For>
+									</select>
+									<button
+										class="shrink-0 rounded-sm border border-cyan-600 px-3 py-2 font-medium text-cyan-700 text-sm transition-colors hover:bg-cyan-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 dark:border-cyan-500 dark:text-cyan-300 dark:hover:bg-cyan-950/30 dark:disabled:border-gray-700 dark:disabled:text-gray-500"
+										disabled={isFetchingConversion()}
+										type="button"
+										onClick={handleGetConversion}
+									>
+										{isFetchingConversion() ? "Fetching..." : "Get rate"}
+									</button>
+								</div>
+							</div>
+
+							<Show when={conversionQuote()}>
+								{(quote) => (
+									<div>
+										<label
+											class="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
+											for="converted-transaction-amount"
+										>
+											Converted amount
+										</label>
+										<input
+											class="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+											id="converted-transaction-amount"
+											inputMode="decimal"
+											min="0.01"
+											step="0.01"
+											type="number"
+											value={convertedAmount()}
+											onInput={(event) =>
+												setConvertedAmount(event.currentTarget.value)
+											}
+										/>
+										<p class="mt-2 text-gray-500 text-xs dark:text-gray-400">
+											Rate {quote().rate.toFixed(6)}
+											<Show when={quote().rateDate}>
+												{(rateDate) => ` on ${rateDate()}`}
+											</Show>
+										</p>
+									</div>
+								)}
+							</Show>
+
+							<div class="grid grid-cols-2 gap-2">
+								<button
+									class="rounded-sm bg-cyan-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:bg-cyan-500 dark:hover:bg-cyan-600 dark:disabled:bg-gray-700"
+									disabled={!conversionQuote()}
+									type="button"
+									onClick={handleConfirmConversion}
+								>
+									Confirm conversion
+								</button>
+								<button
+									class="rounded-sm border border-gray-300 px-3 py-2 font-medium text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+									type="button"
+									onClick={closeDialog}
+								>
+									Cancel
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</Show>
+		</>
 	);
 }
 

@@ -108,7 +108,7 @@ function GroupSettings(props: {
 				<div class="mx-auto max-w-2xl p-4">
 					<div class="mb-2 flex items-center gap-3">
 						<button
-							class="rounded-sm border border-gray-200 bg-white p-2 transition-colors hover:border-cyan-500 dark:border-gray-800 dark:bg-gray-900"
+							class="rounded-sm border border-gray-200 bg-white p-2 transition-colors hover:border-cyan-500 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-cyan-500 dark:hover:bg-gray-800"
 							type="button"
 							onClick={() =>
 								void navigate({
