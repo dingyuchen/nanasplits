@@ -757,8 +757,8 @@ function SettleUp(props: {
 								<button
 									class={`flex items-center gap-2 whitespace-nowrap rounded-sm border px-3 py-1.5 font-medium text-sm transition-colors ${
 										member.balance > 0
-											? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-900/70 dark:bg-green-950/30 dark:text-green-300"
-											: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300"
+											? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-900/70 dark:bg-green-950/30 dark:text-green-300 dark:hover:bg-green-900/40"
+											: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-900/40"
 									}`}
 									type="button"
 									onClick={() =>

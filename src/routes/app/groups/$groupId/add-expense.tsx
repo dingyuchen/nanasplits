@@ -893,7 +893,7 @@ function EditExpensePage(props: {
 			<div class="sticky top-0 z-10 border-gray-200 border-b bg-white/95 backdrop-blur dark:border-gray-800 dark:bg-gray-950/95">
 				<div class="mx-auto flex max-w-2xl items-center gap-4 p-4">
 					<button
-						class="rounded-sm border border-gray-200 bg-white p-2 transition-colors hover:border-cyan-500 dark:border-gray-800 dark:bg-gray-900"
+						class="rounded-sm border border-gray-200 bg-white p-2 transition-colors hover:border-cyan-500 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-cyan-500 dark:hover:bg-gray-800"
 						type="button"
 						onClick={() =>
 							void navigate({
@@ -1042,7 +1042,7 @@ function EditExpensePage(props: {
 					<Show when={!isItemized()}>
 						<div class="flex-1">
 							<button
-								class="flex w-full items-center justify-center gap-2 rounded-sm border border-cyan-200 bg-cyan-50 px-4 py-3 text-cyan-700 text-sm transition-all hover:bg-cyan-100 dark:border-cyan-900/70 dark:bg-cyan-950/30 dark:text-cyan-300"
+								class="flex w-full items-center justify-center gap-2 rounded-sm border border-cyan-200 bg-cyan-50 px-4 py-3 text-cyan-700 text-sm transition-all hover:bg-cyan-100 dark:border-cyan-900/70 dark:bg-cyan-950/30 dark:text-cyan-300 dark:hover:bg-cyan-900/40"
 								type="button"
 								onClick={() => setShowSimpleSplitModal(true)}
 							>
@@ -1063,7 +1063,7 @@ function EditExpensePage(props: {
 								when={!isItemized()}
 								fallback={
 									<button
-										class="flex items-center gap-1 font-medium text-red-600 text-sm hover:text-red-700"
+										class="flex items-center gap-1 font-medium text-red-600 text-sm hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
 										type="button"
 										onClick={handleClearItems}
 									>
@@ -1072,7 +1072,7 @@ function EditExpensePage(props: {
 								}
 							>
 								<button
-									class="flex items-center gap-1 font-medium text-cyan-700 text-sm hover:text-cyan-800 dark:text-cyan-300"
+									class="flex items-center gap-1 font-medium text-cyan-700 text-sm hover:text-cyan-800 dark:text-cyan-300 dark:hover:text-cyan-200"
 									type="button"
 									onClick={handleAddItem}
 								>
@@ -1103,7 +1103,7 @@ function EditExpensePage(props: {
 												/>
 											</div>
 											<button
-												class="rounded-sm border border-red-200 bg-white p-2 text-red-600 transition-colors hover:bg-red-50 dark:border-red-900/70 dark:bg-gray-950"
+												class="rounded-sm border border-red-200 bg-white p-2 text-red-600 transition-colors hover:bg-red-50 dark:border-red-900/70 dark:bg-gray-950 dark:hover:bg-red-950/40"
 												type="button"
 												onClick={() => handleRemoveItem(index() + 1)}
 											>
@@ -1126,7 +1126,7 @@ function EditExpensePage(props: {
 												/>
 											</div>
 											<button
-												class="flex flex-3 items-center justify-center gap-1 rounded-sm bg-cyan-50 px-3 py-2 text-cyan-700 text-sm transition-colors hover:bg-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-300"
+												class="flex flex-3 items-center justify-center gap-1 rounded-sm bg-cyan-50 px-3 py-2 text-cyan-700 text-sm transition-colors hover:bg-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-300 dark:hover:bg-cyan-900/50"
 												type="button"
 												onClick={() => setActiveSplitIndex(index() + 1)}
 											>
