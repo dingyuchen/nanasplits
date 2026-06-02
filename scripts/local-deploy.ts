@@ -76,7 +76,8 @@ if (!(await Bun.file(DEPLOY_BINARY).exists())) {
 	console.log(
 		`Deploy binary not found at ${DEPLOY_BINARY}; building it first.`,
 	);
-	await Bun.$`bun run build:binary`.cwd(DEPLOY_ROOT);
+	const buildScript = target === "dev" ? "build:binary:dev" : "build:binary";
+	await Bun.$`bun --no-env-file run ${buildScript}`.cwd(DEPLOY_ROOT);
 }
 
 console.log(`Deploying ${DEPLOY_BINARY} to ${release}.`);
