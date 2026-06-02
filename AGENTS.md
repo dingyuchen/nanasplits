@@ -31,7 +31,8 @@ bun run convex:dev       # Start Convex dev server; run alongside the app
 ### Build and Serve
 
 ```bash
-bun run build            # Build production app
+bun run build            # Build production app with Vite --mode production
+bun run build:dev        # Build preview/dev app with Vite --mode dev
 bun run start            # Serve dist through server.ts
 bun run preview          # Vite preview
 ```

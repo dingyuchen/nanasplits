@@ -7,8 +7,9 @@
 	},
 	"scripts": {
 		"dev": "bun --bun vite dev --port 3000",
-		"build": "bun --bun vite build",
-		"build:binary": "bun run build && bun --bun scripts/generate-embedded-client-manifest.ts && bun build --compile --minify --sourcemap --bytecode --format=esm --asset-naming='[dir]/[name].[ext]' --define process.env.NODE_ENV='\"production\"' server.ts dist/server/server.js .deploy/embedded-client-assets.ts --outfile dist/nanasplits",
+		"build": "NODE_ENV=production bun --no-env-file --bun vite build --mode production",
+		"build:dev": "NODE_ENV=production bun --no-env-file --bun vite build --mode dev",
+		"build:binary": "bun --no-env-file --bun scripts/generate-embedded-client-manifest.ts && bun --no-env-file build --compile --minify --sourcemap --bytecode --format=esm --asset-naming='[dir]/[name].[ext]' --define process.env.NODE_ENV='\"production\"' server.ts dist/server/server.js .deploy/embedded-client-assets.ts --outfile dist/nanasplits",
 		"deploy:local": "bun --bun scripts/local-deploy.ts",
 		"touch": "sh -c 'sleep 1 && touch \"${DEPLOY_ROOT:-/home/hermes/nanasplits}/$1\"' --",
 		"start": "bun --bun server.ts",

@@ -8,7 +8,7 @@ Type=simple
 User=hermes
 Group=hermes
 WorkingDirectory=/home/hermes/nanasplits
-EnvironmentFile=/home/hermes/nanasplits/master.env
+EnvironmentFile=/home/hermes/nanasplits/.env.production
 Environment=PORT=%i
 ExecStart=/home/hermes/nanasplits/master
 Restart=always

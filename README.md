@@ -33,18 +33,25 @@ bun run convex:dev
 ## Build
 
 ```bash
-bun run build
+bun run build      # vite build --mode production
+bun run build:dev  # vite build --mode dev
 bun run build:binary
 bun run start
 ```
 
-`build:binary` first creates the TanStack Start production build, then compiles
-`server.ts` and the generated TanStack Start server bundle into
-`dist/nanasplits` with Bun's standalone executable support. The build uses
-`--compile`, `--minify`, `--sourcemap`, and `--bytecode`, and embeds
-`dist/client` into the executable with Bun file imports. Bun targets the local
-platform by default. The resulting binary can run without Bun, `node_modules`,
-or a separate client asset directory on the VPS.
+`build` passes Vite's production mode explicitly, so Vite loads `.env`,
+`.env.local`, `.env.production`, and `.env.production.local` according to its
+env-file priority rules. `build:dev` builds with `--mode dev`, so it uses the
+same Vite rules with `.env.dev` and `.env.dev.local` for preview builds.
+
+Run `build` or `build:dev` before `build:binary`. `build:binary` compiles
+`server.ts`, the generated TanStack Start server bundle, and the existing
+`dist/client` assets into `dist/nanasplits` with Bun's standalone executable
+support. The build uses `--compile`, `--minify`, `--sourcemap`, and
+`--bytecode`, and embeds `dist/client` into the executable with Bun file
+imports. Bun targets the local platform by default. The resulting binary can
+run without Bun, `node_modules`, or a separate client asset directory on the
+VPS.
 
 ## Quality
 
@@ -156,9 +163,10 @@ stable paths are symlinks to immutable release binaries under
 `/home/hermes/nanasplits/bin`; deployments update them with an atomic symlink
 swap so the path units can trigger the restart helpers.
 
-Create `~/nanasplits/master.env` and `~/nanasplits/dev.env`. Use different
-Convex or Telegram values in `dev.env` if preview should point at separate
-services.
+Create `~/nanasplits/.env.production` and `~/nanasplits/.env.dev`. Use different
+Convex or Telegram values in `.env.dev` if preview should point at separate
+services. These filenames match Vite's `.env.[mode]` convention for
+`--mode production` and `--mode dev`.
 
 ```bash
 TELEGRAM_BOT_TOKEN=your-telegram-bot-token
@@ -169,7 +177,7 @@ VITE_CONVEX_SITE_URL=https://your-convex-auth-site
 Lock the files down after editing:
 
 ```bash
-chmod 600 ~/nanasplits/master.env ~/nanasplits/dev.env
+chmod 600 ~/nanasplits/.env.production ~/nanasplits/.env.dev
 ```
 
 The first successful workflow run creates these stable symlinks:
