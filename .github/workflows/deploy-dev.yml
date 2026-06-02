@@ -43,7 +43,9 @@ jobs:
         run: bun run check
 
       - name: Build Linux x64 binary
-        run: bun --no-env-file run build:binary:dev
+        run: |
+          bun --no-env-file run build:dev
+          bun --no-env-file run build:binary
         env:
           BUN_COMPILE_TARGET: bun-linux-x64-modern
           NODE_ENV: production

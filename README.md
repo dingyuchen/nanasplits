@@ -44,13 +44,14 @@ bun run start
 env-file priority rules. `build:dev` builds with `--mode dev`, so it uses the
 same Vite rules with `.env.dev` and `.env.dev.local` for preview builds.
 
-`build:binary` first creates the TanStack Start production build, then compiles
-`server.ts` and the generated TanStack Start server bundle into
-`dist/nanasplits` with Bun's standalone executable support. The build uses
-`--compile`, `--minify`, `--sourcemap`, and `--bytecode`, and embeds
-`dist/client` into the executable with Bun file imports. Bun targets the local
-platform by default. The resulting binary can run without Bun, `node_modules`,
-or a separate client asset directory on the VPS.
+Run `build` or `build:dev` before `build:binary`. `build:binary` compiles
+`server.ts`, the generated TanStack Start server bundle, and the existing
+`dist/client` assets into `dist/nanasplits` with Bun's standalone executable
+support. The build uses `--compile`, `--minify`, `--sourcemap`, and
+`--bytecode`, and embeds `dist/client` into the executable with Bun file
+imports. Bun targets the local platform by default. The resulting binary can
+run without Bun, `node_modules`, or a separate client asset directory on the
+VPS.
 
 ## Quality
 
