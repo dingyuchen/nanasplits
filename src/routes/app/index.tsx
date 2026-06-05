@@ -92,7 +92,7 @@ function DashboardContent({ data }: { data: DashboardData }) {
 							{groupsWithPendingSplits.map((group) => (
 								<Link
 									key={group._id}
-									className="block rounded-sm border border-gray-200 bg-slate-50 p-3 transition-colors hover:border-cyan-500 hover:bg-white dark:border-gray-800 dark:bg-gray-950 dark:hover:border-cyan-700"
+									className="block rounded-sm border border-gray-200 bg-slate-50 p-3 transition-colors hover:border-cyan-500 hover:bg-white dark:border-gray-800 dark:bg-gray-950 dark:hover:border-cyan-700 dark:hover:bg-gray-900"
 									params={{
 										groupId: String(group.telegramChatId),
 									}}
