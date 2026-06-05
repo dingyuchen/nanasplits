@@ -19,7 +19,9 @@
 		"check": "bun run lint && oxfmt --check",
 		"convex:dev": "convex dev",
 		"convex:deploy": "convex deploy",
-		"set:webhook": "bun --bun scripts/setup-telegram-webhook.ts"
+		"set:webhook": "bun --bun scripts/setup-telegram-webhook.ts",
+		"restart:prod": "sudo systemctl restart nanasplits-master@3001.service nanasplits-master@3002.service nanasplits-master@3003.service",
+		"restart:dev": "sudo systemctl restart nanasplits-dev.service"
 	},
 	"dependencies": {
 		"@convex-dev/auth": "^0.0.92",
