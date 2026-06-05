@@ -1324,6 +1324,8 @@ export const currencySigns: Record<string, string> = Object.fromEntries(
 
 export function CurrencyDropdownOptions() {
 	return Object.keys(currencies).map((currency) => (
-		<option value={currency}>{currency}</option>
+		<option key={currency} value={currency}>
+			{currency}
+		</option>
 	));
 }

@@ -1,8 +1,9 @@
+import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
-import { tanstackStart } from "@tanstack/solid-start/plugin/vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import viteReact, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-import viteSolid from "vite-plugin-solid";
 
 const config = defineConfig({
 	server: {
@@ -17,7 +18,8 @@ const config = defineConfig({
 				autoStaticPathsDiscovery: true,
 			},
 		}),
-		viteSolid({ ssr: true }),
+		viteReact(),
+		babel({ presets: [reactCompilerPreset({ target: "19" })] }),
 		tailwindcss(),
 	],
 });

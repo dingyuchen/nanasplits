@@ -2,8 +2,7 @@
 	"include": ["**/*.ts", "**/*.tsx"],
 	"compilerOptions": {
 		"target": "ES2022",
-		"jsx": "preserve",
-		"jsxImportSource": "solid-js",
+		"jsx": "react-jsx",
 		"module": "ESNext",
 		"paths": {
 			"#/*": ["./src/*"],

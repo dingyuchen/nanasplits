@@ -1,17 +1,19 @@
 import type { LaunchParams } from "@tma.js/sdk";
-import { type Accessor, createContext, type JSX, useContext } from "solid-js";
+import { createContext, type ReactNode, useContext } from "react";
 
 type TelegramLaunchContextValue = {
-	launchParams: Accessor<LaunchParams | null>;
-	startParam: Accessor<string | undefined>;
-	telegramUserId: Accessor<number | null>;
+	launchParams: () => LaunchParams | null;
+	startParam: () => string | undefined;
+	telegramUserId: () => number | null;
 };
 
-const TelegramLaunchContext = createContext<TelegramLaunchContextValue>();
+const TelegramLaunchContext = createContext<TelegramLaunchContextValue | null>(
+	null,
+);
 
 export function TelegramLaunchProvider(props: {
-	children: JSX.Element;
-	launchParams: Accessor<LaunchParams | null>;
+	children: ReactNode;
+	launchParams: () => LaunchParams | null;
 }) {
 	const value: TelegramLaunchContextValue = {
 		launchParams: props.launchParams,
@@ -30,7 +32,7 @@ export function TelegramLaunchProvider(props: {
 
 export function useTelegramLaunch() {
 	const context = useContext(TelegramLaunchContext);
-	if (context === undefined) {
+	if (context === null) {
 		throw new Error("TelegramLaunchProvider is missing from the app route.");
 	}
 	return context;

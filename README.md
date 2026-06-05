@@ -1,7 +1,7 @@
 # NanaSplits
 
-Telegram-based expense splitting app built with Solid, TanStack Start, Convex,
-Tailwind CSS, and Gramio.
+Telegram-based expense splitting app built with React, TanStack React Start,
+TanStack React Router, Convex, Tailwind CSS, and Gramio.
 
 ## Roadmap
 
@@ -64,10 +64,12 @@ bun x tsc --noEmit
 
 ## Framework Notes
 
-- UI routes live in `src/routes` and use `@tanstack/solid-router`.
+- UI routes live in `src/routes` and use `@tanstack/react-router`.
 - The app shell is `src/routes/__root.tsx`.
-- Solid JSX uses `class` instead of React `className`.
-- Convex browser/auth bindings for Solid are wrapped in `src/solid-convex.tsx`.
+- React JSX uses `className`.
+- React Compiler is enabled in `vite.config.ts`; prefer plain derived values and inline JSX conditionals/maps over compatibility components or routine `useMemo`.
+- Convex browser/auth bindings are wrapped in `src/convex-react.tsx`.
+- Convex route loaders use non-blocking React Query prefetches with `convexQuery(...)`; route components still own loading states for Telegram-provided data and live Convex subscriptions.
 - Telegram bot webhook handling lives in `src/routes/api/bot.ts`.
 
 ## VPS Deployment

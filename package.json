@@ -19,33 +19,45 @@
 		"check": "bun run lint && oxfmt --check",
 		"convex:dev": "convex dev",
 		"convex:deploy": "convex deploy",
-		"set:webhook": "bun --bun scripts/setup-telegram-webhook.ts"
+		"set:webhook": "bun --bun scripts/setup-telegram-webhook.ts",
+		"restart:prod": "sudo systemctl restart nanasplits-master@3001.service nanasplits-master@3002.service nanasplits-master@3003.service",
+		"restart:dev": "sudo systemctl restart nanasplits-dev.service"
 	},
 	"dependencies": {
 		"@convex-dev/auth": "^0.0.92",
+		"@convex-dev/react-query": "^0.1.0",
 		"@t3-oss/env-core": "^0.13.11",
 		"@tailwindcss/vite": "^4.3.0",
-		"@tanstack/solid-router": "^1.170.4",
-		"@tanstack/solid-start": "^1.168.6",
+		"@tanstack/react-query": "^5.100.14",
+		"@tanstack/react-router": "^1.170.8",
+		"@tanstack/react-router-ssr-query": "^1.167.0",
+		"@tanstack/react-start": "^1.168.15",
 		"@tma.js/init-data-node": "^2.0.7",
 		"@tma.js/sdk": "^3.2.0",
 		"clsx": "^2.1.1",
 		"convex": "^1.39.1",
 		"convex-helpers": "^0.1.118",
 		"gramio": "^0.10.0",
-		"lucide-solid": "^1.16.0",
-		"solid-js": "^1.9.13",
+		"lucide-react": "^1.17.0",
+		"react": "^19.2.6",
+		"react-dom": "^19.2.6",
 		"tailwind-merge": "^3.6.0",
 		"tailwindcss": "^4.3.0",
-		"vite-plugin-solid": "^2.11.12",
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
+		"@babel/core": "^7.29.7",
+		"@rolldown/plugin-babel": "^0.2.3",
 		"@tailwindcss/typography": "^0.5.19",
 		"@tanstack/devtools-vite": "^0.7.0",
 		"@testing-library/dom": "^10.4.1",
+		"@types/babel__core": "^7.20.5",
 		"@types/bun": "^1.3.14",
 		"@types/node": "^25.9.1",
+		"@types/react": "^19.2.15",
+		"@types/react-dom": "^19.2.3",
+		"@vitejs/plugin-react": "^6.0.2",
+		"babel-plugin-react-compiler": "^1.0.0",
 		"jsdom": "^29.1.1",
 		"oxfmt": "^0.51.0",
 		"oxlint": "^1.66.0",
@@ -54,7 +66,7 @@
 		"vitest": "^4.1.6"
 	},
 	"overrides": {
-		"@tanstack/router-core": "1.171.2"
+		"@tanstack/router-core": "1.171.6"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [

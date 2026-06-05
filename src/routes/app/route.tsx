@@ -3,7 +3,7 @@ import {
 	Outlet,
 	useLocation,
 	useNavigate,
-} from "@tanstack/solid-router";
+} from "@tanstack/react-router";
 import {
 	backButton,
 	init,
@@ -15,14 +15,7 @@ import {
 	retrieveRawInitData,
 	themeParams,
 } from "@tma.js/sdk";
-import {
-	createEffect,
-	createSignal,
-	Match,
-	onCleanup,
-	onMount,
-	Switch,
-} from "solid-js";
+import { useEffect, useState } from "react";
 
 import { TelegramMainButton } from "#/components/telegram-main-button";
 import { TelegramRequiredPage } from "#/components/telegram-required";
@@ -32,7 +25,7 @@ import {
 	AuthLoading,
 	Unauthenticated,
 	useAuthActions,
-} from "#/solid-convex";
+} from "#/convex-react";
 import { TelegramLaunchProvider, useTelegramLaunch } from "#/telegram-launch";
 
 export const Route = createFileRoute("/app")({
@@ -43,12 +36,10 @@ type TelegramStatus = "checking" | "ready" | "unavailable";
 
 function AppRoute() {
 	const [telegramStatus, setTelegramStatus] =
-		createSignal<TelegramStatus>("checking");
-	const [launchParams, setLaunchParams] = createSignal<LaunchParams | null>(
-		null,
-	);
+		useState<TelegramStatus>("checking");
+	const [launchParams, setLaunchParams] = useState<LaunchParams | null>(null);
 
-	onMount(() => {
+	useEffect(() => {
 		let cleanup: VoidFunction | undefined;
 
 		void (async () => {
@@ -75,7 +66,7 @@ function AppRoute() {
 			}
 		})();
 
-		onCleanup(() => {
+		return () => {
 			if (mainButton.isMounted()) {
 				mainButton.hide();
 				mainButton.unmount();
@@ -91,44 +82,44 @@ function AppRoute() {
 				themeParams.unmount();
 			}
 			cleanup?.();
-		});
-	});
+		};
+	}, []);
+
+	if (telegramStatus === "checking") {
+		return <Loading message="Checking environment..." />;
+	}
+
+	if (telegramStatus === "unavailable") {
+		return <TelegramRequiredPage />;
+	}
 
 	return (
-		<Switch>
-			<Match when={telegramStatus() === "checking"}>
-				<Loading message="Checking environment..." />
-			</Match>
-			<Match when={telegramStatus() === "unavailable"}>
-				<TelegramRequiredPage />
-			</Match>
-			<Match when={telegramStatus() === "ready"}>
-				<AuthLoading>
-					<Loading message="Authenticating..." />
-				</AuthLoading>
-				<Unauthenticated>
-					<SignInPanel />
-				</Unauthenticated>
-				<Authenticated>
-					<TelegramLaunchProvider launchParams={launchParams}>
-						<AppOutlet />
-					</TelegramLaunchProvider>
-				</Authenticated>
-			</Match>
-		</Switch>
+		<>
+			<AuthLoading>
+				<Loading message="Authenticating..." />
+			</AuthLoading>
+			<Unauthenticated>
+				<SignInPanel />
+			</Unauthenticated>
+			<Authenticated>
+				<TelegramLaunchProvider launchParams={() => launchParams}>
+					<AppOutlet />
+				</TelegramLaunchProvider>
+			</Authenticated>
+		</>
 	);
 }
 
 function SignInPanel() {
 	const { signIn } = useAuthActions();
-	const [started, setStarted] = createSignal(false);
+	const [started, setStarted] = useState(false);
 
-	createEffect(() => {
-		if (started()) return;
+	useEffect(() => {
+		if (started) return;
 		setStarted(true);
 		const initData = retrieveRawInitData() ?? "";
 		void signIn("telegram", { initData });
-	});
+	}, [signIn, started]);
 
 	return (
 		<>
@@ -148,8 +139,8 @@ function AppOutlet() {
 	const navigate = useNavigate();
 	const { launchParams, startParam } = useTelegramLaunch();
 
-	createEffect(() => {
-		if (location().pathname !== "/app") return;
+	useEffect(() => {
+		if (location.pathname !== "/app") return;
 		if (launchParams() === null) return;
 
 		const groupId = startParam();
@@ -161,7 +152,7 @@ function AppOutlet() {
 			});
 			return;
 		}
-	});
+	}, [launchParams, location.pathname, navigate, startParam]);
 
 	return <Outlet />;
 }

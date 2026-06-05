@@ -1,4 +1,5 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/solid-router";
+import { convexQuery } from "@convex-dev/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
 import {
 	ArrowLeftRight,
@@ -14,22 +15,31 @@ import {
 	TrendingUp,
 	Users,
 	Wallet,
-} from "lucide-solid";
-import { createMemo, createSignal, For, Show } from "solid-js";
+} from "lucide-react";
 
 import { TelegramMainButton } from "#/components/telegram-main-button";
+import NotFound from "#/components/ui/not-found";
+import { useMutation, useQuery } from "#/convex-react";
 import { getCurrencyConversion } from "#/currency-conversion";
 import {
 	buildSettleUpConversionOptions,
 	filteredCurrencyCodes,
 	type SettleUpConversionOption,
 } from "#/lib/expense-conversion";
-import { useMutation, useQuery } from "#/solid-convex";
+import { useAccessorState } from "#/react-accessor-state";
 import { useTelegramLaunch } from "#/telegram-launch";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
 export const Route = createFileRoute("/app/groups/$groupId/")({
+	loader: ({ context, params }) => {
+		const telegramChatId = Number(params.groupId);
+		if (!Number.isNaN(telegramChatId)) {
+			void context.queryClient.prefetchQuery(
+				convexQuery(api.groups.getListOfExpenses, { telegramChatId }),
+			);
+		}
+	},
 	component: GroupIndexRoute,
 });
 
@@ -54,27 +64,24 @@ type ConversionQuote = Awaited<ReturnType<typeof getCurrencyConversion>>;
 
 function GroupIndexRoute() {
 	const params = Route.useParams();
-	const { groupId } = params();
+	const { groupId } = params;
 	const telegramChatId = Number(groupId);
 	const { telegramUserId } = useTelegramLaunch();
+	const currentTelegramUserId = telegramUserId();
 
 	if (Number.isNaN(telegramChatId)) {
-		return (
-			<div class="min-h-screen bg-slate-50 p-6 dark:bg-gray-950">
-				<Empty text="Invalid Telegram group id." />
-			</div>
-		);
+		return <NotFound text="Invalid Telegram group id." title="Invalid group" />;
+	}
+
+	if (currentTelegramUserId === null) {
+		return <Loading />;
 	}
 
 	return (
-		<Show when={telegramUserId()} fallback={<Loading />}>
-			{(currentTelegramUserId) => (
-				<GroupIndexData
-					telegramChatId={telegramChatId}
-					telegramUserId={currentTelegramUserId()}
-				/>
-			)}
-		</Show>
+		<GroupIndexData
+			telegramChatId={telegramChatId}
+			telegramUserId={currentTelegramUserId}
+		/>
 	);
 }
 
@@ -89,25 +96,29 @@ function GroupIndexData(props: {
 		telegramChatId: props.telegramChatId,
 		telegramUserId: props.telegramUserId,
 	});
+	const data = groupData();
+	const isRegistered = isRegisteredMemberOfGroup();
+
+	if (data === undefined || isRegistered === undefined) {
+		return <Loading />;
+	}
+
+	if (data === null) {
+		return (
+			<NotFound
+				text="This group is not available in NanaSplits."
+				title="Group not found"
+			/>
+		);
+	}
 
 	return (
-		<Show
-			when={
-				groupData() !== undefined && isRegisteredMemberOfGroup() !== undefined
-			}
-			fallback={<Loading />}
-		>
-			<Show when={groupData()} fallback={<Empty text="Group not found." />}>
-				{(data) => (
-					<GroupView
-						groupData={data()}
-						groupIdNumber={props.telegramChatId}
-						isRegisteredMemberOfGroup={isRegisteredMemberOfGroup() === true}
-						telegramUserId={props.telegramUserId}
-					/>
-				)}
-			</Show>
-		</Show>
+		<GroupView
+			groupData={data}
+			groupIdNumber={props.telegramChatId}
+			isRegisteredMemberOfGroup={isRegistered === true}
+			telegramUserId={props.telegramUserId}
+		/>
 	);
 }
 
@@ -118,16 +129,14 @@ function GroupView(props: {
 	telegramUserId: number;
 }) {
 	const navigate = useNavigate();
-	const [membersCollapsed, setMembersCollapsed] = createSignal(true);
+	const [membersCollapsed, setMembersCollapsed] = useAccessorState(true);
 	const addUserToGroup = useMutation(api.groups.addUserToGroup);
-	const currentUserId = createMemo(
-		() =>
-			props.groupData.members.find(
-				(member) => member.telegramUserId === props.telegramUserId,
-			)?._id,
-	);
+	const currentUserId = () =>
+		props.groupData.members.find(
+			(member) => member.telegramUserId === props.telegramUserId,
+		)?._id;
 
-	const currencyBalances = createMemo<CurrencyBalances>(() => {
+	const currencyBalances = (): CurrencyBalances => {
 		const current = currentUserId();
 		if (!current) return {};
 
@@ -177,7 +186,7 @@ function GroupView(props: {
 		}
 
 		return balances;
-	});
+	};
 
 	const calculateUserBalance = (expense: Expense) => {
 		const current = currentUserId();
@@ -200,7 +209,7 @@ function GroupView(props: {
 		return expense.payerId === current ? totalAmount - userOwes : -userOwes;
 	};
 
-	const conversionOptions = createMemo(() => {
+	const conversionOptions = () => {
 		const current = currentUserId();
 		if (!current) return [];
 
@@ -208,7 +217,7 @@ function GroupView(props: {
 			currencyBalances: currencyBalances(),
 			currentUserId: current,
 		});
-	});
+	};
 
 	const handleEditExpense = (expense: Expense) => {
 		void navigate({
@@ -240,178 +249,159 @@ function GroupView(props: {
 	};
 
 	return (
-		<div class="relative min-h-screen bg-slate-50 pb-20 text-gray-950 dark:bg-gray-950 dark:text-white">
-			<Show when={!props.isRegisteredMemberOfGroup}>
-				<div class="absolute inset-0 z-40 bg-black/50" />
-			</Show>
+		<div className="relative min-h-screen bg-slate-50 pb-20 text-gray-950 dark:bg-gray-950 dark:text-white">
+			{!props.isRegisteredMemberOfGroup ? (
+				<div className="absolute inset-0 z-40 bg-black/50" />
+			) : null}
 
-			<div class="mx-auto max-w-2xl space-y-4 px-4 pt-6">
-				<header class="border-gray-200 border-b pb-5 dark:border-gray-800">
-					<div class="mb-3 flex items-start justify-between gap-3">
+			<div className="mx-auto max-w-2xl space-y-4 px-4 pt-6">
+				<header className="border-gray-200 border-b pb-5 dark:border-gray-800">
+					<div className="mb-3 flex items-start justify-between gap-3">
 						<div>
-							<p class="mb-2 font-medium text-cyan-700 text-xs uppercase dark:text-cyan-300">
+							<p className="mb-2 font-medium text-cyan-700 text-xs uppercase dark:text-cyan-300">
 								Group
 							</p>
-							<h1 class="font-semibold text-3xl tracking-tight">
+							<h1 className="font-semibold text-3xl tracking-tight">
 								{props.groupData.title}
 							</h1>
-							<p class="mt-2 text-gray-500 text-sm dark:text-gray-400">
+							<p className="mt-2 text-gray-500 text-sm dark:text-gray-400">
 								{props.groupData.memberCount} members
 							</p>
 						</div>
 						<Link
-							class="rounded-sm border border-gray-200 bg-white p-2 transition-colors hover:border-cyan-500 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-cyan-700"
+							className="rounded-sm border border-gray-200 bg-white p-2 transition-colors hover:border-cyan-500 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-cyan-700"
 							params={{
 								groupId: String(props.groupIdNumber),
 							}}
 							to="/app/groups/$groupId/settings"
 						>
-							<Settings class="h-5 w-5 text-gray-500 dark:text-gray-400" />
+							<Settings className="h-5 w-5 text-gray-500 dark:text-gray-400" />
 						</Link>
 					</div>
 				</header>
 
-				<section class="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-					<h2 class="mb-4 font-semibold text-gray-900 text-sm uppercase dark:text-white">
+				<section className="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+					<h2 className="mb-4 font-semibold text-gray-900 text-sm uppercase dark:text-white">
 						Your balance
 					</h2>
 
-					<Show
-						when={Object.keys(currencyBalances()).length > 0}
-						fallback={
-							<div class="rounded-sm border border-dashed border-gray-200 py-6 text-center text-gray-500 text-sm dark:border-gray-800 dark:text-gray-400">
-								<p>No expenses yet</p>
-							</div>
-						}
-					>
-						<div class="space-y-2">
-							<For each={Object.entries(currencyBalances())}>
-								{([currency, currencyData]) => (
+					{Object.keys(currencyBalances()).length > 0 ? (
+						<div className="space-y-2">
+							{Object.entries(currencyBalances()).map(
+								([currency, currencyData]) => (
 									<CurrencyBalanceCard
+										key={currency}
 										currency={currency}
 										currencyData={currencyData}
 									/>
-								)}
-							</For>
+								),
+							)}
 						</div>
-					</Show>
+					) : (
+						<div className="rounded-sm border border-dashed border-gray-200 py-6 text-center text-gray-500 text-sm dark:border-gray-800 dark:text-gray-400">
+							<p>No expenses yet</p>
+						</div>
+					)}
 				</section>
 
-				<Show when={props.isRegisteredMemberOfGroup && currentUserId()}>
-					{(userId) => (
-						<SettleUp
-							currencyBalances={currencyBalances()}
-							currentUserId={userId()}
-							defaultCurrency={props.groupData.defaultCurrency}
-							groupIdNumber={props.groupIdNumber}
-							telegramUserId={props.telegramUserId}
-						/>
-					)}
-				</Show>
+				{props.isRegisteredMemberOfGroup && currentUserId() ? (
+					<SettleUp
+						currencyBalances={currencyBalances()}
+						currentUserId={currentUserId() as Id<"users">}
+						defaultCurrency={props.groupData.defaultCurrency}
+						groupIdNumber={props.groupIdNumber}
+						telegramUserId={props.telegramUserId}
+					/>
+				) : null}
 
 				<section>
 					<button
-						class="mb-2 flex w-full items-center gap-2 px-1"
+						className="mb-2 flex w-full items-center gap-2 px-1"
 						type="button"
 						onClick={() => setMembersCollapsed(!membersCollapsed())}
 					>
-						<Users class="h-4 w-4 text-gray-500" />
-						<h2 class="font-semibold text-gray-900 text-sm uppercase dark:text-white">
+						<Users className="h-4 w-4 text-gray-500" />
+						<h2 className="font-semibold text-gray-900 text-sm uppercase dark:text-white">
 							Members ({props.groupData.memberCount})
 						</h2>
-						<Show
-							when={membersCollapsed()}
-							fallback={<ChevronUp class="ml-auto h-5 w-5 text-gray-500" />}
-						>
-							<ChevronDown class="ml-auto h-5 w-5 text-gray-500" />
-						</Show>
+						{membersCollapsed() ? (
+							<ChevronDown className="ml-auto h-5 w-5 text-gray-500" />
+						) : (
+							<ChevronUp className="ml-auto h-5 w-5 text-gray-500" />
+						)}
 					</button>
-					<Show when={!membersCollapsed()}>
-						<div class="rounded-sm border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-							<div class="flex flex-wrap gap-2">
-								<For each={props.groupData.members}>
-									{(member) => (
-										<div class="flex items-center gap-2 rounded-sm border border-gray-200 bg-slate-50 px-2.5 py-1.5 dark:border-gray-800 dark:bg-gray-950">
-											<div class="flex h-6 w-6 items-center justify-center rounded-sm bg-cyan-50 font-bold text-cyan-700 text-xs dark:bg-cyan-950/50 dark:text-cyan-300">
-												{(
-													member.firstName?.[0] ||
-													member.username?.[0] ||
-													"?"
-												).toUpperCase()}
-											</div>
-											<span class="text-sm font-medium text-gray-700 dark:text-gray-200">
-												{member.firstName} {member.lastName}
-											</span>
+					{!membersCollapsed() ? (
+						<div className="rounded-sm border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+							<div className="flex flex-wrap gap-2">
+								{props.groupData.members.map((member) => (
+									<div
+										key={member._id}
+										className="flex items-center gap-2 rounded-sm border border-gray-200 bg-slate-50 px-2.5 py-1.5 dark:border-gray-800 dark:bg-gray-950"
+									>
+										<div className="flex h-6 w-6 items-center justify-center rounded-sm bg-cyan-50 font-bold text-cyan-700 text-xs dark:bg-cyan-950/50 dark:text-cyan-300">
+											{(
+												member.firstName?.[0] ||
+												member.username?.[0] ||
+												"?"
+											).toUpperCase()}
 										</div>
-									)}
-								</For>
+										<span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+											{member.firstName} {member.lastName}
+										</span>
+									</div>
+								))}
 							</div>
 						</div>
-					</Show>
+					) : null}
 				</section>
 
 				<section>
-					<div class="mb-2 flex items-center justify-between gap-2 px-1">
-						<div class="flex items-center gap-2">
-							<Receipt class="h-4 w-4 text-gray-500" />
-							<h2 class="font-semibold text-gray-900 text-sm uppercase dark:text-white">
+					<div className="mb-2 flex items-center justify-between gap-2 px-1">
+						<div className="flex items-center gap-2">
+							<Receipt className="h-4 w-4 text-gray-500" />
+							<h2 className="font-semibold text-gray-900 text-sm uppercase dark:text-white">
 								Expenses
 							</h2>
 						</div>
-						<Show
-							when={
-								props.isRegisteredMemberOfGroup &&
-								conversionOptions().length > 0
-							}
-						>
+						{props.isRegisteredMemberOfGroup &&
+						conversionOptions().length > 0 ? (
 							<ExpenseCurrencyConversionButton
 								defaultCurrency={props.groupData.defaultCurrency}
 								groupIdNumber={props.groupIdNumber}
 								options={conversionOptions()}
 								telegramUserId={props.telegramUserId}
 							/>
-						</Show>
+						) : null}
 					</div>
 
-					<div class="space-y-3">
-						<Show
-							when={props.groupData.expenses.length > 0}
-							fallback={
-								<div class="rounded-sm border border-dashed border-gray-200 bg-white py-8 text-center text-gray-500 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
-									<p>No expenses yet</p>
-								</div>
-							}
-						>
-							<For each={props.groupData.expenses}>
-								{(expense) => (
-									<ExpenseRow
-										expense={expense}
-										onEdit={() => handleEditExpense(expense)}
-										telegramUserId={props.telegramUserId}
-										userBalance={calculateUserBalance(expense)}
-									/>
-								)}
-							</For>
-						</Show>
+					<div className="space-y-3">
+						{props.groupData.expenses.length > 0 ? (
+							props.groupData.expenses.map((expense) => (
+								<ExpenseRow
+									key={expense._id}
+									expense={expense}
+									onEdit={() => handleEditExpense(expense)}
+									telegramUserId={props.telegramUserId}
+									userBalance={calculateUserBalance(expense)}
+								/>
+							))
+						) : (
+							<div className="rounded-sm border border-dashed border-gray-200 bg-white py-8 text-center text-gray-500 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
+								<p>No expenses yet</p>
+							</div>
+						)}
 					</div>
 				</section>
 			</div>
 
-			<Show
-				when={props.isRegisteredMemberOfGroup}
-				fallback={
-					<TelegramMainButton
-						once
-						text="Join Group"
-						onClick={handleJoinGroup}
-					/>
-				}
-			>
+			{props.isRegisteredMemberOfGroup ? (
 				<AddExpenseButton
 					telegramChatId={props.groupIdNumber}
 					telegramUserId={props.telegramUserId}
 				/>
-			</Show>
+			) : (
+				<TelegramMainButton once text="Join Group" onClick={handleJoinGroup} />
+			)}
 		</div>
 	);
 }
@@ -428,16 +418,16 @@ function CurrencyBalanceCard(props: {
 
 	return (
 		<div
-			class={`rounded-sm border p-3 ${
+			className={`rounded-sm border p-3 ${
 				isPositive()
 					? "border-green-200 bg-green-50 dark:border-green-900/70 dark:bg-green-950/30"
 					: "border-red-200 bg-red-50 dark:border-red-900/70 dark:bg-red-950/30"
 			}`}
 		>
-			<div class="flex items-center justify-between">
+			<div className="flex items-center justify-between">
 				<div>
 					<span
-						class={`mb-1 block font-medium text-xs uppercase ${
+						className={`mb-1 block font-medium text-xs uppercase ${
 							isPositive()
 								? "text-green-700 dark:text-green-300"
 								: "text-red-700 dark:text-red-300"
@@ -446,7 +436,7 @@ function CurrencyBalanceCard(props: {
 						{props.currency}
 					</span>
 					<p
-						class={`font-semibold text-2xl ${
+						className={`font-semibold text-2xl ${
 							isPositive()
 								? "text-green-600 dark:text-green-400"
 								: "text-red-600 dark:text-red-400"
@@ -460,61 +450,64 @@ function CurrencyBalanceCard(props: {
 					</p>
 				</div>
 				<div
-					class={`rounded-sm p-2 ${
+					className={`rounded-sm p-2 ${
 						isPositive()
 							? "bg-green-100 text-green-600 dark:bg-green-800/30"
 							: "bg-red-100 text-red-600 dark:bg-red-800/30"
 					}`}
 				>
-					<Show when={isPositive()} fallback={<TrendingDown class="h-5 w-5" />}>
-						<TrendingUp class="h-5 w-5" />
-					</Show>
+					{isPositive() ? (
+						<TrendingUp className="h-5 w-5" />
+					) : (
+						<TrendingDown className="h-5 w-5" />
+					)}
 				</div>
 			</div>
 
-			<Show when={memberBalanceEntries().length > 0}>
-				<div class="mt-3 space-y-2 border-gray-200 border-t pt-3 dark:border-gray-800">
-					<For each={memberBalanceEntries()}>
-						{(member) => {
-							const isMemberPositive = member.balance > 0;
-							return (
-								<div class="flex items-center justify-between">
-									<div class="flex items-center gap-2">
-										<div class="flex h-6 w-6 items-center justify-center rounded-sm bg-white/50 font-bold text-gray-600 text-xs dark:bg-gray-800/50 dark:text-gray-300">
-											{member.memberName[0]?.toUpperCase() || "?"}
-										</div>
-										<span class="text-sm text-gray-700 dark:text-gray-200">
-											{member.memberName}
-										</span>
-										<div class="flex items-center gap-1 text-xs">
-											<span class="text-gray-500 dark:text-gray-400">
-												{isMemberPositive ? "owes you" : "you owe"}
-											</span>
-											<ArrowRight
-												class={`h-3 w-3 ${
-													isMemberPositive ? "text-green-500" : "text-red-500"
-												}`}
-											/>
-										</div>
+			{memberBalanceEntries().length > 0 ? (
+				<div className="mt-3 space-y-2 border-gray-200 border-t pt-3 dark:border-gray-800">
+					{memberBalanceEntries().map((member) => {
+						const isMemberPositive = member.balance > 0;
+						return (
+							<div
+								key={member.memberId}
+								className="flex items-center justify-between"
+							>
+								<div className="flex items-center gap-2">
+									<div className="flex h-6 w-6 items-center justify-center rounded-sm bg-white/50 font-bold text-gray-600 text-xs dark:bg-gray-800/50 dark:text-gray-300">
+										{member.memberName[0]?.toUpperCase() || "?"}
 									</div>
-									<span
-										class={`text-sm font-semibold ${
-											isMemberPositive
-												? "text-green-600 dark:text-green-400"
-												: "text-red-600 dark:text-red-400"
-										}`}
-									>
-										{formatCurrencyAmount(
-											Math.abs(member.balance),
-											props.currency,
-										)}
+									<span className="text-sm text-gray-700 dark:text-gray-200">
+										{member.memberName}
 									</span>
+									<div className="flex items-center gap-1 text-xs">
+										<span className="text-gray-500 dark:text-gray-400">
+											{isMemberPositive ? "owes you" : "you owe"}
+										</span>
+										<ArrowRight
+											className={`h-3 w-3 ${
+												isMemberPositive ? "text-green-500" : "text-red-500"
+											}`}
+										/>
+									</div>
 								</div>
-							);
-						}}
-					</For>
+								<span
+									className={`text-sm font-semibold ${
+										isMemberPositive
+											? "text-green-600 dark:text-green-400"
+											: "text-red-600 dark:text-red-400"
+									}`}
+								>
+									{formatCurrencyAmount(
+										Math.abs(member.balance),
+										props.currency,
+									)}
+								</span>
+							</div>
+						);
+					})}
 				</div>
-			</Show>
+			) : null}
 		</div>
 	);
 }
@@ -571,32 +564,34 @@ function ExpenseRow(props: {
 
 	return (
 		<button
-			class={`flex w-full cursor-pointer items-center justify-between rounded-sm border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:border-cyan-500 hover:bg-slate-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-cyan-700 dark:hover:bg-gray-900 ${styles().cardOpacity}`}
+			className={`flex w-full cursor-pointer items-center justify-between rounded-sm border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:border-cyan-500 hover:bg-slate-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-cyan-700 dark:hover:bg-gray-900 ${styles().cardOpacity}`}
 			type="button"
 			onClick={props.onEdit}
 		>
-			<div class="flex items-center gap-3">
+			<div className="flex items-center gap-3">
 				<div
-					class={`flex h-9 w-9 items-center justify-center rounded-sm ${styles().iconBg}`}
+					className={`flex h-9 w-9 items-center justify-center rounded-sm ${styles().iconBg}`}
 				>
-					<Show when={isTransfer()} fallback={<Wallet class="h-5 w-5" />}>
-						<ArrowLeftRight class="h-5 w-5" />
-					</Show>
+					{isTransfer() ? (
+						<ArrowLeftRight className="h-5 w-5" />
+					) : (
+						<Wallet className="h-5 w-5" />
+					)}
 				</div>
-				<div class="text-left">
-					<p class="font-medium text-gray-900 dark:text-white">
+				<div className="text-left">
+					<p className="font-medium text-gray-900 dark:text-white">
 						{props.expense.description}
 					</p>
-					<p class="text-xs text-gray-500 dark:text-gray-400">
+					<p className="text-xs text-gray-500 dark:text-gray-400">
 						{isTransfer()
 							? `Settled with ${props.expense.payerName}`
 							: `${isMe() ? "You" : props.expense.payerName} paid • ${formatDate(props.expense.date)}`}
 					</p>
 				</div>
 			</div>
-			<div class="flex items-center gap-2">
-				<div class="text-right">
-					<span class={`font-bold ${styles().amountText}`}>
+			<div className="flex items-center gap-2">
+				<div className="text-right">
+					<span className={`font-bold ${styles().amountText}`}>
 						{styles().amountPrefix}
 						{formatCurrencyAmount(
 							isInvolved() || isTransfer()
@@ -605,13 +600,13 @@ function ExpenseRow(props: {
 							props.expense.currency,
 						)}
 					</span>
-					<Show when={!isTransfer() && isInvolved()}>
-						<p class="text-xs text-gray-500 dark:text-gray-400">
+					{!isTransfer() && isInvolved() ? (
+						<p className="text-xs text-gray-500 dark:text-gray-400">
 							{formatCurrencyAmount(totalAmount(), props.expense.currency)}
 						</p>
-					</Show>
+					) : null}
 				</div>
-				<ChevronRight class="h-4 w-4 text-gray-400" />
+				<ChevronRight className="h-4 w-4 text-gray-400" />
 			</div>
 		</button>
 	);
@@ -625,7 +620,7 @@ function SettleUp(props: {
 	telegramUserId: number;
 }) {
 	const settleUp = useMutation(api.groups.settleUp);
-	const [settleDialog, setSettleDialog] = createSignal<{
+	const [settleDialog, setSettleDialog] = useAccessorState<{
 		memberId: Id<"users">;
 		memberName: string;
 		amount: number;
@@ -678,92 +673,86 @@ function SettleUp(props: {
 
 	return (
 		<section>
-			<div class="mb-2 flex items-center gap-2 px-1">
-				<ArrowLeftRight class="h-4 w-4 text-gray-500" />
-				<h2 class="font-semibold text-gray-900 text-sm uppercase dark:text-white">
+			<div className="mb-2 flex items-center gap-2 px-1">
+				<ArrowLeftRight className="h-4 w-4 text-gray-500" />
+				<h2 className="font-semibold text-gray-900 text-sm uppercase dark:text-white">
 					Settle Up
 				</h2>
 			</div>
-			<div class="rounded-sm border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-				<Show
-					when={balanceEntries().length > 0}
-					fallback={
-						<p class="py-2 text-center text-sm text-gray-500 dark:text-gray-400">
-							All settled up!
-						</p>
-					}
-				>
-					<div class="-mb-2 flex flex-wrap gap-2 overflow-x-auto pb-2">
-						<For each={balanceEntries()}>
-							{({ currency, member }) => (
-								<button
-									class={`flex items-center gap-2 whitespace-nowrap rounded-sm border px-3 py-1.5 font-medium text-sm transition-colors ${
-										member.balance > 0
-											? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-900/70 dark:bg-green-950/30 dark:text-green-300 dark:hover:bg-green-900/40"
-											: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-900/40"
-									}`}
-									type="button"
-									onClick={() =>
-										setSettleDialog({
-											amount: member.balance,
-											currency,
-											memberId: member.memberId,
-											memberName: member.memberName,
-										})
-									}
-								>
-									<span>
-										{member.balance > 0 ? "Collect from" : "Pay"}{" "}
-										{member.memberName}
-									</span>
-									<span class="font-bold">
-										{formatCurrencyAmount(Math.abs(member.balance), currency)}
-									</span>
-								</button>
-							)}
-						</For>
+			<div className="rounded-sm border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+				{balanceEntries().length > 0 ? (
+					<div className="-mb-2 flex flex-wrap gap-2 overflow-x-auto pb-2">
+						{balanceEntries().map(({ currency, member }) => (
+							<button
+								key={`${currency}:${member.memberId}`}
+								className={`flex items-center gap-2 whitespace-nowrap rounded-sm border px-3 py-1.5 font-medium text-sm transition-colors ${
+									member.balance > 0
+										? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-900/70 dark:bg-green-950/30 dark:text-green-300 dark:hover:bg-green-900/40"
+										: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-900/40"
+								}`}
+								type="button"
+								onClick={() =>
+									setSettleDialog({
+										amount: member.balance,
+										currency,
+										memberId: member.memberId,
+										memberName: member.memberName,
+									})
+								}
+							>
+								<span>
+									{member.balance > 0 ? "Collect from" : "Pay"}{" "}
+									{member.memberName}
+								</span>
+								<span className="font-bold">
+									{formatCurrencyAmount(Math.abs(member.balance), currency)}
+								</span>
+							</button>
+						))}
 					</div>
-				</Show>
+				) : (
+					<p className="py-2 text-center text-sm text-gray-500 dark:text-gray-400">
+						All settled up!
+					</p>
+				)}
 			</div>
 
-			<Show when={settleDialog()}>
-				{(dialog) => (
-					<div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-						<div class="w-full max-w-sm rounded-sm bg-white p-5 shadow-xl dark:bg-gray-900">
-							<h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-								Confirm Settlement
-							</h3>
-							<p class="mb-6 text-gray-600 dark:text-gray-300">
-								{dialog().amount > 0
-									? `Collect ${formatCurrencyAmount(
-											dialog().amount,
-											dialog().currency,
-										)} from ${dialog().memberName}?`
-									: `Pay ${formatCurrencyAmount(
-											Math.abs(dialog().amount),
-											dialog().currency,
-										)} to ${dialog().memberName}?`}
-							</p>
-							<div class="grid grid-cols-2 gap-2">
-								<button
-									class="rounded-sm border border-gray-300 px-3 py-2 font-medium text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-									type="button"
-									onClick={closeDialog}
-								>
-									Cancel
-								</button>
-								<button
-									class="rounded-sm bg-gray-950 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
-									type="button"
-									onClick={handleSettle}
-								>
-									Settle
-								</button>
-							</div>
+			{settleDialog() ? (
+				<div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
+					<div className="w-full max-w-sm rounded-sm bg-white p-5 shadow-xl dark:bg-gray-900">
+						<h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+							Confirm Settlement
+						</h3>
+						<p className="mb-6 text-gray-600 dark:text-gray-300">
+							{settleDialog()!.amount > 0
+								? `Collect ${formatCurrencyAmount(
+										settleDialog()!.amount,
+										settleDialog()!.currency,
+									)} from ${settleDialog()!.memberName}?`
+								: `Pay ${formatCurrencyAmount(
+										Math.abs(settleDialog()!.amount),
+										settleDialog()!.currency,
+									)} to ${settleDialog()!.memberName}?`}
+						</p>
+						<div className="grid grid-cols-2 gap-2">
+							<button
+								className="rounded-sm border border-gray-300 px-3 py-2 font-medium text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+								type="button"
+								onClick={closeDialog}
+							>
+								Cancel
+							</button>
+							<button
+								className="rounded-sm bg-gray-950 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
+								type="button"
+								onClick={handleSettle}
+							>
+								Settle
+							</button>
 						</div>
 					</div>
-				)}
-			</Show>
+				</div>
+			) : null}
 		</section>
 	);
 }
@@ -777,28 +766,28 @@ function ExpenseCurrencyConversionButton(props: {
 	const convertSettleUpCurrency = useMutation(
 		api.groups.convertSettleUpCurrency,
 	);
-	const [isOpen, setIsOpen] = createSignal(false);
-	const [selectedOptionId, setSelectedOptionId] = createSignal("");
-	const [targetCurrency, setTargetCurrency] = createSignal("");
+	const [isOpen, setIsOpen] = useAccessorState(false);
+	const [selectedOptionId, setSelectedOptionId] = useAccessorState("");
+	const [targetCurrency, setTargetCurrency] = useAccessorState("");
 	const [conversionQuote, setConversionQuote] =
-		createSignal<ConversionQuote | null>(null);
-	const [convertedAmount, setConvertedAmount] = createSignal("");
-	const [isFetchingConversion, setIsFetchingConversion] = createSignal(false);
+		useAccessorState<ConversionQuote | null>(null);
+	const [convertedAmount, setConvertedAmount] = useAccessorState("");
+	const [isFetchingConversion, setIsFetchingConversion] =
+		useAccessorState(false);
 
 	const optionId = (option: SettleUpConversionOption<Id<"users">>) =>
 		option.settlementId;
 
-	const selectedOption = createMemo(() => {
+	const selectedOption = () => {
 		const selectedId = selectedOptionId() || optionId(props.options[0]);
 		return (
 			props.options.find((option) => optionId(option) === selectedId) ??
 			props.options[0]
 		);
-	});
+	};
 
-	const targetCurrencyOptions = createMemo(() =>
-		filteredCurrencyCodes(selectedOption().currency),
-	);
+	const targetCurrencyOptions = () =>
+		filteredCurrencyCodes(selectedOption().currency);
 
 	const defaultTargetCurrency = (sourceCurrency: string) => {
 		const options = filteredCurrencyCodes(sourceCurrency);
@@ -893,50 +882,48 @@ function ExpenseCurrencyConversionButton(props: {
 	return (
 		<>
 			<button
-				class="inline-flex items-center gap-1.5 rounded-sm border border-cyan-200 bg-cyan-50 px-2.5 py-1.5 font-medium text-cyan-700 text-xs transition-colors hover:bg-cyan-100 dark:border-cyan-900/70 dark:bg-cyan-950/30 dark:text-cyan-300 dark:hover:bg-cyan-900/40"
+				className="inline-flex items-center gap-1.5 rounded-sm border border-cyan-200 bg-cyan-50 px-2.5 py-1.5 font-medium text-cyan-700 text-xs transition-colors hover:bg-cyan-100 dark:border-cyan-900/70 dark:bg-cyan-950/30 dark:text-cyan-300 dark:hover:bg-cyan-900/40"
 				type="button"
 				onClick={openDialog}
 			>
-				<ArrowLeftRight class="h-3.5 w-3.5" /> Convert
+				<ArrowLeftRight className="h-3.5 w-3.5" /> Convert
 			</button>
 
-			<Show when={isOpen()}>
-				<div class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-					<div class="w-full max-w-sm rounded-sm bg-white p-5 shadow-xl dark:bg-gray-900">
-						<h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
+			{isOpen() ? (
+				<div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
+					<div className="w-full max-w-sm rounded-sm bg-white p-5 shadow-xl dark:bg-gray-900">
+						<h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
 							Convert Transaction
 						</h3>
-						<p class="mb-5 text-gray-600 text-sm dark:text-gray-300">
+						<p className="mb-5 text-gray-600 text-sm dark:text-gray-300">
 							Choose a settle-up balance involving you and one other member,
 							then move that amount to another currency.
 						</p>
 
-						<div class="space-y-4">
+						<div className="space-y-4">
 							<div>
 								<label
-									class="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
-									for="conversion-transaction"
+									className="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
+									htmlFor="conversion-transaction"
 								>
 									Transaction
 								</label>
 								<select
-									class="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+									className="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
 									id="conversion-transaction"
 									value={optionId(selectedOption())}
 									onInput={(event) =>
 										handleSelectOption(event.currentTarget.value)
 									}
 								>
-									<For each={props.options}>
-										{(option) => (
-											<option value={optionId(option)}>
-												{option.counterpartyName} •{" "}
-												{formatCurrencyAmount(option.amount, option.currency)}
-											</option>
-										)}
-									</For>
+									{props.options.map((option) => (
+										<option key={optionId(option)} value={optionId(option)}>
+											{option.counterpartyName} •{" "}
+											{formatCurrencyAmount(option.amount, option.currency)}
+										</option>
+									))}
 								</select>
-								<p class="mt-2 text-gray-500 text-xs dark:text-gray-400">
+								<p className="mt-2 text-gray-500 text-xs dark:text-gray-400">
 									{selectedOption().payerId === selectedOption().counterpartyId
 										? `${selectedOption().counterpartyName} owes you`
 										: `You owe ${selectedOption().counterpartyName}`}{" "}
@@ -949,14 +936,14 @@ function ExpenseCurrencyConversionButton(props: {
 
 							<div>
 								<label
-									class="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
-									for="conversion-target-currency"
+									className="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
+									htmlFor="conversion-target-currency"
 								>
 									Convert to
 								</label>
-								<div class="flex gap-2">
+								<div className="flex gap-2">
 									<select
-										class="min-w-0 flex-1 rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+										className="min-w-0 flex-1 rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
 										id="conversion-target-currency"
 										value={targetCurrency()}
 										onInput={(event) => {
@@ -964,14 +951,14 @@ function ExpenseCurrencyConversionButton(props: {
 											resetQuote();
 										}}
 									>
-										<For each={targetCurrencyOptions()}>
-											{(currency) => (
-												<option value={currency}>{currency}</option>
-											)}
-										</For>
+										{targetCurrencyOptions().map((currency) => (
+											<option key={currency} value={currency}>
+												{currency}
+											</option>
+										))}
 									</select>
 									<button
-										class="shrink-0 rounded-sm border border-cyan-600 px-3 py-2 font-medium text-cyan-700 text-sm transition-colors hover:bg-cyan-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 dark:border-cyan-500 dark:text-cyan-300 dark:hover:bg-cyan-950/30 dark:disabled:border-gray-700 dark:disabled:text-gray-500"
+										className="shrink-0 rounded-sm border border-cyan-600 px-3 py-2 font-medium text-cyan-700 text-sm transition-colors hover:bg-cyan-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 dark:border-cyan-500 dark:text-cyan-300 dark:hover:bg-cyan-950/30 dark:disabled:border-gray-700 dark:disabled:text-gray-500"
 										disabled={isFetchingConversion()}
 										type="button"
 										onClick={handleGetConversion}
@@ -981,40 +968,38 @@ function ExpenseCurrencyConversionButton(props: {
 								</div>
 							</div>
 
-							<Show when={conversionQuote()}>
-								{(quote) => (
-									<div>
-										<label
-											class="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
-											for="converted-transaction-amount"
-										>
-											Converted amount
-										</label>
-										<input
-											class="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
-											id="converted-transaction-amount"
-											inputMode="decimal"
-											min="0.01"
-											step="0.01"
-											type="number"
-											value={convertedAmount()}
-											onInput={(event) =>
-												setConvertedAmount(event.currentTarget.value)
-											}
-										/>
-										<p class="mt-2 text-gray-500 text-xs dark:text-gray-400">
-											Rate {quote().rate.toFixed(6)}
-											<Show when={quote().rateDate}>
-												{(rateDate) => ` on ${rateDate()}`}
-											</Show>
-										</p>
-									</div>
-								)}
-							</Show>
+							{conversionQuote() ? (
+								<div>
+									<label
+										className="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
+										htmlFor="converted-transaction-amount"
+									>
+										Converted amount
+									</label>
+									<input
+										className="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+										id="converted-transaction-amount"
+										inputMode="decimal"
+										min="0.01"
+										step="0.01"
+										type="number"
+										value={convertedAmount()}
+										onInput={(event) =>
+											setConvertedAmount(event.currentTarget.value)
+										}
+									/>
+									<p className="mt-2 text-gray-500 text-xs dark:text-gray-400">
+										Rate {conversionQuote()!.rate.toFixed(6)}
+										{conversionQuote()!.rateDate
+											? ` on ${conversionQuote()!.rateDate}`
+											: ""}
+									</p>
+								</div>
+							) : null}
 
-							<div class="grid grid-cols-2 gap-2">
+							<div className="grid grid-cols-2 gap-2">
 								<button
-									class="rounded-sm bg-cyan-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:bg-cyan-500 dark:hover:bg-cyan-600 dark:disabled:bg-gray-700"
+									className="rounded-sm bg-cyan-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:bg-cyan-500 dark:hover:bg-cyan-600 dark:disabled:bg-gray-700"
 									disabled={!conversionQuote()}
 									type="button"
 									onClick={handleConfirmConversion}
@@ -1022,7 +1007,7 @@ function ExpenseCurrencyConversionButton(props: {
 									Confirm conversion
 								</button>
 								<button
-									class="rounded-sm border border-gray-300 px-3 py-2 font-medium text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+									className="rounded-sm border border-gray-300 px-3 py-2 font-medium text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
 									type="button"
 									onClick={closeDialog}
 								>
@@ -1032,7 +1017,7 @@ function ExpenseCurrencyConversionButton(props: {
 						</div>
 					</div>
 				</div>
-			</Show>
+			) : null}
 		</>
 	);
 }
@@ -1044,7 +1029,7 @@ function AddExpenseButton(props: {
 	return (
 		<Link
 			aria-label="Add expense"
-			class="fixed right-6 bottom-6 flex h-14 w-14 items-center justify-center rounded-sm bg-gray-950 text-white shadow-lg transition-all hover:bg-gray-800 focus:scale-95 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 active:scale-95 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
+			className="fixed right-6 bottom-6 flex h-14 w-14 items-center justify-center rounded-sm bg-gray-950 text-white shadow-lg transition-all hover:bg-gray-800 focus:scale-95 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 active:scale-95 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
 			params={{
 				groupId: String(props.telegramChatId),
 			}}
@@ -1058,24 +1043,16 @@ function AddExpenseButton(props: {
 			}}
 			to="/app/groups/$groupId/add-expense"
 		>
-			<Plus class="h-6 w-6" />
+			<Plus className="h-6 w-6" />
 		</Link>
 	);
 }
 
 function Loading() {
 	return (
-		<div class="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-gray-950">
-			<Loader2 class="mx-auto mb-4 h-8 w-8 animate-spin text-cyan-600 dark:text-cyan-400" />
+		<div className="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-gray-950">
+			<Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-cyan-600 dark:text-cyan-400" />
 		</div>
-	);
-}
-
-function Empty(props: { text: string }) {
-	return (
-		<p class="rounded-sm border border-gray-200 bg-white p-6 text-center text-gray-600 text-sm shadow-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300">
-			{props.text}
-		</p>
 	);
 }
 

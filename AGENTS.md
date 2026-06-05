@@ -5,10 +5,11 @@
 NanaSplits is a Telegram Mini App for splitting group expenses. It is built with:
 
 - **Runtime/package manager**: Bun
-- **Frontend**: TanStack Start, TanStack Router, SolidJS, Vite
+- **Frontend**: TanStack React Start, TanStack React Router, React, Vite
 - **Backend**: Convex with `@convex-dev/auth`
 - **Styling**: Tailwind CSS 4 via `@tailwindcss/vite`
-- **Icons**: `lucide-solid`
+- **Data fetching**: `@tanstack/react-query` with `@convex-dev/react-query`
+- **Icons**: `lucide-react`
 - **Telegram**: `@tma.js/sdk`, `@tma.js/init-data-node`, Gramio
 - **Validation**: Zod on client/server inputs, Convex validators on backend functions
 
@@ -62,7 +63,7 @@ bun run set:webhook https://example.com
 
 Required for local app/backend work:
 
-- `VITE_CONVEX_URL`: public Convex URL used by the Solid client and bot route at build time.
+- `VITE_CONVEX_URL`: public Convex URL used by the React client and bot route at build time.
 - `VITE_PUBLIC_BASE_URL`: public app host used at build time and by `set:webhook`.
 - `TELEGRAM_BOT_TOKEN`: used by Gramio, Telegram Mini App auth validation, and membership checks.
 - `TELEGRAM_BOT_SECRET_TOKEN`: validates incoming Telegram webhook requests and is sent by `set:webhook`.
@@ -97,12 +98,13 @@ Oxfmt sorts imports. Keep the current alias conventions:
 Example:
 
 ```typescript
-import { createFileRoute } from "@tanstack/solid-router";
+import { convexQuery } from "@convex-dev/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
-import { Show } from "solid-js";
+import { Loader2 } from "lucide-react";
 
 import Loading from "#/components/ui/loading";
-import { useQuery } from "#/solid-convex";
+import { useQuery } from "#/convex-react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 ```
@@ -112,18 +114,22 @@ import type { Id } from "@/convex/_generated/dataModel";
 - Use `type` for object shapes, unions, and aliases.
 - Use `interface` for component props when extending JSX/native element props.
 - Components are PascalCase.
-- Functions and signals are camelCase.
+- Functions, hooks, and state variables are camelCase.
 - Prefer kebab-case for new `src` component/helper files. Keep existing route, Convex, and generated filenames as they are.
 - Constants are UPPER_SNAKE_CASE only for true configuration constants.
 
-### Solid and TanStack Start
+### React and TanStack Start
 
 - Routes live in `src/routes` and use TanStack Router file-based routing.
-- Solid JSX uses `class`, not `className`.
-- Prefer `createSignal`, `createMemo`, `createEffect`, `Show`, `For`, `Switch`, and `Match` for reactive UI.
+- React JSX uses `className`, not `class`.
+- Prefer `useState`, `useEffect`, plain derived values, and standard JSX conditionals/maps.
+- React Compiler is enabled in `vite.config.ts`; do not add `useMemo` just for routine derived values. Add memoization only when there is a measured need and React Compiler cannot cover it.
+- Do not add Solid-style compatibility components such as `Show`, `For`, `Switch`, or `Match`; write inline React conditionals and array `.map()` calls.
 - Use `createServerFn` for server-side route helpers, as in `src/telegram-membership.ts`.
 - App providers are wired through `src/routes/__root.tsx` and `src/providers.tsx`.
 - Telegram app state is initialized in `src/routes/app/route.tsx` and exposed through `src/telegram-launch.tsx`.
+- Convex browser/auth bindings are wrapped in `src/convex-react.tsx`.
+- Convex route loader prefetches should use non-blocking `void context.queryClient.prefetchQuery(convexQuery(...))` so route rendering is not blocked. Components should still render their loading states.
 - Use `TelegramMainButton` for Telegram main-button actions instead of in-page primary buttons when the flow expects the native Telegram control.
 
 Current route shape:
@@ -194,7 +200,8 @@ nanasplits/
 │   ├── components/              # Telegram and shared UI components
 │   │   └── ui/                  # Button, loading, currency input
 │   ├── providers.tsx            # App provider wiring
-│   ├── solid-convex.tsx         # Solid Convex auth/query/mutation wrappers
+│   ├── convex-react.tsx         # React Convex auth/query/mutation wrappers
+│   ├── react-accessor-state.ts  # Small state helper for form-heavy screens
 │   ├── telegram-launch.tsx      # Telegram launch params context
 │   ├── telegram-membership.ts   # Server function for group membership checks
 │   ├── currencies.tsx           # Currency metadata/options
