@@ -17,13 +17,13 @@ const gitignore = await readFile(".gitignore", "utf8");
 describe("Vite build modes", () => {
 	test("production build script passes the production mode explicitly", () => {
 		expect(packageJson.scripts.build).toBe(
-			"bun --bun vite build --mode production",
+			"NODE_ENV=production bun --no-env-file --bun vite build --mode production",
 		);
 	});
 
 	test("dev build script builds with the dev mode", () => {
 		expect(packageJson.scripts["build:dev"]).toBe(
-			"bun --bun vite build --mode dev",
+			"NODE_ENV=production bun --no-env-file --bun vite build --mode dev",
 		);
 	});
 });

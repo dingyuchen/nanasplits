@@ -6,7 +6,7 @@
 
 **Architecture:** Enable Telegram inline mode at BotFather, add a GramIO inline-query handler in `src/routes/api/bot.ts`, and answer `qr`/empty inline queries with a personal `InlineQueryResultArticle`. The inline result is personal-cached, built from the querying Telegram user ID, and contains a public opaque-token URL for a QR/share page plus an inline keyboard button. The Mini App dashboard ensures the signed-in user has an opaque share token; unauthenticated inline users get a setup button that opens the Mini App/private chat.
 
-**Tech Stack:** Telegram Bot API inline mode, GramIO `bot.inlineQuery`, Convex schema/functions, TanStack Start API routes, SolidJS, Bun, optional `qrcode` package via `bun add qrcode` if we render QR images server-side.
+**Tech Stack:** Telegram Bot API inline mode, GramIO `bot.inlineQuery`, Convex schema/functions, TanStack React Start API routes, React, Bun, optional `qrcode` package via `bun add qrcode` if we render QR images server-side.
 
 ---
 
@@ -39,9 +39,11 @@ This avoids Telegram’s JPEG-only photo-result constraint and keeps the persona
 **Objective:** Store an opaque per-user token that can be safely embedded in public QR/share URLs.
 
 **Files:**
+
 - Modify: `convex/schema.ts`
 
 **Steps:**
+
 1. Add optional fields to `users`:
    - `personalShareToken: v.optional(v.string())`
    - `personalShareTokenCreatedAt: v.optional(v.number())`
@@ -50,9 +52,11 @@ This avoids Telegram’s JPEG-only photo-result constraint and keeps the persona
 3. Keep existing `by_telegram_user_id` index.
 
 **Verification:**
+
 - Run `bun x tsc --noEmit` after generated Convex types are refreshed.
 
 **Commit:**
+
 ```bash
 git add convex/schema.ts
 git commit -m "feat: add personal share token schema"
@@ -65,10 +69,12 @@ git commit -m "feat: add personal share token schema"
 **Objective:** Centralize token generation and URL/message formatting so bot, API routes, and UI stay consistent.
 
 **Files:**
+
 - Create: `src/lib/personal-share.ts`
 - Create: `src/lib/personal-share.test.ts`
 
 **Implementation sketch:**
+
 ```ts
 export function createPersonalShareToken() {
 	const bytes = crypto.getRandomValues(new Uint8Array(18));
@@ -95,16 +101,19 @@ export function displayUserName(user: {
 ```
 
 **Tests:**
+
 - Token only contains URL-safe characters and is long enough.
 - URL builder strips accidental `https://` from `VITE_PUBLIC_BASE_URL`.
 - Display name prefers first+last, then username, then fallback.
 
 **Commands:**
+
 ```bash
 bun test src/lib/personal-share.test.ts
 ```
 
 **Commit:**
+
 ```bash
 git add src/lib/personal-share.ts src/lib/personal-share.test.ts
 git commit -m "feat: add personal share helpers"
@@ -117,9 +126,11 @@ git commit -m "feat: add personal share helpers"
 **Objective:** Generate the token only in an authenticated Mini App session, avoiding a public mutation that can mint tokens for arbitrary Telegram IDs.
 
 **Files:**
+
 - Modify: `convex/groups.ts` or create `convex/personalShare.ts` if keeping share functions separate.
 
 **Implementation sketch:**
+
 ```ts
 export const ensurePersonalShareToken = protectedMutation({
 	args: { telegramUserId: v.number() },
@@ -143,10 +154,12 @@ export const ensurePersonalShareToken = protectedMutation({
 **Note:** Convex functions cannot import browser-only helpers if they use `crypto.getRandomValues`; use `Math.random` is not ideal. Prefer a small server-safe helper using `crypto.randomUUID()` if Convex runtime supports it, or build from `Date.now()` + random and check for collisions by querying `by_personal_share_token` before patching.
 
 **Verification:**
+
 - Run `bun x tsc --noEmit`.
 - Confirm generated API exposes `api.groups.ensurePersonalShareToken` or `api.personalShare.ensurePersonalShareToken`.
 
 **Commit:**
+
 ```bash
 git add convex/groups.ts
 git commit -m "feat: ensure personal share tokens"
@@ -159,9 +172,11 @@ git commit -m "feat: ensure personal share tokens"
 **Objective:** Let the webhook handler fetch only public share-card data by Telegram user ID.
 
 **Files:**
+
 - Modify: `convex/groups.ts` or `convex/personalShare.ts`
 
 **Implementation sketch:**
+
 ```ts
 export const getPersonalShareByTelegramUserId = query({
 	args: { telegramUserId: v.number() },
@@ -187,9 +202,11 @@ export const getPersonalShareByTelegramUserId = query({
 **Security rule:** Do not return balances, groups, Convex IDs, or Telegram user IDs from this public query.
 
 **Verification:**
+
 - Run `bun x tsc --noEmit`.
 
 **Commit:**
+
 ```bash
 git add convex/groups.ts convex/_generated
 git commit -m "feat: expose public personal share lookup"
@@ -202,28 +219,35 @@ git commit -m "feat: expose public personal share lookup"
 **Objective:** Existing signed-in users get a token before trying inline mode.
 
 **Files:**
+
 - Modify: `src/routes/app/index.tsx`
 
 **Steps:**
-1. Import `createEffect` and `useMutation`.
+
+1. Import `useEffect` and `useMutation`.
 2. In `Dashboard({ userId })`, call `ensurePersonalShareToken({ telegramUserId: userId })` once when `userId` exists.
 3. Keep this non-blocking; dashboard should still render if token creation fails, but log the error.
 
 **Implementation sketch:**
+
 ```tsx
-const ensurePersonalShareToken = useMutation(api.groups.ensurePersonalShareToken);
-createEffect(() => {
+const ensurePersonalShareToken = useMutation(
+	api.groups.ensurePersonalShareToken,
+);
+useEffect(() => {
 	void ensurePersonalShareToken({ telegramUserId: userId }).catch((error) =>
 		console.error("Failed to ensure personal share token", error),
 	);
-});
+}, [ensurePersonalShareToken, userId]);
 ```
 
 **Verification:**
+
 - Run `bun x tsc --noEmit`.
 - Open `/app` in Telegram dev flow and confirm no UI regression.
 
 **Commit:**
+
 ```bash
 git add src/routes/app/index.tsx
 git commit -m "feat: prepare personal share token on dashboard"
@@ -236,26 +260,31 @@ git commit -m "feat: prepare personal share token on dashboard"
 **Objective:** Provide a public URL that renders the personal QR code and can be linked from inline messages.
 
 **Files:**
+
 - Create: `src/routes/qr/$token.tsx`
 - Optional dependency: `qrcode` via `bun add qrcode` if rendering QR in the page with generated SVG/data URL.
 
 **MVP approach:**
+
 - Render a simple public page at `/qr/$token`.
 - The page displays a QR code encoding its own absolute URL.
 - If client-side QR rendering is used, dynamically import `qrcode` and render an SVG/data URL after mount.
 - Include fallback text/link so the page still works if QR rendering fails.
 
 **Validation:**
+
 - Token must match `/^[A-Za-z0-9_-]{16,64}$/`; invalid tokens render a friendly “Invalid QR link” state.
 - If desired, add a public Convex lookup by token to show the user’s display name; otherwise keep the page static to avoid leaking more user data.
 
 **Verification:**
+
 ```bash
 bun x tsc --noEmit
 bun run build:dev
 ```
 
 **Commit:**
+
 ```bash
 git add src/routes/qr/$token.tsx package.json bun.lock
 git commit -m "feat: add personal QR page"
@@ -268,17 +297,22 @@ git commit -m "feat: add personal QR page"
 **Objective:** Return a personal QR share-card result for inline mode.
 
 **Files:**
+
 - Modify: `src/routes/api/bot.ts`
 
 **Implementation sketch:**
+
 ```ts
 import { InlineKeyboard, InlineQueryResult, InputMessageContent } from "gramio";
 import { buildPersonalQrUrl, displayUserName } from "#/lib/personal-share";
 
 bot.inlineQuery(/^(qr)?$/i, async (context) => {
-	const share = await convex.query(api.groups.getPersonalShareByTelegramUserId, {
-		telegramUserId: context.from.id,
-	});
+	const share = await convex.query(
+		api.groups.getPersonalShareByTelegramUserId,
+		{
+			telegramUserId: context.from.id,
+		},
+	);
 
 	if (!share) {
 		return context.answer([], {
@@ -317,16 +351,19 @@ bot.inlineQuery(/^(qr)?$/i, async (context) => {
 ```
 
 **Notes:**
+
 - Check exact GramIO imports/types against current installed version; if `InlineQueryResult` or `InputMessageContent` names differ, use GramIO’s generated API reference.
 - Add a broader fallback query handler only if GramIO allows handler ordering without shadowing future inline commands.
 
 **Verification:**
+
 ```bash
 bun x tsc --noEmit
 bun run build:dev
 ```
 
 **Commit:**
+
 ```bash
 git add src/routes/api/bot.ts
 git commit -m "feat: answer personal QR inline queries"
@@ -339,10 +376,12 @@ git commit -m "feat: answer personal QR inline queries"
 **Objective:** Let users launch inline sharing from inside NanaSplits without remembering `@bot qr`.
 
 **Files:**
+
 - Modify: `src/routes/app/index.tsx`
 - Possibly create: `src/components/share-personal-qr-button.tsx`
 
 **Approach:**
+
 1. Add a compact “Share my QR” button near the dashboard header or balances card.
 2. On click, call Telegram Mini App `web_app_switch_inline_query` through `@tma.js/sdk` if available:
    - query: `qr`
@@ -350,10 +389,12 @@ git commit -m "feat: answer personal QR inline queries"
 3. If unsupported, copy/show `@<bot> qr` instructions.
 
 **Verification:**
+
 - In Telegram, tap the button and confirm Telegram prompts to choose a chat and inserts `@<bot> qr`.
 - In web/dev fallback, confirm the button does not crash.
 
 **Commit:**
+
 ```bash
 git add src/routes/app/index.tsx src/components/share-personal-qr-button.tsx
 git commit -m "feat: add personal QR share button"
@@ -366,6 +407,7 @@ git commit -m "feat: add personal QR share button"
 **Objective:** Enable inline mode and test in Telegram.
 
 **Steps:**
+
 1. In BotFather:
    - Run `/setinline` for the NanaSplits bot.
    - Placeholder suggestion: `qr — share your NanaSplits QR`.
@@ -382,9 +424,11 @@ git commit -m "feat: add personal QR share button"
    - See setup button instead of leaked/default data.
 
 **Commit:**
+
 ```bash
 git status
 ```
+
 No code commit required for BotFather settings.
 
 ---
@@ -394,6 +438,7 @@ No code commit required for BotFather settings.
 **Objective:** Ensure the feature is safe and Bun-compatible before merging.
 
 **Commands:**
+
 ```bash
 bun test
 bun run check
@@ -402,6 +447,7 @@ bun run build:dev
 ```
 
 **Manual acceptance criteria:**
+
 - `@<bot> qr` returns a personal result only for the querying Telegram user.
 - `answerInlineQuery` uses `is_personal: true`.
 - Inline result IDs are stable and <= 64 bytes.
@@ -411,6 +457,7 @@ bun run build:dev
 - No npm commands are used; use Bun for dependency/install/test/build steps.
 
 **Commit:**
+
 ```bash
 git status
 git log --oneline -n 10

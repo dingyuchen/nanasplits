@@ -1,6 +1,5 @@
 import { mainButton } from "@tma.js/sdk";
-import { createEffect, createSignal, onCleanup, onMount } from "solid-js";
-import { isServer } from "solid-js/web";
+import { useEffect, useState } from "react";
 
 interface TelegramMainButtonProps {
 	text: string;
@@ -11,16 +10,16 @@ interface TelegramMainButtonProps {
 }
 
 export function TelegramMainButton(props: TelegramMainButtonProps) {
-	const [isPending, setIsPending] = createSignal(false);
+	const [isPending, setIsPending] = useState(false);
 
-	onMount(() => {
-		if (isServer) return;
+	useEffect(() => {
+		if (typeof window === "undefined") return;
 		if (!mainButton.isMounted()) {
 			mainButton.mount();
 		}
 
 		const off = mainButton.onClick(async () => {
-			if (isPending()) return;
+			if (isPending) return;
 			setIsPending(true);
 			try {
 				await props.onClick();
@@ -29,34 +28,36 @@ export function TelegramMainButton(props: TelegramMainButtonProps) {
 			}
 		}, props.once);
 
-		onCleanup(off);
-	});
+		return off;
+	}, [isPending, props]);
 
-	createEffect(() => {
-		if (isServer || !mainButton.isMounted()) return;
+	useEffect(() => {
+		if (typeof window === "undefined" || !mainButton.isMounted()) return;
 		const show = props.show ?? true;
 		const ready = props.ready ?? true;
-		const pending = isPending();
 
 		mainButton.setParams({
 			text: props.text,
 			isVisible: show,
-			isEnabled: show && ready && !pending,
-			isLoaderVisible: pending,
-			hasShineEffect: ready && !pending,
+			isEnabled: show && ready && !isPending,
+			isLoaderVisible: isPending,
+			hasShineEffect: ready && !isPending,
 		});
-	});
+	}, [isPending, props.ready, props.show, props.text]);
 
-	onCleanup(() => {
-		if (isServer || !mainButton.isMounted()) return;
-		mainButton.setParams({
-			isVisible: false,
-			isEnabled: false,
-			isLoaderVisible: false,
-			hasShineEffect: false,
-		});
-		mainButton.unmount();
-	});
+	useEffect(
+		() => () => {
+			if (typeof window === "undefined" || !mainButton.isMounted()) return;
+			mainButton.setParams({
+				isVisible: false,
+				isEnabled: false,
+				isLoaderVisible: false,
+				hasShineEffect: false,
+			});
+			mainButton.unmount();
+		},
+		[],
+	);
 
 	return null;
 }
