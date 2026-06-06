@@ -106,7 +106,7 @@ function GroupIndexData(props: {
 		return <Loading />;
 	}
 
-	if (data === null) {
+	if (!data) {
 		return (
 			<NotFound
 				text="This group is not available in NanaSplits."
@@ -121,7 +121,7 @@ function GroupIndexData(props: {
 
 	return (
 		<GroupView
-			groupData={data!}
+			groupData={data}
 			groupIdNumber={props.telegramChatId}
 			isRegisteredMemberOfGroup={isRegistered === true}
 			telegramUserId={props.telegramUserId}

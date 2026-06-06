@@ -133,7 +133,7 @@ function AddExpenseData(props: {
 		telegramChatId: props.telegramChatId,
 	});
 
-	if (isPending) {
+	if (isPending || !data) {
 		return <Loading message="Loading page..." />;
 	}
 
@@ -149,7 +149,7 @@ function AddExpenseData(props: {
 
 	return (
 		<EditExpensePage
-			groupData={data!}
+			groupData={data}
 			searchParams={props.searchParams}
 			telegramChatId={props.telegramChatId}
 			telegramUserId={props.telegramUserId}

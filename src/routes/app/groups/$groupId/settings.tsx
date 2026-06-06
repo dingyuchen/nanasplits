@@ -57,7 +57,7 @@ function GroupSettingsData(props: {
 
 	if (isPending) return <Loading />;
 
-	if (data === null) {
+	if (!data) {
 		return (
 			<NotFound
 				text="This group is not available for settings."
@@ -68,7 +68,7 @@ function GroupSettingsData(props: {
 
 	return (
 		<GroupSettings
-			groupData={data!}
+			groupData={data}
 			telegramChatId={props.telegramChatId}
 			telegramUserId={props.telegramUserId}
 		/>

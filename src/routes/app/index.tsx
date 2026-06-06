@@ -27,10 +27,9 @@ function DashboardRoute() {
 }
 
 function Dashboard({ userId }: { userId: number }) {
-	const dashboardData = useQuery(api.groups.getDashboardData, { userId });
-	const data = dashboardData();
+	const { data, isPending } = useQuery(api.groups.getDashboardData, { userId });
 
-	if (data === undefined) {
+	if (isPending || !data) {
 		return <Loading message="Getting your data..." />;
 	}
 
