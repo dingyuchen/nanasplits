@@ -1,6 +1,6 @@
 import { convexAuth } from "@convex-dev/auth/server";
 
-import { telegram } from "./telegramProvider";
+import { telegram } from "./telegramAuthProvider";
 
 export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
 	providers: [telegram],

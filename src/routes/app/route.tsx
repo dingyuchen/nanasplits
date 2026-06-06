@@ -15,6 +15,7 @@ import {
 	retrieveRawInitData,
 	themeParams,
 } from "@tma.js/sdk";
+import { ConvexError } from "convex/values";
 import { useEffect, useState } from "react";
 
 import { TelegramMainButton } from "#/components/telegram-main-button";
@@ -38,6 +39,7 @@ function AppRoute() {
 	const [telegramStatus, setTelegramStatus] =
 		useState<TelegramStatus>("checking");
 	const [launchParams, setLaunchParams] = useState<LaunchParams | null>(null);
+	const [rawInitData, setRawInitData] = useState<string | undefined>(undefined);
 
 	useEffect(() => {
 		let cleanup: VoidFunction | undefined;
@@ -59,6 +61,7 @@ function AppRoute() {
 				}
 				miniApp.ready();
 				setLaunchParams(retrieveLaunchParams());
+				setRawInitData(retrieveRawInitData());
 				setTelegramStatus("ready");
 			} catch (error) {
 				console.error("Failed to initialize Telegram Mini App:", error);
@@ -99,7 +102,7 @@ function AppRoute() {
 				<Loading message="Authenticating..." />
 			</AuthLoading>
 			<Unauthenticated>
-				<SignInPanel />
+				<SignInPanel initData={rawInitData} />
 			</Unauthenticated>
 			<Authenticated>
 				<TelegramLaunchProvider launchParams={() => launchParams}>
@@ -110,20 +113,32 @@ function AppRoute() {
 	);
 }
 
-function SignInPanel() {
+function SignInPanel({ initData }: { initData: string | undefined }) {
 	const { signIn } = useAuthActions();
-	const [started, setStarted] = useState(false);
+	const [signingIn, setSigningIn] = useState(false);
+
+	const doSignIn = () => {
+		if (!initData) return;
+		setSigningIn(true);
+		signIn("telegram", { initData })
+			.catch((err) => {
+				if (err instanceof ConvexError) {
+					console.error("err signing in", err);
+				}
+			})
+			.finally(() => setSigningIn(false));
+	};
 
 	useEffect(() => {
-		if (started) return;
-		setStarted(true);
-		const initData = retrieveRawInitData() ?? "";
-		void signIn("telegram", { initData });
-	}, [signIn, started]);
+		// attempt to signin automatically on load.
+		doSignIn();
+	}, []);
 
 	return (
 		<>
-			<Loading message="Signing in... Restart app if this message persists" />
+			{signingIn && (
+				<Loading message="Signing in... Restart app if this message persists" />
+			)}
 			<TelegramMainButton
 				once
 				ready={false}
