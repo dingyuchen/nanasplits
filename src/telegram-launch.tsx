@@ -1,21 +1,20 @@
 import type { LaunchParams } from "@tma.js/sdk";
 import { createContext, type ReactNode, useContext } from "react";
 
-type TelegramLaunchContextValue = {
+type TelegramLaunchParamsContextValue = {
 	launchParams: () => LaunchParams | null;
 	startParam: () => string | undefined;
 	telegramUserId: () => number | null;
 };
 
-const TelegramLaunchContext = createContext<TelegramLaunchContextValue | null>(
-	null,
-);
+const TelegramLaunchParamsContext =
+	createContext<TelegramLaunchParamsContextValue | null>(null);
 
-export function TelegramLaunchProvider(props: {
+export function TelegramLaunchParamsProvider(props: {
 	children: ReactNode;
 	launchParams: () => LaunchParams | null;
 }) {
-	const value: TelegramLaunchContextValue = {
+	const value: TelegramLaunchParamsContextValue = {
 		launchParams: props.launchParams,
 		startParam: () =>
 			props.launchParams()?.tgWebAppStartParam ??
@@ -24,16 +23,18 @@ export function TelegramLaunchProvider(props: {
 	};
 
 	return (
-		<TelegramLaunchContext.Provider value={value}>
+		<TelegramLaunchParamsContext.Provider value={value}>
 			{props.children}
-		</TelegramLaunchContext.Provider>
+		</TelegramLaunchParamsContext.Provider>
 	);
 }
 
-export function useTelegramLaunch() {
-	const context = useContext(TelegramLaunchContext);
+export function useTelegramLaunchParams() {
+	const context = useContext(TelegramLaunchParamsContext);
 	if (context === null) {
-		throw new Error("TelegramLaunchProvider is missing from the app route.");
+		throw new Error(
+			"TelegramLaunchParamsProvider is missing from the app route.",
+		);
 	}
 	return context;
 }

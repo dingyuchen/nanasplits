@@ -22,7 +22,7 @@ import NotFound from "#/components/ui/not-found";
 import { useQuery } from "#/convex-react";
 import { CurrencyDropdownOptions, currencySigns } from "#/currencies";
 import { useAccessorState } from "#/react-accessor-state";
-import { useTelegramLaunch } from "#/telegram-launch";
+import { useTelegramLaunchParams } from "#/telegram-launch";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 
@@ -102,7 +102,7 @@ function AddExpenseRoute() {
 	const search = Route.useSearch();
 	const { groupId } = params;
 	const telegramChatId = Number(groupId);
-	const { telegramUserId } = useTelegramLaunch();
+	const { telegramUserId } = useTelegramLaunchParams();
 	const currentTelegramUserId = telegramUserId();
 
 	if (Number.isNaN(telegramChatId) || currentTelegramUserId === null) {

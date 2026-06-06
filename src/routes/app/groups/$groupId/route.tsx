@@ -4,7 +4,7 @@ import { ShieldAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import Loading from "#/components/ui/loading";
-import { useTelegramLaunch } from "#/telegram-launch";
+import { useTelegramLaunchParams } from "#/telegram-launch";
 import { checkTelegramMembership } from "#/telegram-membership";
 import { api } from "@/convex/_generated/api";
 
@@ -26,7 +26,7 @@ type TelegramMembership =
 
 function GroupLayoutRoute() {
 	const params = Route.useParams();
-	const { telegramUserId } = useTelegramLaunch();
+	const { telegramUserId } = useTelegramLaunchParams();
 	const [membership, setMembership] = useState<TelegramMembership | null>(null);
 	const [isChecking, setIsChecking] = useState(true);
 

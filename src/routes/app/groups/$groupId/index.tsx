@@ -28,7 +28,7 @@ import {
 	type SettleUpConversionOption,
 } from "#/lib/expense-conversion";
 import { useAccessorState } from "#/react-accessor-state";
-import { useTelegramLaunch } from "#/telegram-launch";
+import { useTelegramLaunchParams } from "#/telegram-launch";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 
@@ -67,7 +67,7 @@ function GroupIndexRoute() {
 	const params = Route.useParams();
 	const { groupId } = params;
 	const telegramChatId = Number(groupId);
-	const { telegramUserId } = useTelegramLaunch();
+	const { telegramUserId } = useTelegramLaunchParams();
 	const currentTelegramUserId = telegramUserId();
 
 	if (Number.isNaN(telegramChatId)) {

@@ -4,7 +4,7 @@ import { AlertCircle, ArrowRight, LoaderCircle, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { useQuery } from "#/convex-react";
-import { useTelegramLaunch } from "#/telegram-launch";
+import { useTelegramLaunchParams } from "#/telegram-launch";
 import { api } from "@/convex/_generated/api";
 
 export const Route = createFileRoute("/app/")({
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/app/")({
 });
 
 function DashboardRoute() {
-	const { telegramUserId } = useTelegramLaunch();
+	const { telegramUserId } = useTelegramLaunchParams();
 	const userId = telegramUserId();
 
 	return (

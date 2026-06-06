@@ -9,7 +9,7 @@ import { TelegramMainButton } from "#/components/telegram-main-button";
 import NotFound from "#/components/ui/not-found";
 import { useQuery } from "#/convex-react";
 import { currencySigns } from "#/currencies";
-import { useTelegramLaunch } from "#/telegram-launch";
+import { useTelegramLaunchParams } from "#/telegram-launch";
 import { api } from "@/convex/_generated/api";
 
 export const Route = createFileRoute("/app/groups/$groupId/settings")({
@@ -32,7 +32,7 @@ function GroupSettingsRoute() {
 	const params = Route.useParams();
 	const { groupId } = params;
 	const telegramChatId = Number(groupId);
-	const { telegramUserId } = useTelegramLaunch();
+	const { telegramUserId } = useTelegramLaunchParams();
 	const currentTelegramUserId = telegramUserId();
 
 	if (Number.isNaN(telegramChatId) || currentTelegramUserId === null) {

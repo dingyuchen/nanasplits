@@ -27,7 +27,10 @@ import {
 	Unauthenticated,
 	useAuthActions,
 } from "#/convex-react";
-import { TelegramLaunchProvider, useTelegramLaunch } from "#/telegram-launch";
+import {
+	TelegramLaunchParamsProvider,
+	useTelegramLaunchParams,
+} from "#/telegram-launch";
 
 export const Route = createFileRoute("/app")({
 	component: AppRoute,
@@ -105,9 +108,9 @@ function AppRoute() {
 				<SignInPanel initData={rawInitData} />
 			</Unauthenticated>
 			<Authenticated>
-				<TelegramLaunchProvider launchParams={() => launchParams}>
+				<TelegramLaunchParamsProvider launchParams={() => launchParams}>
 					<AppOutlet />
-				</TelegramLaunchProvider>
+				</TelegramLaunchParamsProvider>
 			</Authenticated>
 		</>
 	);
@@ -152,7 +155,7 @@ function SignInPanel({ initData }: { initData: string | undefined }) {
 function AppOutlet() {
 	const location = useLocation();
 	const navigate = useNavigate();
-	const { launchParams, startParam } = useTelegramLaunch();
+	const { launchParams, startParam } = useTelegramLaunchParams();
 
 	useEffect(() => {
 		if (location.pathname !== "/app") return;
