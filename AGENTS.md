@@ -101,7 +101,7 @@ Example:
 import { convexQuery } from "@convex-dev/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
-import { Loader2 } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 
 import Loading from "#/components/ui/loading";
 import { useQuery } from "#/convex-react";

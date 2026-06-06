@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
-import { AlertCircle, ArrowRight, Loader2, Users } from "lucide-react";
+import { AlertCircle, ArrowRight, LoaderCircle, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { useQuery } from "#/convex-react";
@@ -217,7 +217,7 @@ function Loading({ message }: { message: string }) {
 	return (
 		<div className="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-gray-950">
 			<div className="text-center">
-				<Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-cyan-600 dark:text-cyan-400" />
+				<LoaderCircle className="mx-auto mb-4 h-8 w-8 animate-spin text-cyan-600 dark:text-cyan-400" />
 				<p className="text-gray-500 text-sm dark:text-gray-400">{message}</p>
 			</div>
 		</div>
