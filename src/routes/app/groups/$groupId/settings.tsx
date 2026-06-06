@@ -1,12 +1,13 @@
-import { convexQuery } from "@convex-dev/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
-import { ArrowLeft, Check, Globe, Loader2, Users } from "lucide-react";
+import { ArrowLeft, Check, Globe, LoaderCircle, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { TelegramMainButton } from "#/components/telegram-main-button";
 import NotFound from "#/components/ui/not-found";
-import { useMutation, useQuery } from "#/convex-react";
+import { useQuery } from "#/convex-react";
 import { currencySigns } from "#/currencies";
 import { useTelegramLaunch } from "#/telegram-launch";
 import { api } from "@/convex/_generated/api";
@@ -50,14 +51,13 @@ function GroupSettingsData(props: {
 	telegramChatId: number;
 	telegramUserId: number;
 }) {
-	const groupData = useQuery(api.groups.getListOfExpenses, {
+	const { data, isPending } = useQuery(api.groups.getListOfExpenses, {
 		telegramChatId: props.telegramChatId,
 	});
-	const data = groupData();
 
-	if (data === undefined) return <Loading />;
+	if (isPending) return <Loading />;
 
-	if (data === null) {
+	if (!data) {
 		return (
 			<NotFound
 				text="This group is not available for settings."
@@ -81,7 +81,9 @@ function GroupSettings(props: {
 	telegramUserId: number;
 }) {
 	const navigate = useNavigate();
-	const updateGroupSettings = useMutation(api.groups.updateGroupSettings);
+	const { mutate: updateGroupSettings } = useMutation({
+		mutationFn: useConvexMutation(api.groups.updateGroupSettings),
+	});
 	const [selectedCurrency, setSelectedCurrency] = useState(
 		props.groupData.defaultCurrency || "USD",
 	);
@@ -271,7 +273,7 @@ function Loading() {
 	return (
 		<div className="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-gray-950">
 			<div className="text-center">
-				<Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-cyan-600 dark:text-cyan-400" />
+				<LoaderCircle className="mx-auto mb-4 h-8 w-8 animate-spin text-cyan-600 dark:text-cyan-400" />
 			</div>
 		</div>
 	);

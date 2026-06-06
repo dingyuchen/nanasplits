@@ -1,4 +1,5 @@
-import { convexQuery } from "@convex-dev/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
 import {
@@ -10,7 +11,7 @@ import {
 	Trash2,
 	X,
 } from "lucide-react";
-import { type FormEvent, useEffect, useRef } from "react";
+import { type SubmitEvent, useEffect, useRef } from "react";
 import { z } from "zod";
 
 import { TelegramMainButton } from "#/components/telegram-main-button";
@@ -18,7 +19,7 @@ import { Button } from "#/components/ui/button";
 import { CurrencyInput } from "#/components/ui/currency-input";
 import Loading from "#/components/ui/loading";
 import NotFound from "#/components/ui/not-found";
-import { useMutation, useQuery } from "#/convex-react";
+import { useQuery } from "#/convex-react";
 import { CurrencyDropdownOptions, currencySigns } from "#/currencies";
 import { useAccessorState } from "#/react-accessor-state";
 import { useTelegramLaunch } from "#/telegram-launch";
@@ -128,16 +129,16 @@ function AddExpenseData(props: {
 	telegramChatId: number;
 	telegramUserId: number;
 }) {
-	const groupData = useQuery(api.groups.getListOfExpenses, {
+	const { data, isPending, error } = useQuery(api.groups.getListOfExpenses, {
 		telegramChatId: props.telegramChatId,
 	});
-	const data = groupData();
 
-	if (data === undefined) {
+	if (isPending || !data) {
 		return <Loading message="Loading page..." />;
 	}
 
-	if (data === null) {
+	if (error !== null) {
+		console.log(error.message, error.cause);
 		return (
 			<NotFound
 				text="This group is not available for adding expenses."
@@ -708,8 +709,12 @@ function EditExpensePage(props: {
 	telegramUserId: number;
 }) {
 	const navigate = useNavigate();
-	const addExpense = useMutation(api.groups.addExpense);
-	const updateExpense = useMutation(api.groups.updateExpense);
+	const { mutate: addExpense } = useMutation({
+		mutationFn: useConvexMutation(api.groups.addExpense),
+	});
+	const { mutate: updateExpense } = useMutation({
+		mutationFn: useConvexMutation(api.groups.updateExpense),
+	});
 	const expenseId = props.searchParams.expenseId as Id<"expenses"> | null;
 	const isEditing = () => expenseId !== null;
 	const editItems = parseEditItems(props.searchParams.items);
@@ -836,7 +841,7 @@ function EditExpensePage(props: {
 		setActiveSplitIndex(null);
 	};
 
-	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+	const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		const selectedPayer = payer();
 		if (!selectedPayer) {

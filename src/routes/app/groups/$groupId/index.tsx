@@ -1,4 +1,5 @@
-import { convexQuery } from "@convex-dev/react-query";
+import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
 import {
@@ -7,7 +8,7 @@ import {
 	ChevronDown,
 	ChevronRight,
 	ChevronUp,
-	Loader2,
+	LoaderCircle,
 	Plus,
 	Receipt,
 	Settings,
@@ -19,7 +20,7 @@ import {
 
 import { TelegramMainButton } from "#/components/telegram-main-button";
 import NotFound from "#/components/ui/not-found";
-import { useMutation, useQuery } from "#/convex-react";
+import { useQuery } from "#/convex-react";
 import { getCurrencyConversion } from "#/currency-conversion";
 import {
 	buildSettleUpConversionOptions,
@@ -89,27 +90,33 @@ function GroupIndexData(props: {
 	telegramChatId: number;
 	telegramUserId: number;
 }) {
-	const groupData = useQuery(api.groups.getListOfExpenses, {
+	const { data, isPending, error } = useQuery(api.groups.getListOfExpenses, {
 		telegramChatId: props.telegramChatId,
 	});
-	const isRegisteredMemberOfGroup = useQuery(api.groups.isUserMemberOfGroup, {
+	const {
+		data: isRegistered,
+		isPending: isRegisteredPending,
+		error: isRegisteredError,
+	} = useQuery(api.groups.isUserMemberOfGroup, {
 		telegramChatId: props.telegramChatId,
 		telegramUserId: props.telegramUserId,
 	});
-	const data = groupData();
-	const isRegistered = isRegisteredMemberOfGroup();
 
-	if (data === undefined || isRegistered === undefined) {
+	if (isPending || isRegisteredPending) {
 		return <Loading />;
 	}
 
-	if (data === null) {
+	if (!data) {
 		return (
 			<NotFound
 				text="This group is not available in NanaSplits."
 				title="Group not found"
 			/>
 		);
+	}
+
+	if (error !== null || isRegisteredError !== null) {
+		<NotFound text="Something went wrong" title="Error getting group data" />;
 	}
 
 	return (
@@ -130,7 +137,9 @@ function GroupView(props: {
 }) {
 	const navigate = useNavigate();
 	const [membersCollapsed, setMembersCollapsed] = useAccessorState(true);
-	const addUserToGroup = useMutation(api.groups.addUserToGroup);
+	const { mutate: addUserToGroup } = useMutation({
+		mutationFn: useConvexMutation(api.groups.addUserToGroup),
+	});
 	const currentUserId = () =>
 		props.groupData.members.find(
 			(member) => member.telegramUserId === props.telegramUserId,
@@ -619,7 +628,9 @@ function SettleUp(props: {
 	groupIdNumber: number;
 	telegramUserId: number;
 }) {
-	const settleUp = useMutation(api.groups.settleUp);
+	const { mutate: settleUp } = useMutation({
+		mutationFn: useConvexMutation(api.groups.settleUp),
+	});
 	const [settleDialog, setSettleDialog] = useAccessorState<{
 		memberId: Id<"users">;
 		memberName: string;
@@ -763,9 +774,9 @@ function ExpenseCurrencyConversionButton(props: {
 	options: Array<SettleUpConversionOption<Id<"users">>>;
 	telegramUserId: number;
 }) {
-	const convertSettleUpCurrency = useMutation(
-		api.groups.convertSettleUpCurrency,
-	);
+	const { mutate: convertSettleUpCurrency } = useMutation({
+		mutationFn: useConvexMutation(api.groups.convertSettleUpCurrency),
+	});
 	const [isOpen, setIsOpen] = useAccessorState(false);
 	const [selectedOptionId, setSelectedOptionId] = useAccessorState("");
 	const [targetCurrency, setTargetCurrency] = useAccessorState("");
@@ -1051,7 +1062,7 @@ function AddExpenseButton(props: {
 function Loading() {
 	return (
 		<div className="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-gray-950">
-			<Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-cyan-600 dark:text-cyan-400" />
+			<LoaderCircle className="mx-auto mb-4 h-8 w-8 animate-spin text-cyan-600 dark:text-cyan-400" />
 		</div>
 	);
 }

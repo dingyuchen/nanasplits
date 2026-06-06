@@ -35,7 +35,6 @@ export const telegram = ConvexCredentials({
 			}
 
 			// Validate init data signature (valid for 1 hour)
-			console.log("signing in");
 			await validate(initDataRaw, botToken, {
 				expiresIn: 60 * 60, // 1 hour
 			});
@@ -48,6 +47,12 @@ export const telegram = ConvexCredentials({
 			if (!telegramUserId) {
 				throw new ConvexError("Telegram user ID is not found");
 			}
+			console.log(
+				"signed in",
+				initData.user?.first_name,
+				initData.user?.last_name,
+				initData.user?.username,
+			);
 
 			// Create or retrieve account using Convex Auth
 			const { user } = await createAccount(ctx, {
