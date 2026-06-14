@@ -133,6 +133,7 @@ function SignInPanel({ initData }: { initData: string | undefined }) {
 	return (
 		<>
 			<Loading message={msg} />
+			<p>{initData}</p>
 			<TelegramMainButton
 				once
 				ready={false}
