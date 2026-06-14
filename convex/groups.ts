@@ -2,8 +2,11 @@ import { v } from "convex/values";
 
 import type { Doc, Id } from "./_generated/dataModel";
 import type { DatabaseReader, DatabaseWriter } from "./_generated/server";
-import { mutation } from "./_generated/server";
-import { protectedMutation, protectedQuery } from "./lib/utils";
+import {
+	protectedMutation,
+	protectedQuery,
+	trustedMutation,
+} from "./lib/utils";
 import { ExpenseType } from "./schema";
 
 /** Shared validator for expense items */
@@ -101,9 +104,8 @@ async function getGroupWithParticipantValidation(
 /**
  * Create or get a group by Telegram chat ID
  * Used when the bot is added to a Telegram group
- * Not protected because it is called by the bot itself
  */
-export const createOrGetGroupByChatId = mutation({
+export const createOrGetGroupByChatId = trustedMutation({
 	args: {
 		telegramChatId: v.number(),
 		title: v.string(),
@@ -133,6 +135,45 @@ export const createOrGetGroupByChatId = mutation({
 		});
 
 		return groupId;
+	},
+});
+
+/**
+ * Update a group's Telegram chat ID after Telegram migrates a basic group to a
+ * supergroup. Called by the bot webhook when migration service messages arrive.
+ */
+export const migrateGroupTelegramChatId = trustedMutation({
+	args: {
+		oldTelegramChatId: v.number(),
+		newTelegramChatId: v.number(),
+		title: v.optional(v.string()),
+		telegramChatType: v.string(),
+		isForum: v.boolean(),
+	},
+	handler: async (ctx, args) => {
+		if (args.oldTelegramChatId === args.newTelegramChatId) {
+			throw new Error("Migration chat IDs must be different");
+		}
+
+		const oldGroup = await ctx.db
+			.query("groups")
+			.withIndex("by_telegram_chat_id", (q) =>
+				q.eq("telegramChatId", args.oldTelegramChatId),
+			)
+			.unique();
+
+		if (!oldGroup) {
+			throw new Error("Group not found for Telegram migration");
+		}
+
+		await ctx.db.patch(oldGroup._id, {
+			telegramChatId: args.newTelegramChatId,
+			title: args.title ?? oldGroup.title,
+			telegramChatType: args.telegramChatType,
+			isForum: args.isForum,
+		});
+
+		return oldGroup._id;
 	},
 });
 

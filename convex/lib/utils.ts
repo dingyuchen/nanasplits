@@ -3,9 +3,25 @@ import {
 	customQuery,
 	customMutation,
 	customCtx,
+	customCtxAndArgs,
 } from "convex-helpers/server/customFunctions";
+import { v } from "convex/values";
+
+import { getServerEnv } from "#/env";
 
 import { query, mutation } from "../_generated/server";
+
+const trustedCtx = customCtxAndArgs({
+	args: {
+		trustedSecret: v.string(),
+	},
+	input: async (_ctx, args) => {
+		if (args.trustedSecret !== getServerEnv("TELEGRAM_BOT_SECRET_TOKEN")) {
+			throw new Error("Unauthorized: Invalid trusted secret");
+		}
+		return { ctx: {}, args: {} };
+	},
+});
 
 export const protectedQuery = customQuery(
 	query,
@@ -18,6 +34,8 @@ export const protectedQuery = customQuery(
 	}),
 );
 
+export const trustedQuery = customQuery(query, trustedCtx);
+
 export const protectedMutation = customMutation(
 	mutation,
 	customCtx(async (ctx) => {
@@ -28,3 +46,5 @@ export const protectedMutation = customMutation(
 		return { userId };
 	}),
 );
+
+export const trustedMutation = customMutation(mutation, trustedCtx);

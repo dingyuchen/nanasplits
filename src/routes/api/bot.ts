@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ConvexHttpClient } from "convex/browser";
 import { Bot, blockquote, bold, format, InlineKeyboard, italic } from "gramio";
 
-import { getConvexUrl, getServerEnv } from "#/env";
+import { getConvexUrl, getPublicBaseUrl, getServerEnv } from "#/env";
 import { api } from "@/convex/_generated/api";
 
 const message = format`
@@ -75,7 +75,35 @@ async function createBot() {
 		return context.send(message, { reply_markup: keyboard });
 	});
 
-	await bot.init();
+	bot.on("migrate_to_chat_id", async (context) => {
+		const newTelegramChatId = context.migrateToChatId;
+		if (newTelegramChatId === undefined) return;
+
+		await migrateGroupTelegramChatId(convex, {
+			oldTelegramChatId: context.chat.id,
+			newTelegramChatId,
+			title: context.chat.title,
+			telegramChatType: "supergroup",
+			isForum: context.chat.isForum ?? false,
+		});
+	});
+
+	bot.on("migrate_from_chat_id", async (context) => {
+		const oldTelegramChatId = context.migrateFromChatId;
+		if (oldTelegramChatId === undefined) return;
+
+		await migrateGroupTelegramChatId(convex, {
+			oldTelegramChatId,
+			newTelegramChatId: context.chat.id,
+			title: context.chat.title,
+			telegramChatType: context.chat.type,
+			isForum: context.chat.isForum ?? false,
+		});
+	});
+
+	await bot.start({
+		webhook: `https://${getPublicBaseUrl()}/api/bot`,
+	});
 	return bot;
 }
 
@@ -93,9 +121,30 @@ async function createOrGetGroup(convex: ConvexHttpClient, chat: TelegramChat) {
 			title: chat.title || "Unnamed Group",
 			telegramChatType: chat.type,
 			isForum: chat.isForum ?? false,
+			trustedSecret: getServerEnv("TELEGRAM_BOT_SECRET_TOKEN"),
 		});
 	} catch (error) {
 		console.error("Error creating/getting group:", error);
+	}
+}
+
+async function migrateGroupTelegramChatId(
+	convex: ConvexHttpClient,
+	args: {
+		oldTelegramChatId: number;
+		newTelegramChatId: number;
+		title?: string;
+		telegramChatType: string;
+		isForum: boolean;
+	},
+) {
+	try {
+		await convex.mutation(api.groups.migrateGroupTelegramChatId, {
+			...args,
+			trustedSecret: getServerEnv("TELEGRAM_BOT_SECRET_TOKEN"),
+		});
+	} catch (error) {
+		console.error("Error migrating group Telegram chat ID:", error);
 	}
 }
 

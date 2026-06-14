@@ -118,30 +118,21 @@ function AppRoute() {
 
 function SignInPanel({ initData }: { initData: string | undefined }) {
 	const { signIn } = useAuthActions();
-	const [signingIn, setSigningIn] = useState(false);
-
-	const doSignIn = () => {
-		if (!initData) return;
-		setSigningIn(true);
-		signIn("telegram", { initData })
-			.catch((err) => {
+	const [msg, setMsg] = useState("Signing in...");
+	useEffect(() => {
+		if (initData) {
+			void signIn("telegram", { initData }).catch((err) => {
 				if (err instanceof ConvexError) {
 					console.error("err signing in", err);
+					setMsg(err.message);
 				}
-			})
-			.finally(() => setSigningIn(false));
-	};
-
-	useEffect(() => {
-		// attempt to signin automatically on load.
-		doSignIn();
-	}, []);
+			});
+		}
+	}, [initData, signIn]);
 
 	return (
 		<>
-			{signingIn && (
-				<Loading message="Signing in... Restart app if this message persists" />
-			)}
+			<Loading message={msg} />
 			<TelegramMainButton
 				once
 				ready={false}
@@ -151,7 +142,6 @@ function SignInPanel({ initData }: { initData: string | undefined }) {
 		</>
 	);
 }
-
 function AppOutlet() {
 	const location = useLocation();
 	const navigate = useNavigate();
