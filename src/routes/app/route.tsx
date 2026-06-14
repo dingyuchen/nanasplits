@@ -43,6 +43,7 @@ function AppRoute() {
 		useState<TelegramStatus>("checking");
 	const [launchParams, setLaunchParams] = useState<LaunchParams | null>(null);
 	const [rawInitData, setRawInitData] = useState<string | undefined>(undefined);
+	console.log("rawInitdata", rawInitData);
 
 	useEffect(() => {
 		let cleanup: VoidFunction | undefined;
@@ -119,6 +120,7 @@ function AppRoute() {
 function SignInPanel({ initData }: { initData: string | undefined }) {
 	const { signIn } = useAuthActions();
 	const [msg, setMsg] = useState("Signing in...");
+	console.log("initData", initData);
 	useEffect(() => {
 		if (initData) {
 			void signIn("telegram", { initData }).catch((err) => {
