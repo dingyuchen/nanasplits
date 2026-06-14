@@ -126,12 +126,14 @@ function SignInPanel({ initData }: { initData: string | undefined }) {
 		}
 
 		console.log("calling sign in initData", initData);
-		void signIn("telegram", { initData }).catch((err) => {
-			if (err instanceof ConvexError) {
-				console.error("err signing in", err);
-				setMsg(err.message);
-			}
-		});
+		void signIn("telegram", { initData })
+			.catch((err) => {
+				if (err instanceof ConvexError) {
+					console.error("err signing in", err);
+					setMsg(err.message);
+				}
+			})
+			.finally(() => console.log("complete signin"));
 	}, [initData, signIn]);
 
 	return (
