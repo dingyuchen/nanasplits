@@ -7,9 +7,7 @@ import { getConvexUrl } from "#/env";
 import { routeTree } from "#/routeTree.gen";
 
 export function getRouter() {
-	const convexQueryClient = new ConvexQueryClient(getConvexUrl(), {
-		expectAuth: true,
-	});
+	const convexQueryClient = new ConvexQueryClient(getConvexUrl());
 	const queryClient = new QueryClient({
 		defaultOptions: {
 			queries: {

@@ -1,3 +1,4 @@
+import { useAuthActions } from "@convex-dev/auth/react";
 import {
 	createFileRoute,
 	Outlet,
@@ -21,12 +22,7 @@ import { useEffect, useState } from "react";
 import { TelegramMainButton } from "#/components/telegram-main-button";
 import { TelegramRequiredPage } from "#/components/telegram-required";
 import Loading from "#/components/ui/loading";
-import {
-	Authenticated,
-	AuthLoading,
-	Unauthenticated,
-	useAuthActions,
-} from "#/convex-react";
+import { Authenticated, AuthLoading, Unauthenticated } from "#/convex-react";
 import {
 	TelegramLaunchParamsProvider,
 	useTelegramLaunchParams,
@@ -121,25 +117,20 @@ function SignInPanel({ initData }: { initData: string | undefined }) {
 	const [msg, setMsg] = useState("Signing in...");
 	useEffect(() => {
 		if (!initData) {
-			console.log("no signin");
 			return;
 		}
 
-		console.log("calling sign in initData", initData);
-		void signIn("telegram", { initData })
-			.catch((err) => {
-				if (err instanceof ConvexError) {
-					console.error("err signing in", err);
-					setMsg(err.message);
-				}
-			})
-			.finally(() => console.log("complete signin"));
+		void signIn("telegram", { initData }).catch((err) => {
+			if (err instanceof ConvexError) {
+				console.error("err signing in", err);
+				setMsg(err.message);
+			}
+		});
 	}, [initData, signIn]);
 
 	return (
 		<>
 			<Loading message={msg} />
-			<p>{initData}</p>
 			<TelegramMainButton
 				once
 				ready={false}
