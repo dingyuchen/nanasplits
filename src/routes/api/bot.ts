@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ConvexHttpClient } from "convex/browser";
 import { Bot, blockquote, bold, format, InlineKeyboard, italic } from "gramio";
 
-import { getConvexUrl, getPublicBaseUrl, getServerEnv } from "#/env";
+import { getConvexUrl, getServerEnv } from "#/env";
 import { api } from "@/convex/_generated/api";
 
 const message = format`
@@ -101,9 +101,7 @@ async function createBot() {
 		});
 	});
 
-	await bot.start({
-		webhook: `${getPublicBaseUrl()}/api/bot`,
-	});
+	await bot.init();
 	return bot;
 }
 

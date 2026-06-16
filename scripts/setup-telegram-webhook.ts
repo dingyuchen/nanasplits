@@ -8,7 +8,7 @@ if (!host) {
 	throw new Error("Provide a public HTTPS host or set VITE_PUBLIC_BASE_URL");
 }
 
-const webhookUrl = `https://${host}/api/bot`;
+const webhookUrl = `${host}/api/bot`;
 
 console.log("Setting Telegram webhook:", webhookUrl);
 
