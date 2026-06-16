@@ -102,7 +102,7 @@ async function createBot() {
 	});
 
 	await bot.start({
-		webhook: `https://${getPublicBaseUrl()}/api/bot`,
+		webhook: `${getPublicBaseUrl()}/api/bot`,
 	});
 	return bot;
 }
