@@ -430,19 +430,19 @@ function SplitModal(props: {
 		splitType() === "shares" ? getTotalShares() : 0;
 
 	return (
-		<div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
-			<div className="my-8 w-full max-w-md rounded-sm bg-white shadow-xl dark:bg-gray-900">
-				<div className="flex items-center justify-between border-gray-200 border-b p-5 dark:border-gray-800">
+		<div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-stone-900/30 p-4 backdrop-blur-[2px]">
+			<div className="my-8 w-full max-w-md rounded-2xl border border-stone-200 bg-white shadow-2xl">
+				<div className="flex items-center justify-between border-stone-100 border-b p-5">
 					<div>
-						<h2 className="font-semibold text-gray-900 text-xl dark:text-white">
+						<h2 className="font-heading text-stone-900 text-2xl">
 							Split Expense
 						</h2>
-						<p className="text-sm text-gray-500 dark:text-gray-400">
+						<p className="text-stone-500 text-sm">
 							{props.itemName} - {props.amount.toFixed(2)} {props.currency}
 						</p>
 					</div>
 					<button
-						className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+						className="rounded-md p-1 text-stone-400 transition hover:bg-stone-100 hover:text-stone-900"
 						type="button"
 						onClick={props.onClose}
 					>
@@ -451,15 +451,15 @@ function SplitModal(props: {
 				</div>
 
 				<div className="space-y-4 p-5">
-					<div className="grid grid-cols-4 gap-1 rounded-sm bg-slate-100 p-1 dark:bg-gray-800">
+					<div className="grid grid-cols-4 gap-1 rounded-lg bg-stone-100 p-1">
 						{(["equal", "exact", "percentage", "shares"] as const).map(
 							(type) => (
 								<button
 									key={type}
-									className={`rounded-sm py-1.5 font-medium text-sm transition-colors ${
+									className={`rounded-md py-1.5 font-semibold text-sm transition ${
 										splitType() === type
-											? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
-											: "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+											? "bg-white text-stone-900 shadow-sm"
+											: "text-stone-500 hover:text-stone-900"
 									}`}
 									type="button"
 									onClick={() => setSplitType(type)}
@@ -480,27 +480,27 @@ function SplitModal(props: {
 							return (
 								<div
 									key={member._id}
-									className="flex items-center justify-between rounded-sm border border-gray-200 bg-slate-50 p-3 dark:border-gray-800 dark:bg-gray-950"
+									className="flex items-center justify-between rounded-lg border border-stone-200 bg-stone-50 p-3"
 								>
 									<div className="flex items-center gap-3">
 										<button
-											className={`flex h-5 w-5 cursor-pointer items-center justify-center rounded-sm border ${
+											className={`flex h-5 w-5 cursor-pointer items-center justify-center rounded-md border ${
 												isSelected()
-													? "border-cyan-600 bg-cyan-600 text-white"
-													: "border-gray-300 dark:border-gray-600"
+													? "border-sky-500 bg-sky-500 text-white"
+													: "border-stone-200 bg-white"
 											}`}
 											type="button"
 											onClick={() => toggleUser(member._id)}
 										>
 											{isSelected() ? <Check className="h-3 w-3" /> : null}
 										</button>
-										<span className="text-sm font-medium text-gray-900 dark:text-white">
+										<span className="text-sm font-medium text-stone-900">
 											{member.firstName} {member.lastName}
 										</span>
 									</div>
 
 									{isSelected() ? (
-										<div className="flex items-center gap-1 text-sm font-medium text-gray-900 dark:text-white">
+										<div className="flex items-center gap-1 text-sm font-medium text-stone-900">
 											<SplitAmountControl
 												amount={props.amount}
 												currency={props.currency}
@@ -523,17 +523,15 @@ function SplitModal(props: {
 						})}
 					</div>
 
-					<div className="border-gray-200 border-t pt-4 dark:border-gray-800">
+					<div className="border-stone-100 border-t pt-4">
 						{splitType() === "percentage" ? (
 							<div className="mb-2 flex justify-between text-sm font-medium">
-								<span className="text-gray-500 dark:text-gray-400">
-									Total percentage:
-								</span>
+								<span className="text-stone-500">Total percentage:</span>
 								<span
 									className={
 										Math.abs(totalPercent() - 100) < 0.01
-											? "text-green-600 dark:text-green-400"
-											: "text-red-600 dark:text-red-400"
+											? "text-emerald-600"
+											: "text-red-600"
 									}
 								>
 									{totalPercent().toFixed(1)}%
@@ -542,14 +540,12 @@ function SplitModal(props: {
 						) : null}
 						{splitType() === "shares" ? (
 							<div className="mb-2 flex justify-between text-sm font-medium">
-								<span className="text-gray-500 dark:text-gray-400">
-									Total shares:
-								</span>
+								<span className="text-stone-500">Total shares:</span>
 								<span
 									className={
 										totalSharesDisplay() > 0
-											? "text-green-600 dark:text-green-400"
-											: "text-red-600 dark:text-red-400"
+											? "text-emerald-600"
+											: "text-red-600"
 									}
 								>
 									{totalSharesDisplay()}
@@ -557,14 +553,12 @@ function SplitModal(props: {
 							</div>
 						) : null}
 						<div className="mb-2 flex justify-between text-sm font-medium">
-							<span className="text-gray-500 dark:text-gray-400">
-								Total assigned:
-							</span>
+							<span className="text-stone-500">Total assigned:</span>
 							<span
 								className={
 									Math.abs(totalAssigned() - props.amount) < 0.01
-										? "text-green-600 dark:text-green-400"
-										: "text-red-600 dark:text-red-400"
+										? "text-emerald-600"
+										: "text-red-600"
 								}
 							>
 								{totalAssigned().toFixed(2)} / {props.amount.toFixed(2)}{" "}
@@ -572,21 +566,19 @@ function SplitModal(props: {
 							</span>
 						</div>
 						{validationError() ? (
-							<div className="mb-3 rounded-sm border border-red-200 bg-red-50 p-2 dark:border-red-900/70 dark:bg-red-950/30">
-								<p className="text-sm text-red-600 dark:text-red-400">
-									{validationError()}
-								</p>
+							<div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-2">
+								<p className="text-red-600 text-sm">{validationError()}</p>
 							</div>
 						) : null}
 						<div className="flex gap-3">
 							<Button
-								className="flex-1 bg-slate-200 text-gray-900 hover:bg-slate-300 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700"
+								className="flex-1 border border-stone-200 bg-white text-stone-900 hover:border-sky-500 hover:bg-white hover:text-sky-500"
 								onClick={props.onClose}
 							>
 								Cancel
 							</Button>
 							<Button
-								className="flex-1 bg-gray-950 text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
+								className="flex-1 bg-sky-500 text-white hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
 								disabled={Math.abs(totalAssigned() - props.amount) > 0.01}
 								onClick={handleSave}
 							>
@@ -618,7 +610,7 @@ function SplitAmountControl(props: {
 	if (props.splitType === "exact") {
 		if (props.isLastUser) {
 			return (
-				<span className="rounded-sm bg-cyan-50 px-2 py-1 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300">
+				<span className="rounded-lg bg-sky-50 px-2 py-1 text-sky-500">
 					{props.getExactAmountForUser(props.memberId).toFixed(2)}{" "}
 					{props.currency}
 				</span>
@@ -628,14 +620,14 @@ function SplitAmountControl(props: {
 		return (
 			<div className="flex items-center gap-1">
 				<CurrencyInput
-					className="w-20 rounded-sm border border-gray-300 bg-white px-2 py-1 text-right dark:border-gray-700 dark:bg-gray-900"
+					className="w-20 rounded-lg border border-stone-200 bg-white px-2 py-1 text-right"
 					placeholder="0.00"
 					value={props.getExactAmountForUser(props.memberId)}
 					onValueChange={(value) =>
 						props.handleExactAmountChange(props.memberId, value)
 					}
 				/>
-				<span className="text-gray-400 text-xs">{props.currency}</span>
+				<span className="text-stone-400 text-xs">{props.currency}</span>
 			</div>
 		);
 	}
@@ -643,7 +635,7 @@ function SplitAmountControl(props: {
 	if (props.splitType === "percentage") {
 		if (props.isLastUser) {
 			return (
-				<span className="rounded-sm bg-cyan-50 px-2 py-1 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300">
+				<span className="rounded-lg bg-sky-50 px-2 py-1 text-sky-500">
 					{props.getPercentageForUser(props.memberId).toFixed(1)}%
 				</span>
 			);
@@ -652,7 +644,7 @@ function SplitAmountControl(props: {
 		return (
 			<div className="flex items-center gap-1">
 				<input
-					className="w-16 rounded-sm border border-gray-300 bg-white px-2 py-1 text-right dark:border-gray-700 dark:bg-gray-900"
+					className="w-16 rounded-lg border border-stone-200 bg-white px-2 py-1 text-right text-stone-900 outline-none focus:border-sky-500"
 					max="100"
 					min="0"
 					placeholder="0"
@@ -666,7 +658,7 @@ function SplitAmountControl(props: {
 						)
 					}
 				/>
-				<span className="text-gray-400 text-xs">%</span>
+				<span className="text-stone-400 text-xs">%</span>
 			</div>
 		);
 	}
@@ -675,7 +667,7 @@ function SplitAmountControl(props: {
 		return (
 			<div className="flex items-center gap-2">
 				<input
-					className="w-14 rounded-sm border border-gray-300 bg-white px-2 py-1 text-right dark:border-gray-700 dark:bg-gray-900"
+					className="w-14 rounded-lg border border-stone-200 bg-white px-2 py-1 text-right text-stone-900 outline-none focus:border-sky-500"
 					min="0"
 					step="1"
 					type="number"
@@ -687,7 +679,7 @@ function SplitAmountControl(props: {
 						)
 					}
 				/>
-				<span className="text-gray-400 text-xs">
+				<span className="text-stone-400 text-xs">
 					= {props.getAmountFromShares(props.memberId).toFixed(2)}{" "}
 					{props.currency}
 				</span>
@@ -893,11 +885,11 @@ function EditExpensePage(props: {
 	};
 
 	return (
-		<div className="min-h-screen bg-slate-50 pb-20 text-gray-950 dark:bg-gray-950 dark:text-white">
-			<div className="sticky top-0 z-10 border-gray-200 border-b bg-white/95 backdrop-blur dark:border-gray-800 dark:bg-gray-950/95">
-				<div className="mx-auto flex max-w-2xl items-center gap-4 p-4">
+		<div className="min-h-screen bg-stone-50 pb-20 text-stone-900">
+			<div className="mx-auto my-8 max-w-[430px] overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm max-[480px]:my-0 max-[480px]:min-h-screen max-[480px]:rounded-none max-[480px]:border-0">
+				<div className="flex min-h-[4.375rem] items-center gap-4 border-stone-100 border-b px-5 py-3">
 					<button
-						className="rounded-sm border border-gray-200 bg-white p-2 transition-colors hover:border-cyan-500 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-cyan-500 dark:hover:bg-gray-800"
+						className="flex h-8 w-8 items-center justify-center rounded-md text-stone-500 transition hover:bg-stone-100"
 						type="button"
 						onClick={() =>
 							void navigate({
@@ -910,261 +902,263 @@ function EditExpensePage(props: {
 					>
 						<ArrowLeft className="h-4 w-4" />
 					</button>
-					<h1 className="font-semibold text-gray-900 text-xl dark:text-white">
+					<h1 className="font-heading text-stone-900 text-xl">
 						{isEditing() ? "Edit Expense" : "Add Expense"}
 					</h1>
 				</div>
-			</div>
 
-			<div className="mx-auto max-w-2xl p-4">
-				<form className="space-y-4" onSubmit={handleSubmit}>
-					<div className="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-						<label
-							className="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-300"
-							htmlFor="description"
-						>
-							Description
-						</label>
-						<input
-							className="w-full rounded-sm border border-gray-300 bg-white px-3 py-3 text-gray-900 placeholder-gray-400 transition-all focus:border-cyan-600 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-white [&:user-invalid]:border-red-500"
-							id="description"
-							placeholder="e.g., Dinner at restaurant"
-							required
-							type="text"
-							value={description()}
-							onInput={(event) =>
-								handleItemChange(0, "name", event.currentTarget.value)
-							}
-						/>
-					</div>
-
-					<div className="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-						<label
-							className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
-							htmlFor="date"
-						>
-							Date
-						</label>
-						<div className="relative">
-							<input
-								className="w-full appearance-none rounded-sm border border-gray-300 bg-white px-3 py-3 text-gray-900 placeholder-gray-400 transition-all focus:border-cyan-600 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-white [&:user-invalid]:border-red-500"
-								id="date"
-								max={new Date().toISOString().split("T")[0]}
-								name="date"
-								required
-								type="date"
-								value={date()}
-								onInput={(event) => setDate(event.currentTarget.value)}
-							/>
-							<Calendar className="pointer-events-none absolute top-1/2 right-4 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
-						</div>
-					</div>
-
-					<div className="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-						<label
-							className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
-							htmlFor="amount"
-						>
-							Amount
-						</label>
-						<div className="flex items-center justify-center rounded-sm bg-white pl-3 outline outline-1 -outline-offset-1 outline-gray-300 has-[:focus-within]:outline-cyan-600 has-[input:user-invalid]:outline-red-500 dark:bg-gray-950 dark:outline-gray-700">
-							<div className="shrink-0 select-none text-base text-gray-500 dark:text-gray-400 sm:text-sm/6">
-								{currencySymbol()}
-							</div>
-							<CurrencyInput
-								id="amount"
-								placeholder="0.00"
-								readOnly={isItemized()}
-								required
-								value={
-									isItemized()
-										? rest().reduce((sum, item) => sum + item.amount, 0)
-										: amount()
-								}
-								onValueChange={(value) => handleItemChange(0, "amount", value)}
-							/>
-							<div className="grid shrink-0 grid-cols-1 border-gray-300 border-l focus-within:relative dark:border-gray-600">
-								<select
-									aria-label="Currency"
-									className="col-start-1 row-start-1 w-full appearance-none rounded-r-sm bg-transparent py-3 pr-7 pl-3 text-base text-gray-500 placeholder:text-gray-500 focus:outline-none dark:text-gray-400 sm:text-sm/6"
-									id="currency"
-									value={currency()}
-									onChange={(event) => setCurrency(event.currentTarget.value)}
-								>
-									<CurrencyDropdownOptions />
-								</select>
-								<svg
-									aria-hidden="true"
-									className="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-gray-500 dark:text-gray-400 sm:size-4"
-									data-slot="icon"
-									fill="currentColor"
-									viewBox="0 0 16 16"
-								>
-									<path
-										clipRule="evenodd"
-										d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z"
-										fillRule="evenodd"
-									/>
-								</svg>
-							</div>
-						</div>
-					</div>
-
-					{payer() ? (
-						<div className="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+				<div className="p-5">
+					<form className="space-y-4" onSubmit={handleSubmit}>
+						<div className="rounded-lg border border-stone-200 bg-white p-4">
 							<label
-								className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
-								htmlFor="payer"
+								className="mb-2 block font-semibold text-stone-500 text-sm"
+								htmlFor="description"
 							>
-								Paid by
+								Description
 							</label>
-							<select
-								className="w-full appearance-none rounded-sm border border-gray-300 bg-white px-3 py-3 text-gray-900 transition-all focus:border-cyan-600 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-white [&:user-invalid]:border-red-500"
-								id="payer"
-								value={payer()!._id}
-								onChange={(event) => {
-									const member = props.groupData.members.find(
-										(groupMember) =>
-											groupMember._id === event.currentTarget.value,
-									);
-									if (member) setPayer(member);
-								}}
-							>
-								{props.groupData.members.map((member) => (
-									<option key={member._id} value={member._id}>
-										{member.firstName} {member.lastName}
-									</option>
-								))}
-							</select>
+							<input
+								className="w-full rounded-lg border border-stone-200 bg-white px-3 py-3 text-stone-900 placeholder:text-stone-400 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10 [&:user-invalid]:border-red-600"
+								id="description"
+								placeholder="e.g., Dinner at restaurant"
+								required
+								type="text"
+								value={description()}
+								onInput={(event) =>
+									handleItemChange(0, "name", event.currentTarget.value)
+								}
+							/>
 						</div>
-					) : null}
 
-					{!isItemized() ? (
-						<div className="flex-1">
-							<button
-								className="flex w-full items-center justify-center gap-2 rounded-sm border border-cyan-200 bg-cyan-50 px-4 py-3 text-cyan-700 text-sm transition-all hover:bg-cyan-100 dark:border-cyan-900/70 dark:bg-cyan-950/30 dark:text-cyan-300 dark:hover:bg-cyan-900/40"
-								type="button"
-								onClick={() => setShowSimpleSplitModal(true)}
+						<div className="rounded-lg border border-stone-200 bg-white p-4">
+							<label
+								className="mb-2 block font-semibold text-stone-500 text-sm"
+								htmlFor="date"
 							>
-								<Split className="h-5 w-5" />
-								{splits().length > 0
-									? `Split among ${splits().length} people`
-									: "Split Expense"}
-							</button>
-						</div>
-					) : null}
-
-					<div className="space-y-3 pt-1">
-						<div className="flex items-center justify-between">
-							<div className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-								{isItemized() ? "Items & Splits" : null}
+								Date
+							</label>
+							<div className="relative">
+								<input
+									className="w-full appearance-none rounded-lg border border-stone-200 bg-white px-3 py-3 text-stone-900 placeholder:text-stone-400 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10 [&:user-invalid]:border-red-600"
+									id="date"
+									max={new Date().toISOString().split("T")[0]}
+									name="date"
+									required
+									type="date"
+									value={date()}
+									onInput={(event) => setDate(event.currentTarget.value)}
+								/>
+								<Calendar className="pointer-events-none absolute top-1/2 right-4 h-5 w-5 -translate-y-1/2 transform text-stone-400" />
 							</div>
-							{!isItemized() ? (
-								<button
-									className="flex items-center gap-1 font-medium text-cyan-700 text-sm hover:text-cyan-800 dark:text-cyan-300 dark:hover:text-cyan-200"
-									type="button"
-									onClick={handleAddItem}
-								>
-									<Plus className="h-4 w-4" /> Itemize Expense
-								</button>
-							) : (
-								<button
-									className="flex items-center gap-1 font-medium text-red-600 text-sm hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-									type="button"
-									onClick={handleClearItems}
-								>
-									<Trash2 className="h-4 w-4" /> Delete All
-								</button>
-							)}
 						</div>
 
-						{isItemized() ? (
-							<>
-								{rest().map((item, itemIndex) => (
-									<div
-										key={`${item.name}:${itemIndex}`}
-										className="space-y-3 rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900"
+						<div className="rounded-lg border border-stone-200 bg-white p-4">
+							<label
+								className="mb-2 block font-semibold text-stone-500 text-sm"
+								htmlFor="amount"
+							>
+								Amount
+							</label>
+							<div className="flex items-center justify-center rounded-lg bg-white pl-3 outline outline-1 -outline-offset-1 outline-stone-200 has-[:focus-within]:outline-sky-500 has-[input:user-invalid]:outline-red-600">
+								<div className="shrink-0 select-none text-base text-stone-500 sm:text-sm/6">
+									{currencySymbol()}
+								</div>
+								<CurrencyInput
+									id="amount"
+									placeholder="0.00"
+									readOnly={isItemized()}
+									required
+									value={
+										isItemized()
+											? rest().reduce((sum, item) => sum + item.amount, 0)
+											: amount()
+									}
+									onValueChange={(value) =>
+										handleItemChange(0, "amount", value)
+									}
+								/>
+								<div className="grid shrink-0 grid-cols-1 border-stone-200 border-l focus-within:relative">
+									<select
+										aria-label="Currency"
+										className="col-start-1 row-start-1 w-full appearance-none rounded-r-lg bg-transparent py-3 pr-7 pl-3 text-base text-stone-500 placeholder:text-stone-400 focus:outline-none sm:text-sm/6"
+										id="currency"
+										value={currency()}
+										onChange={(event) => setCurrency(event.currentTarget.value)}
 									>
-										<div className="flex items-start gap-3">
-											<div className="flex-1 space-y-3">
-												<input
-													className="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm focus:border-cyan-600 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-white [&:user-invalid]:border-red-500"
-													placeholder="Item name"
-													required
-													type="text"
-													value={item.name}
-													onInput={(event) =>
-														handleItemChange(
-															itemIndex + 1,
-															"name",
-															event.currentTarget.value,
-														)
-													}
-												/>
-											</div>
-											<button
-												className="rounded-sm border border-red-200 bg-white p-2 text-red-600 transition-colors hover:bg-red-50 dark:border-red-900/70 dark:bg-gray-950 dark:hover:bg-red-950/40"
-												type="button"
-												onClick={() => handleRemoveItem(itemIndex + 1)}
-											>
-												<Trash2 className="h-4 w-4" />
-											</button>
-										</div>
-										<div className="flex items-start gap-3">
-											<div className="flex w-auto items-center justify-center rounded-sm bg-white pl-3 outline outline-1 -outline-offset-1 outline-gray-300 has-[:focus-within]:outline-cyan-600 has-[input:user-invalid]:outline-red-500 dark:bg-gray-950 dark:outline-gray-700">
-												<div className="shrink-0 select-none text-center text-gray-500 dark:text-gray-400 sm:text-sm/6">
-													{currencySymbol()}
-												</div>
-												<CurrencyInput
-													className="w-1/2 rounded-sm bg-white py-2 pr-3 pl-1 text-gray-900 text-sm dark:bg-gray-950 dark:text-white"
-													placeholder="0.00"
-													required
-													value={item.amount}
-													onValueChange={(value) =>
-														handleItemChange(itemIndex + 1, "amount", value)
-													}
-												/>
-											</div>
-											<button
-												className="flex flex-3 items-center justify-center gap-1 rounded-sm bg-cyan-50 px-3 py-2 text-cyan-700 text-sm transition-colors hover:bg-cyan-100 dark:bg-cyan-950/40 dark:text-cyan-300 dark:hover:bg-cyan-900/50"
-												type="button"
-												onClick={() => setActiveSplitIndex(itemIndex + 1)}
-											>
-												<Split className="h-4 w-4" />
-												{item.splits.length > 0
-													? `${item.splits.length} people`
-													: "Split"}
-											</button>
-										</div>
-									</div>
-								))}
+										<CurrencyDropdownOptions />
+									</select>
+									<svg
+										aria-hidden="true"
+										className="pointer-events-none col-start-1 row-start-1 mr-2 size-5 self-center justify-self-end text-stone-400 sm:size-4"
+										data-slot="icon"
+										fill="currentColor"
+										viewBox="0 0 16 16"
+									>
+										<path
+											clipRule="evenodd"
+											d="M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z"
+											fillRule="evenodd"
+										/>
+									</svg>
+								</div>
+							</div>
+						</div>
 
-								<button
-									className="flex w-full items-center justify-center gap-2 rounded-sm border border-cyan-200 border-dashed py-3 font-medium text-cyan-700 text-sm transition-colors hover:bg-cyan-50 dark:border-cyan-900/70 dark:text-cyan-300 dark:hover:bg-cyan-950/30"
-									type="button"
-									onClick={handleAddItem}
+						{payer() ? (
+							<div className="rounded-lg border border-stone-200 bg-white p-4">
+								<label
+									className="mb-2 block font-semibold text-stone-500 text-sm"
+									htmlFor="payer"
 								>
-									<Plus className="h-5 w-5" /> Add Another Item
-								</button>
-							</>
+									Paid by
+								</label>
+								<select
+									className="w-full appearance-none rounded-lg border border-stone-200 bg-white px-3 py-3 text-stone-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10 [&:user-invalid]:border-red-600"
+									id="payer"
+									value={payer()!._id}
+									onChange={(event) => {
+										const member = props.groupData.members.find(
+											(groupMember) =>
+												groupMember._id === event.currentTarget.value,
+										);
+										if (member) setPayer(member);
+									}}
+								>
+									{props.groupData.members.map((member) => (
+										<option key={member._id} value={member._id}>
+											{member.firstName} {member.lastName}
+										</option>
+									))}
+								</select>
+							</div>
 						) : null}
-					</div>
 
-					<button
-						className="hidden w-full items-center justify-center gap-2 rounded-sm border border-cyan-200 border-dashed py-3 font-medium text-cyan-700 text-sm transition-colors hover:bg-cyan-50 dark:border-cyan-900/70 dark:text-cyan-300 dark:hover:bg-cyan-950/30"
-						ref={submitButtonRef}
-						type="submit"
-					>
-						Submit
-					</button>
+						{!isItemized() ? (
+							<div className="flex-1">
+								<button
+									className="flex w-full items-center justify-center gap-2 rounded-lg border border-stone-200 bg-sky-50 px-4 py-3 font-semibold text-sky-500 text-sm transition hover:border-sky-500"
+									type="button"
+									onClick={() => setShowSimpleSplitModal(true)}
+								>
+									<Split className="h-5 w-5" />
+									{splits().length > 0
+										? `Split among ${splits().length} people`
+										: "Split Expense"}
+								</button>
+							</div>
+						) : null}
 
-					<TelegramMainButton
-						ready={isFormValid()}
-						show={isFormValid()}
-						text={isEditing() ? "Update Expense" : "Save Expense"}
-						onClick={() => submitButtonRef.current?.click()}
-					/>
-				</form>
+						<div className="space-y-3 pt-1">
+							<div className="flex items-center justify-between">
+								<div className="block font-semibold text-stone-500 text-sm">
+									{isItemized() ? "Items & Splits" : null}
+								</div>
+								{!isItemized() ? (
+									<button
+										className="flex items-center gap-1 font-semibold text-sky-500 text-sm hover:text-sky-600"
+										type="button"
+										onClick={handleAddItem}
+									>
+										<Plus className="h-4 w-4" /> Itemize Expense
+									</button>
+								) : (
+									<button
+										className="flex items-center gap-1 font-semibold text-red-600 text-sm hover:text-red-700"
+										type="button"
+										onClick={handleClearItems}
+									>
+										<Trash2 className="h-4 w-4" /> Delete All
+									</button>
+								)}
+							</div>
+
+							{isItemized() ? (
+								<>
+									{rest().map((item, itemIndex) => (
+										<div
+											key={`${item.name}:${itemIndex}`}
+											className="space-y-3 rounded-lg border border-stone-200 bg-white p-4"
+										>
+											<div className="flex items-start gap-3">
+												<div className="flex-1 space-y-3">
+													<input
+														className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-stone-900 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10 [&:user-invalid]:border-red-600"
+														placeholder="Item name"
+														required
+														type="text"
+														value={item.name}
+														onInput={(event) =>
+															handleItemChange(
+																itemIndex + 1,
+																"name",
+																event.currentTarget.value,
+															)
+														}
+													/>
+												</div>
+												<button
+													className="rounded-lg border border-red-200 bg-white p-2 text-red-600 transition hover:bg-red-50"
+													type="button"
+													onClick={() => handleRemoveItem(itemIndex + 1)}
+												>
+													<Trash2 className="h-4 w-4" />
+												</button>
+											</div>
+											<div className="flex items-start gap-3">
+												<div className="flex w-auto items-center justify-center rounded-lg bg-white pl-3 outline outline-1 -outline-offset-1 outline-stone-200 has-[:focus-within]:outline-sky-500 has-[input:user-invalid]:outline-red-600">
+													<div className="shrink-0 select-none text-center text-stone-500 sm:text-sm/6">
+														{currencySymbol()}
+													</div>
+													<CurrencyInput
+														className="w-1/2 rounded-lg bg-white py-2 pr-3 pl-1 text-stone-900 text-sm"
+														placeholder="0.00"
+														required
+														value={item.amount}
+														onValueChange={(value) =>
+															handleItemChange(itemIndex + 1, "amount", value)
+														}
+													/>
+												</div>
+												<button
+													className="flex flex-3 items-center justify-center gap-1 rounded-lg bg-sky-50 px-3 py-2 font-semibold text-sky-500 text-sm transition hover:bg-sky-100"
+													type="button"
+													onClick={() => setActiveSplitIndex(itemIndex + 1)}
+												>
+													<Split className="h-4 w-4" />
+													{item.splits.length > 0
+														? `${item.splits.length} people`
+														: "Split"}
+												</button>
+											</div>
+										</div>
+									))}
+
+									<button
+										className="flex w-full items-center justify-center gap-2 rounded-lg border border-stone-200 border-dashed py-3 font-semibold text-sky-500 text-sm transition hover:bg-sky-50"
+										type="button"
+										onClick={handleAddItem}
+									>
+										<Plus className="h-5 w-5" /> Add Another Item
+									</button>
+								</>
+							) : null}
+						</div>
+
+						<button
+							className="hidden w-full items-center justify-center gap-2 rounded-lg border border-stone-200 border-dashed py-3 font-semibold text-sky-500 text-sm transition hover:bg-sky-50"
+							ref={submitButtonRef}
+							type="submit"
+						>
+							Submit
+						</button>
+
+						<TelegramMainButton
+							ready={isFormValid()}
+							show={isFormValid()}
+							text={isEditing() ? "Update Expense" : "Save Expense"}
+							onClick={() => submitButtonRef.current?.click()}
+						/>
+					</form>
+				</div>
 			</div>
 
 			{activeSplitItem()

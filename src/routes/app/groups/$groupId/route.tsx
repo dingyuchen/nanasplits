@@ -72,15 +72,15 @@ function GroupLayoutRoute() {
 
 function AccessDenied() {
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-gray-950">
+		<div className="flex min-h-screen items-center justify-center bg-stone-50 p-6 text-stone-900">
 			<div className="max-w-md text-center">
-				<div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-sm bg-red-50 p-3 dark:bg-red-950/30">
-					<ShieldAlert className="h-8 w-8 text-red-600 dark:text-red-400" />
+				<div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-lg bg-red-50 p-3">
+					<ShieldAlert className="h-8 w-8 text-red-600" />
 				</div>
-				<h1 className="mb-3 font-semibold text-2xl tracking-tight text-gray-900 dark:text-white">
+				<h1 className="font-heading mb-3 text-3xl text-stone-900">
 					Access Denied
 				</h1>
-				<p className="mb-6 text-gray-600 dark:text-gray-400">
+				<p className="mb-6 text-stone-500">
 					You are not a member of this group. Please join the group first to
 					view its expenses and details.
 				</p>

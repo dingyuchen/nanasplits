@@ -6,16 +6,12 @@ import {
 	ArrowLeftRight,
 	ArrowRight,
 	ChevronDown,
-	ChevronRight,
 	ChevronUp,
 	LoaderCircle,
 	Plus,
 	Receipt,
 	Settings,
-	TrendingDown,
-	TrendingUp,
 	Users,
-	Wallet,
 } from "lucide-react";
 
 import { TelegramMainButton } from "#/components/telegram-main-button";
@@ -258,44 +254,55 @@ function GroupView(props: {
 	};
 
 	return (
-		<div className="relative min-h-screen bg-slate-50 pb-20 text-gray-950 dark:bg-gray-950 dark:text-white">
+		<div className="relative min-h-screen bg-stone-50 pb-20 text-stone-900">
 			{!props.isRegisteredMemberOfGroup ? (
-				<div className="absolute inset-0 z-40 bg-black/50" />
+				<div className="fixed inset-0 z-40 bg-stone-900/30 backdrop-blur-[2px]" />
 			) : null}
 
-			<div className="mx-auto max-w-2xl space-y-4 px-4 pt-6">
-				<header className="border-gray-200 border-b pb-5 dark:border-gray-800">
-					<div className="mb-3 flex items-start justify-between gap-3">
-						<div>
-							<p className="mb-2 font-medium text-cyan-700 text-xs uppercase dark:text-cyan-300">
-								Group
-							</p>
-							<h1 className="font-semibold text-3xl tracking-tight">
-								{props.groupData.title}
-							</h1>
-							<p className="mt-2 text-gray-500 text-sm dark:text-gray-400">
-								{props.groupData.memberCount} members
-							</p>
+			<div className="relative mx-auto my-8 max-w-[430px] overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm max-[480px]:my-0 max-[480px]:min-h-screen max-[480px]:rounded-none max-[480px]:border-0">
+				<header className="relative flex min-h-[4.375rem] items-center gap-3 border-stone-100 border-b px-5 py-3">
+					<Link
+						className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-stone-500 transition hover:bg-stone-100"
+						to="/app"
+					>
+						<ArrowRight className="h-4 w-4 rotate-180" />
+					</Link>
+					<div className="absolute left-1/2 w-[min(12rem,calc(100%-13rem))] -translate-x-1/2 text-center">
+						<h1 className="font-heading truncate text-stone-900 text-[1.375rem] leading-tight tracking-[-0.03em]">
+							{props.groupData.title}
+						</h1>
+						<div className="mt-1 flex items-center justify-center gap-1 text-stone-400 text-xs">
+							<Users className="h-3.5 w-3.5" />
+							<span>{props.groupData.memberCount} members</span>
 						</div>
+					</div>
+					<div className="relative z-10 ml-auto flex items-center gap-2">
 						<Link
-							className="rounded-sm border border-gray-200 bg-white p-2 transition-colors hover:border-cyan-500 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-cyan-700"
+							className="flex h-8 w-8 items-center justify-center rounded-md text-stone-500 transition hover:bg-stone-100"
 							params={{
 								groupId: String(props.groupIdNumber),
 							}}
 							to="/app/groups/$groupId/settings"
 						>
-							<Settings className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+							<Settings className="h-4 w-4" />
 						</Link>
+						<div className="flex items-center justify-end">
+							{props.groupData.members.slice(0, 3).map((member, index) => (
+								<div
+									key={member._id}
+									className={`-ml-1.5 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white font-bold text-white text-xs first:ml-0 ${getAvatarColorClass(index)}`}
+									title={getMemberDisplayName(member)}
+								>
+									{getMemberInitial(member)}
+								</div>
+							))}
+						</div>
 					</div>
 				</header>
 
-				<section className="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-					<h2 className="mb-4 font-semibold text-gray-900 text-sm uppercase dark:text-white">
-						Your balance
-					</h2>
-
+				<section className="mx-5 mt-5 space-y-3">
 					{Object.keys(currencyBalances()).length > 0 ? (
-						<div className="space-y-2">
+						<>
 							{Object.entries(currencyBalances()).map(
 								([currency, currencyData]) => (
 									<CurrencyBalanceCard
@@ -305,11 +312,9 @@ function GroupView(props: {
 									/>
 								),
 							)}
-						</div>
+						</>
 					) : (
-						<div className="rounded-sm border border-dashed border-gray-200 py-6 text-center text-gray-500 text-sm dark:border-gray-800 dark:text-gray-400">
-							<p>No expenses yet</p>
-						</div>
+						<EmptyExpenseState text="No expenses yet" />
 					)}
 				</section>
 
@@ -323,54 +328,51 @@ function GroupView(props: {
 					/>
 				) : null}
 
-				<section>
+				<section className="mx-5 mt-5">
 					<button
-						className="mb-2 flex w-full items-center gap-2 px-1"
+						className="mb-3 flex w-full items-center gap-2 border-stone-100 border-b pb-2 text-left"
 						type="button"
 						onClick={() => setMembersCollapsed(!membersCollapsed())}
 					>
-						<Users className="h-4 w-4 text-gray-500" />
-						<h2 className="font-semibold text-gray-900 text-sm uppercase dark:text-white">
-							Members ({props.groupData.memberCount})
-						</h2>
+						<h2 className="font-heading text-stone-900 text-lg">Members</h2>
+						<span className="rounded-full bg-stone-100 px-2 py-0.5 font-semibold text-stone-400 text-[0.6875rem]">
+							{props.groupData.memberCount}
+						</span>
 						{membersCollapsed() ? (
-							<ChevronDown className="ml-auto h-5 w-5 text-gray-500" />
+							<ChevronDown className="ml-auto h-5 w-5 text-stone-400" />
 						) : (
-							<ChevronUp className="ml-auto h-5 w-5 text-gray-500" />
+							<ChevronUp className="ml-auto h-5 w-5 text-stone-400" />
 						)}
 					</button>
 					{!membersCollapsed() ? (
-						<div className="rounded-sm border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-							<div className="flex flex-wrap gap-2">
-								{props.groupData.members.map((member) => (
+						<div className="flex flex-wrap gap-2 py-1">
+							{props.groupData.members.map((member) => (
+								<div
+									key={member._id}
+									className="flex items-center gap-2 rounded-full border border-stone-200 bg-stone-50 py-1 pr-3 pl-1"
+								>
 									<div
-										key={member._id}
-										className="flex items-center gap-2 rounded-sm border border-gray-200 bg-slate-50 px-2.5 py-1.5 dark:border-gray-800 dark:bg-gray-950"
+										className={`flex h-7 w-7 items-center justify-center rounded-full font-bold text-white text-xs ${getAvatarColorClass(props.groupData.members.indexOf(member))}`}
 									>
-										<div className="flex h-6 w-6 items-center justify-center rounded-sm bg-cyan-50 font-bold text-cyan-700 text-xs dark:bg-cyan-950/50 dark:text-cyan-300">
-											{(
-												member.firstName?.[0] ||
-												member.username?.[0] ||
-												"?"
-											).toUpperCase()}
-										</div>
-										<span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-											{member.firstName} {member.lastName}
-										</span>
+										{getMemberInitial(member)}
 									</div>
-								))}
-							</div>
+									<span className="text-stone-500 text-sm font-medium">
+										{getMemberDisplayName(member)}
+									</span>
+								</div>
+							))}
 						</div>
 					) : null}
 				</section>
 
-				<section>
-					<div className="mb-2 flex items-center justify-between gap-2 px-1">
+				<section className="mx-5 mt-5 mb-5">
+					<div className="mb-3 flex items-center justify-between gap-2 border-stone-100 border-b pb-2">
 						<div className="flex items-center gap-2">
-							<Receipt className="h-4 w-4 text-gray-500" />
-							<h2 className="font-semibold text-gray-900 text-sm uppercase dark:text-white">
-								Expenses
-							</h2>
+							<Receipt className="h-4 w-4 text-stone-400" />
+							<h2 className="font-heading text-stone-900 text-lg">Expenses</h2>
+							<span className="rounded-full bg-stone-100 px-2 py-0.5 font-semibold text-stone-400 text-[0.6875rem]">
+								{props.groupData.expenses.length}
+							</span>
 						</div>
 						{props.isRegisteredMemberOfGroup &&
 						conversionOptions().length > 0 ? (
@@ -383,7 +385,7 @@ function GroupView(props: {
 						) : null}
 					</div>
 
-					<div className="space-y-3">
+					<div>
 						{props.groupData.expenses.length > 0 ? (
 							props.groupData.expenses.map((expense) => (
 								<ExpenseRow
@@ -395,9 +397,7 @@ function GroupView(props: {
 								/>
 							))
 						) : (
-							<div className="rounded-sm border border-dashed border-gray-200 bg-white py-8 text-center text-gray-500 text-sm dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
-								<p>No expenses yet</p>
-							</div>
+							<EmptyExpenseState text="No expenses yet" />
 						)}
 					</div>
 				</section>
@@ -427,84 +427,58 @@ function CurrencyBalanceCard(props: {
 
 	return (
 		<div
-			className={`rounded-sm border p-3 ${
+			className={`rounded-lg border p-5 ${
 				isPositive()
-					? "border-green-200 bg-green-50 dark:border-green-900/70 dark:bg-green-950/30"
-					: "border-red-200 bg-red-50 dark:border-red-900/70 dark:bg-red-950/30"
+					? "border-emerald-200 bg-emerald-50"
+					: "border-red-200 bg-red-50"
 			}`}
 		>
-			<div className="flex items-center justify-between">
-				<div>
-					<span
-						className={`mb-1 block font-medium text-xs uppercase ${
-							isPositive()
-								? "text-green-700 dark:text-green-300"
-								: "text-red-700 dark:text-red-300"
-						}`}
-					>
-						{props.currency}
-					</span>
-					<p
-						className={`font-semibold text-2xl ${
-							isPositive()
-								? "text-green-600 dark:text-green-400"
-								: "text-red-600 dark:text-red-400"
-						}`}
-					>
-						{isPositive() ? "+" : ""}
-						{formatCurrencyAmount(
-							props.currencyData.netBalance,
-							props.currency,
-						)}
-					</p>
-				</div>
-				<div
-					className={`rounded-sm p-2 ${
-						isPositive()
-							? "bg-green-100 text-green-600 dark:bg-green-800/30"
-							: "bg-red-100 text-red-600 dark:bg-red-800/30"
-					}`}
-				>
-					{isPositive() ? (
-						<TrendingUp className="h-5 w-5" />
-					) : (
-						<TrendingDown className="h-5 w-5" />
-					)}
-				</div>
+			<div className="font-semibold text-[0.6875rem] uppercase leading-tight tracking-[0.06em]">
+				<span className={isPositive() ? "text-emerald-600" : "text-red-600"}>
+					Your Balance
+				</span>
+				<span className="text-stone-400"> - {props.currency}</span>
 			</div>
+			<p
+				className={`mt-1 font-bold text-[2.25rem] leading-[1.05] tracking-[-0.04em] ${
+					isPositive() ? "text-emerald-600" : "text-red-600"
+				}`}
+			>
+				{isPositive() ? "+" : ""}
+				{formatCurrencyAmount(props.currencyData.netBalance, props.currency)}
+			</p>
+			<p className="mt-2 text-stone-500 text-sm leading-tight">
+				{props.currencyData.netBalance === 0
+					? "All settled in this currency"
+					: isPositive()
+						? "You are owed money"
+						: "You owe money"}
+			</p>
 
 			{memberBalanceEntries().length > 0 ? (
-				<div className="mt-3 space-y-2 border-gray-200 border-t pt-3 dark:border-gray-800">
-					{memberBalanceEntries().map((member) => {
+				<div className="mt-4 space-y-2 border-black/5 border-t pt-3">
+					{memberBalanceEntries().map((member, index) => {
 						const isMemberPositive = member.balance > 0;
 						return (
 							<div
 								key={member.memberId}
-								className="flex items-center justify-between"
+								className="flex items-center justify-between gap-3"
 							>
 								<div className="flex items-center gap-2">
-									<div className="flex h-6 w-6 items-center justify-center rounded-sm bg-white/50 font-bold text-gray-600 text-xs dark:bg-gray-800/50 dark:text-gray-300">
+									<div
+										className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white font-bold text-white text-xs ${getAvatarColorClass(index + 1)}`}
+									>
 										{member.memberName[0]?.toUpperCase() || "?"}
 									</div>
-									<span className="text-sm text-gray-700 dark:text-gray-200">
-										{member.memberName}
+									<span className="text-stone-500 text-sm">
+										{isMemberPositive
+											? `${member.memberName} owes you`
+											: `You owe ${member.memberName}`}
 									</span>
-									<div className="flex items-center gap-1 text-xs">
-										<span className="text-gray-500 dark:text-gray-400">
-											{isMemberPositive ? "owes you" : "you owe"}
-										</span>
-										<ArrowRight
-											className={`h-3 w-3 ${
-												isMemberPositive ? "text-green-500" : "text-red-500"
-											}`}
-										/>
-									</div>
 								</div>
 								<span
-									className={`text-sm font-semibold ${
-										isMemberPositive
-											? "text-green-600 dark:text-green-400"
-											: "text-red-600 dark:text-red-400"
+									className={`shrink-0 text-sm font-semibold ${
+										isMemberPositive ? "text-emerald-600" : "text-red-600"
 									}`}
 								>
 									{formatCurrencyAmount(
@@ -536,86 +510,70 @@ function ExpenseRow(props: {
 		if (!isInvolved()) {
 			return {
 				amountPrefix: "",
-				amountText: "text-gray-500 dark:text-gray-400",
-				cardOpacity: "opacity-60",
-				iconBg:
-					"bg-gray-100 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500",
+				amountText: "text-stone-400",
+				rowOpacity: "opacity-60",
+				dotBg: "bg-stone-400",
 			};
 		}
 
 		if (isTransfer()) {
 			return {
 				amountPrefix: "",
-				amountText: "text-purple-600 dark:text-purple-400",
-				cardOpacity: "",
-				iconBg:
-					"bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400",
+				amountText: "text-sky-500",
+				rowOpacity: "",
+				dotBg: "bg-sky-500",
 			};
 		}
 
 		if (props.userBalance > 0) {
 			return {
 				amountPrefix: "+",
-				amountText: "text-green-600 dark:text-green-400",
-				cardOpacity: "",
-				iconBg:
-					"bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400",
+				amountText: "text-emerald-600",
+				rowOpacity: "",
+				dotBg: "bg-emerald-600",
 			};
 		}
 
 		return {
 			amountPrefix: "-",
-			amountText: "text-red-600 dark:text-red-400",
-			cardOpacity: "",
-			iconBg: "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400",
+			amountText: "text-red-600",
+			rowOpacity: "",
+			dotBg: "bg-red-600",
 		};
 	};
 
 	return (
 		<button
-			className={`flex w-full cursor-pointer items-center justify-between rounded-sm border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:border-cyan-500 hover:bg-slate-50 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-cyan-700 dark:hover:bg-gray-900 ${styles().cardOpacity}`}
+			className={`flex w-full cursor-pointer items-center gap-3 border-stone-100 border-b px-2 py-3 text-left transition hover:-mx-2 hover:rounded-md hover:bg-stone-50 hover:px-4 ${styles().rowOpacity}`}
 			type="button"
 			onClick={props.onEdit}
 		>
-			<div className="flex items-center gap-3">
-				<div
-					className={`flex h-9 w-9 items-center justify-center rounded-sm ${styles().iconBg}`}
-				>
-					{isTransfer() ? (
-						<ArrowLeftRight className="h-5 w-5" />
-					) : (
-						<Wallet className="h-5 w-5" />
-					)}
-				</div>
-				<div className="text-left">
-					<p className="font-medium text-gray-900 dark:text-white">
-						{props.expense.description}
-					</p>
-					<p className="text-xs text-gray-500 dark:text-gray-400">
-						{isTransfer()
-							? `Settled with ${props.expense.payerName}`
-							: `${isMe() ? "You" : props.expense.payerName} paid • ${formatDate(props.expense.date)}`}
-					</p>
-				</div>
+			<span className={`h-2 w-2 shrink-0 rounded-full ${styles().dotBg}`} />
+			<div className="min-w-0 flex-1">
+				<p className="truncate font-medium text-stone-900 text-[0.9375rem]">
+					{props.expense.description}
+				</p>
+				<p className="truncate text-stone-400 text-xs">
+					{isTransfer()
+						? `Settled with ${props.expense.payerName}`
+						: `${isMe() ? "You" : props.expense.payerName} paid - ${formatDate(props.expense.date)}`}
+				</p>
 			</div>
-			<div className="flex items-center gap-2">
-				<div className="text-right">
-					<span className={`font-bold ${styles().amountText}`}>
-						{styles().amountPrefix}
-						{formatCurrencyAmount(
-							isInvolved() || isTransfer()
-								? Math.abs(props.userBalance)
-								: totalAmount(),
-							props.expense.currency,
-						)}
-					</span>
-					{!isTransfer() && isInvolved() ? (
-						<p className="text-xs text-gray-500 dark:text-gray-400">
-							{formatCurrencyAmount(totalAmount(), props.expense.currency)}
-						</p>
-					) : null}
-				</div>
-				<ChevronRight className="h-4 w-4 text-gray-400" />
+			<div className="shrink-0 text-right">
+				<span className={`font-semibold text-sm ${styles().amountText}`}>
+					{styles().amountPrefix}
+					{formatCurrencyAmount(
+						isInvolved() || isTransfer()
+							? Math.abs(props.userBalance)
+							: totalAmount(),
+						props.expense.currency,
+					)}
+				</span>
+				{!isTransfer() && isInvolved() ? (
+					<p className="text-stone-400 text-xs">
+						{formatCurrencyAmount(totalAmount(), props.expense.currency)}
+					</p>
+				) : null}
 			</div>
 		</button>
 	);
@@ -683,58 +641,86 @@ function SettleUp(props: {
 	};
 
 	return (
-		<section>
-			<div className="mb-2 flex items-center gap-2 px-1">
-				<ArrowLeftRight className="h-4 w-4 text-gray-500" />
-				<h2 className="font-semibold text-gray-900 text-sm uppercase dark:text-white">
-					Settle Up
-				</h2>
+		<section className="mx-5 mt-5">
+			<div className="border-stone-100 border-b pb-2">
+				<h2 className="font-heading text-stone-900 text-lg">Settle Up</h2>
 			</div>
-			<div className="rounded-sm border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+			<div>
 				{balanceEntries().length > 0 ? (
-					<div className="-mb-2 flex flex-wrap gap-2 overflow-x-auto pb-2">
-						{balanceEntries().map(({ currency, member }) => (
-							<button
-								key={`${currency}:${member.memberId}`}
-								className={`flex items-center gap-2 whitespace-nowrap rounded-sm border px-3 py-1.5 font-medium text-sm transition-colors ${
-									member.balance > 0
-										? "border-green-200 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-900/70 dark:bg-green-950/30 dark:text-green-300 dark:hover:bg-green-900/40"
-										: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 dark:border-red-900/70 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-900/40"
-								}`}
-								type="button"
-								onClick={() =>
-									setSettleDialog({
-										amount: member.balance,
-										currency,
-										memberId: member.memberId,
-										memberName: member.memberName,
-									})
-								}
-							>
-								<span>
-									{member.balance > 0 ? "Collect from" : "Pay"}{" "}
-									{member.memberName}
-								</span>
-								<span className="font-bold">
-									{formatCurrencyAmount(Math.abs(member.balance), currency)}
-								</span>
-							</button>
-						))}
+					<div>
+						{balanceEntries().map(({ currency, member }, index) => {
+							const isCollecting = member.balance > 0;
+							return (
+								<button
+									key={`${currency}:${member.memberId}`}
+									className="grid min-h-16 w-full grid-cols-[2.5rem_1.25rem_2.5rem_minmax(0,1fr)_auto] items-center gap-2.5 border-stone-100 border-b px-2 py-3 text-left transition hover:bg-stone-50"
+									type="button"
+									onClick={() =>
+										setSettleDialog({
+											amount: member.balance,
+											currency,
+											memberId: member.memberId,
+											memberName: member.memberName,
+										})
+									}
+								>
+									<span
+										className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-white font-bold text-white text-sm ${
+											isCollecting
+												? getAvatarColorClass(index + 1)
+												: "bg-sky-500"
+										}`}
+									>
+										{isCollecting ? getInitialFromName(member.memberName) : "Y"}
+									</span>
+									<ArrowRight className="h-4 w-4 text-stone-400" />
+									<span
+										className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-white font-bold text-white text-sm ${
+											isCollecting
+												? "bg-sky-500"
+												: getAvatarColorClass(index + 1)
+										}`}
+									>
+										{isCollecting ? "Y" : getInitialFromName(member.memberName)}
+									</span>
+									<span className="min-w-0 text-stone-900 text-sm font-medium leading-tight">
+										{isCollecting ? (
+											<>
+												{member.memberName}{" "}
+												<span className="text-emerald-600">owes you</span>
+											</>
+										) : (
+											<>
+												You <span className="text-red-600">owe</span>{" "}
+												{member.memberName}
+											</>
+										)}
+									</span>
+									<span
+										className={`justify-self-end whitespace-nowrap font-bold text-sm ${
+											isCollecting ? "text-emerald-600" : "text-red-600"
+										}`}
+									>
+										{formatCurrencyAmount(Math.abs(member.balance), currency)}
+									</span>
+								</button>
+							);
+						})}
 					</div>
 				) : (
-					<p className="py-2 text-center text-sm text-gray-500 dark:text-gray-400">
+					<p className="rounded-lg border border-dashed border-stone-200 bg-stone-50 py-6 text-center text-stone-500 text-sm">
 						All settled up!
 					</p>
 				)}
 			</div>
 
 			{settleDialog() ? (
-				<div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-					<div className="w-full max-w-sm rounded-sm bg-white p-5 shadow-xl dark:bg-gray-900">
-						<h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-							Confirm Settlement
+				<div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-stone-900/30 p-4 backdrop-blur-[2px]">
+					<div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl">
+						<h3 className="font-heading mb-2 text-stone-900 text-2xl">
+							Confirm settlement
 						</h3>
-						<p className="mb-6 text-gray-600 dark:text-gray-300">
+						<p className="mb-6 text-stone-500">
 							{settleDialog()!.amount > 0
 								? `Collect ${formatCurrencyAmount(
 										settleDialog()!.amount,
@@ -747,14 +733,14 @@ function SettleUp(props: {
 						</p>
 						<div className="grid grid-cols-2 gap-2">
 							<button
-								className="rounded-sm border border-gray-300 px-3 py-2 font-medium text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+								className="rounded-lg border border-stone-200 px-3 py-2.5 font-semibold text-stone-900 text-sm transition hover:border-sky-500 hover:text-sky-500"
 								type="button"
 								onClick={closeDialog}
 							>
 								Cancel
 							</button>
 							<button
-								className="rounded-sm bg-gray-950 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
+								className="rounded-lg bg-sky-500 px-3 py-2.5 font-semibold text-sm text-white transition hover:bg-sky-600"
 								type="button"
 								onClick={handleSettle}
 							>
@@ -893,7 +879,7 @@ function ExpenseCurrencyConversionButton(props: {
 	return (
 		<>
 			<button
-				className="inline-flex items-center gap-1.5 rounded-sm border border-cyan-200 bg-cyan-50 px-2.5 py-1.5 font-medium text-cyan-700 text-xs transition-colors hover:bg-cyan-100 dark:border-cyan-900/70 dark:bg-cyan-950/30 dark:text-cyan-300 dark:hover:bg-cyan-900/40"
+				className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-sky-50 px-2.5 py-1.5 font-semibold text-sky-500 text-xs transition hover:border-sky-500"
 				type="button"
 				onClick={openDialog}
 			>
@@ -901,12 +887,12 @@ function ExpenseCurrencyConversionButton(props: {
 			</button>
 
 			{isOpen() ? (
-				<div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
-					<div className="w-full max-w-sm rounded-sm bg-white p-5 shadow-xl dark:bg-gray-900">
-						<h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">
-							Convert Transaction
+				<div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-stone-900/30 p-4 backdrop-blur-[2px]">
+					<div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl">
+						<h3 className="font-heading mb-2 text-stone-900 text-2xl">
+							Convert transaction
 						</h3>
-						<p className="mb-5 text-gray-600 text-sm dark:text-gray-300">
+						<p className="mb-5 text-stone-500 text-sm leading-6">
 							Choose a settle-up balance involving you and one other member,
 							then move that amount to another currency.
 						</p>
@@ -914,13 +900,13 @@ function ExpenseCurrencyConversionButton(props: {
 						<div className="space-y-4">
 							<div>
 								<label
-									className="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
+									className="mb-2 block font-semibold text-stone-500 text-sm"
 									htmlFor="conversion-transaction"
 								>
 									Transaction
 								</label>
 								<select
-									className="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+									className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-stone-900 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10"
 									id="conversion-transaction"
 									value={optionId(selectedOption())}
 									onInput={(event) =>
@@ -929,12 +915,12 @@ function ExpenseCurrencyConversionButton(props: {
 								>
 									{props.options.map((option) => (
 										<option key={optionId(option)} value={optionId(option)}>
-											{option.counterpartyName} •{" "}
+											{option.counterpartyName} -{" "}
 											{formatCurrencyAmount(option.amount, option.currency)}
 										</option>
 									))}
 								</select>
-								<p className="mt-2 text-gray-500 text-xs dark:text-gray-400">
+								<p className="mt-2 text-stone-400 text-xs">
 									{selectedOption().payerId === selectedOption().counterpartyId
 										? `${selectedOption().counterpartyName} owes you`
 										: `You owe ${selectedOption().counterpartyName}`}{" "}
@@ -947,14 +933,14 @@ function ExpenseCurrencyConversionButton(props: {
 
 							<div>
 								<label
-									className="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
+									className="mb-2 block font-semibold text-stone-500 text-sm"
 									htmlFor="conversion-target-currency"
 								>
 									Convert to
 								</label>
 								<div className="flex gap-2">
 									<select
-										className="min-w-0 flex-1 rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+										className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-stone-900 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10"
 										id="conversion-target-currency"
 										value={targetCurrency()}
 										onInput={(event) => {
@@ -969,7 +955,7 @@ function ExpenseCurrencyConversionButton(props: {
 										))}
 									</select>
 									<button
-										className="shrink-0 rounded-sm border border-cyan-600 px-3 py-2 font-medium text-cyan-700 text-sm transition-colors hover:bg-cyan-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400 dark:border-cyan-500 dark:text-cyan-300 dark:hover:bg-cyan-950/30 dark:disabled:border-gray-700 dark:disabled:text-gray-500"
+										className="shrink-0 rounded-lg border border-sky-500 px-3 py-2.5 font-semibold text-sky-500 text-sm transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:border-stone-200 disabled:text-stone-400"
 										disabled={isFetchingConversion()}
 										type="button"
 										onClick={handleGetConversion}
@@ -982,13 +968,13 @@ function ExpenseCurrencyConversionButton(props: {
 							{conversionQuote() ? (
 								<div>
 									<label
-										className="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-200"
+										className="mb-2 block font-semibold text-stone-500 text-sm"
 										htmlFor="converted-transaction-amount"
 									>
 										Converted amount
 									</label>
 									<input
-										className="w-full rounded-sm border border-gray-300 bg-white px-3 py-2 text-gray-900 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-white"
+										className="w-full rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-stone-900 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10"
 										id="converted-transaction-amount"
 										inputMode="decimal"
 										min="0.01"
@@ -999,7 +985,7 @@ function ExpenseCurrencyConversionButton(props: {
 											setConvertedAmount(event.currentTarget.value)
 										}
 									/>
-									<p className="mt-2 text-gray-500 text-xs dark:text-gray-400">
+									<p className="mt-2 text-stone-400 text-xs">
 										Rate {conversionQuote()!.rate.toFixed(6)}
 										{conversionQuote()!.rateDate
 											? ` on ${conversionQuote()!.rateDate}`
@@ -1010,7 +996,7 @@ function ExpenseCurrencyConversionButton(props: {
 
 							<div className="grid grid-cols-2 gap-2">
 								<button
-									className="rounded-sm bg-cyan-600 px-3 py-2 font-medium text-sm text-white transition-colors hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-gray-300 dark:bg-cyan-500 dark:hover:bg-cyan-600 dark:disabled:bg-gray-700"
+									className="rounded-lg bg-sky-500 px-3 py-2.5 font-semibold text-sm text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-stone-300"
 									disabled={!conversionQuote()}
 									type="button"
 									onClick={handleConfirmConversion}
@@ -1018,7 +1004,7 @@ function ExpenseCurrencyConversionButton(props: {
 									Confirm conversion
 								</button>
 								<button
-									className="rounded-sm border border-gray-300 px-3 py-2 font-medium text-gray-700 text-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+									className="rounded-lg border border-stone-200 px-3 py-2.5 font-semibold text-stone-900 text-sm transition hover:border-sky-500 hover:text-sky-500"
 									type="button"
 									onClick={closeDialog}
 								>
@@ -1040,7 +1026,7 @@ function AddExpenseButton(props: {
 	return (
 		<Link
 			aria-label="Add expense"
-			className="fixed right-6 bottom-6 flex h-14 w-14 items-center justify-center rounded-sm bg-gray-950 text-white shadow-lg transition-all hover:bg-gray-800 focus:scale-95 focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:ring-offset-2 active:scale-95 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
+			className="fixed right-6 bottom-6 z-10 flex h-12 w-12 items-center justify-center rounded-full bg-sky-500 text-white shadow-lg shadow-sky-500/25 transition hover:-translate-y-0.5 hover:bg-sky-600 hover:shadow-xl hover:shadow-sky-500/35 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 active:scale-95"
 			params={{
 				groupId: String(props.telegramChatId),
 			}}
@@ -1059,10 +1045,44 @@ function AddExpenseButton(props: {
 	);
 }
 
+function EmptyExpenseState({ text }: { text: string }) {
+	return (
+		<div className="rounded-lg border border-dashed border-stone-200 bg-stone-50 px-4 py-8 text-center text-stone-500 text-sm">
+			{text}
+		</div>
+	);
+}
+
+function getAvatarColorClass(index: number) {
+	const classes = [
+		"bg-sky-500",
+		"bg-emerald-600",
+		"bg-amber-600",
+		"bg-violet-600",
+		"bg-teal-700",
+	];
+	return classes[index % classes.length];
+}
+
+function getMemberDisplayName(member: GroupData["members"][number]) {
+	const fullName = [member.firstName, member.lastName]
+		.filter(Boolean)
+		.join(" ");
+	return fullName || member.username || "Unknown";
+}
+
+function getMemberInitial(member: GroupData["members"][number]) {
+	return getInitialFromName(getMemberDisplayName(member));
+}
+
+function getInitialFromName(name: string) {
+	return name.trim()[0]?.toUpperCase() || "?";
+}
+
 function Loading() {
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-gray-950">
-			<LoaderCircle className="mx-auto mb-4 h-8 w-8 animate-spin text-cyan-600 dark:text-cyan-400" />
+		<div className="flex min-h-screen items-center justify-center bg-stone-50 p-6">
+			<LoaderCircle className="mx-auto mb-4 h-8 w-8 animate-spin text-sky-500" />
 		</div>
 	);
 }

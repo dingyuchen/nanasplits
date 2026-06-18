@@ -36,33 +36,43 @@ function HomePage() {
 	const telegramMiniAppLink = `https://t.me/${telegramBotUsername}/app`;
 
 	return (
-		<main className="min-h-screen bg-slate-50 text-gray-950 dark:bg-gray-950 dark:text-white">
-			<section className="mx-auto flex min-h-screen w-full max-w-5xl flex-col justify-center px-6 py-12">
-				<div className="mb-8 inline-flex w-fit items-center gap-2 rounded-sm border border-cyan-200 bg-white px-3 py-2 font-medium text-cyan-700 text-sm shadow-sm dark:border-cyan-900/70 dark:bg-gray-900 dark:text-cyan-300">
+		<main className="flex min-h-screen flex-col bg-stone-50 text-stone-900">
+			<nav className="flex items-center justify-between border-stone-200 border-b px-6 py-5">
+				<div className="font-heading text-stone-900 text-xl">
+					Nana<span className="text-sky-500">Splits</span>
+				</div>
+				<span className="inline-flex items-center rounded-full bg-stone-100 px-3.5 py-1 font-medium text-stone-500 text-xs tracking-[0.02em]">
+					Telegram
+				</span>
+			</nav>
+			<section className="mx-auto flex min-h-[calc(100vh-73px)] w-full max-w-7xl flex-col justify-center px-6 py-12 sm:py-16">
+				<div className="inline-flex w-fit items-center gap-2 rounded-full bg-sky-50 px-4 py-1.5 font-medium text-sky-500 text-sm">
 					<Bot className="h-4 w-4" /> Telegram Mini App
 				</div>
-				<h1 className="max-w-3xl font-semibold text-5xl tracking-tight sm:text-7xl">
-					NanaSplits
+				<h1 className="font-heading mt-8 max-w-[14ch] text-[clamp(2.75rem,8vw,5rem)] text-stone-900 leading-[1.05] tracking-[-0.03em]">
+					Clear accounts,
+					<br />
+					<span className="text-sky-500">quiet minds.</span>
 				</h1>
-				<p className="mt-5 max-w-2xl text-gray-600 text-lg leading-8 dark:text-gray-300">
-					Split group expenses inside Telegram with clean balances, precise
-					multi-currency totals, and simple settlement flows.
+				<p className="mt-5 max-w-2xl text-stone-500 text-lg leading-8">
+					Expense splitting for groups who value clarity. Multi-currency
+					balances and simple settlements, all inside Telegram.
 				</p>
 				<div className="mt-10 flex flex-wrap gap-3">
 					<a
-						className="rounded-sm bg-gray-950 px-5 py-3 font-semibold text-sm text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
+						className="inline-flex items-center justify-center rounded-lg bg-sky-500 px-6 py-3 font-semibold text-sm text-white tracking-[-0.01em] transition hover:bg-sky-600"
 						href={telegramMiniAppLink}
 					>
 						Open Mini App
 					</a>
 					<a
-						className="rounded-sm border border-gray-300 bg-white px-5 py-3 font-semibold text-gray-800 text-sm transition hover:border-cyan-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:border-cyan-500 dark:hover:bg-gray-800"
+						className="inline-flex items-center justify-center rounded-lg border border-stone-200 bg-transparent px-6 py-3 font-semibold text-stone-900 text-sm tracking-[-0.01em] transition hover:border-sky-500 hover:text-sky-500"
 						href={telegramBotLink}
 					>
 						Open @{telegramBotUsername}
 					</a>
 				</div>
-				<div className="mt-16 grid gap-3 sm:grid-cols-3">
+				<div className="mt-16 grid border border-stone-200 bg-stone-200 sm:grid-cols-3">
 					<Feature
 						icon={<Users />}
 						title="Groups"
@@ -94,14 +104,12 @@ function Feature({
 	text: string;
 }) {
 	return (
-		<div className="rounded-sm border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-			<div className="mb-4 flex h-9 w-9 items-center justify-center rounded-sm bg-cyan-50 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300">
+		<div className="bg-stone-50 p-6">
+			<div className="mb-4 flex h-9 w-9 items-center justify-center rounded-md bg-sky-50 text-sky-500 [&>svg]:h-5 [&>svg]:w-5">
 				{icon}
 			</div>
-			<h2 className="font-semibold">{title}</h2>
-			<p className="mt-2 text-gray-600 text-sm leading-6 dark:text-gray-400">
-				{text}
-			</p>
+			<h2 className="font-heading text-stone-900 text-xl">{title}</h2>
+			<p className="mt-1.5 text-stone-500 text-sm leading-7">{text}</p>
 		</div>
 	);
 }

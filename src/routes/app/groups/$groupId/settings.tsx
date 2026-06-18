@@ -118,12 +118,12 @@ function GroupSettings(props: {
 	};
 
 	return (
-		<div className="min-h-screen bg-slate-50 pb-20 text-gray-950 dark:bg-gray-950 dark:text-white">
-			<div className="border-gray-200 border-b bg-white dark:border-gray-800 dark:bg-gray-950">
-				<div className="mx-auto max-w-2xl p-4">
-					<div className="mb-2 flex items-center gap-3">
+		<div className="min-h-screen bg-stone-50 pb-20 text-stone-900">
+			<div className="mx-auto my-8 max-w-[430px] overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm max-[480px]:my-0 max-[480px]:min-h-screen max-[480px]:rounded-none max-[480px]:border-0">
+				<header className="border-stone-100 border-b px-5 py-4">
+					<div className="flex items-center gap-3">
 						<button
-							className="rounded-sm border border-gray-200 bg-white p-2 transition-colors hover:border-cyan-500 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-cyan-500 dark:hover:bg-gray-800"
+							className="flex h-8 w-8 items-center justify-center rounded-md text-stone-500 transition hover:bg-stone-100"
 							type="button"
 							onClick={() =>
 								void navigate({
@@ -136,114 +136,113 @@ function GroupSettings(props: {
 						>
 							<ArrowLeft className="h-5 w-5" />
 						</button>
-						<h1 className="font-semibold text-2xl tracking-tight">
+						<h1 className="font-heading text-stone-900 text-2xl">
 							Group Settings
 						</h1>
 					</div>
-					<p className="ml-14 text-gray-500 text-sm dark:text-gray-400">
+					<p className="ml-11 mt-1 text-stone-500 text-sm">
 						{props.groupData.title}
 					</p>
-				</div>
-			</div>
+				</header>
 
-			<div className="mx-auto max-w-2xl space-y-4 px-4 py-4">
-				<div className="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-					<div className="mb-4 flex items-center gap-3">
-						<div className="rounded-sm bg-cyan-50 p-2 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300">
-							<Globe className="h-5 w-5" />
+				<div className="space-y-4 p-5">
+					<div className="rounded-lg border border-stone-200 bg-white p-4">
+						<div className="mb-4 flex items-center gap-3">
+							<div className="rounded-lg bg-sky-50 p-2 text-sky-500">
+								<Globe className="h-5 w-5" />
+							</div>
+							<div>
+								<h2 className="font-heading text-stone-900 text-xl">
+									Default Currency
+								</h2>
+								<p className="text-stone-500 text-sm">
+									Used for new expenses in this group
+								</p>
+							</div>
 						</div>
+
+						<div className="relative">
+							<select
+								className="w-full cursor-pointer appearance-none rounded-lg border border-stone-200 bg-white px-3 py-3 text-stone-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10"
+								value={selectedCurrency}
+								onChange={(event) =>
+									setSelectedCurrency(event.currentTarget.value)
+								}
+							>
+								{Object.entries(currencySigns).map(([code, sign]) => (
+									<option key={code} value={code}>
+										{code} ({sign})
+									</option>
+								))}
+							</select>
+							<div className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2">
+								<span className="text-2xl text-stone-400">
+									{currencySigns[selectedCurrency] || "$"}
+								</span>
+							</div>
+						</div>
+					</div>
+
+					<div className="rounded-lg border border-stone-200 bg-white p-4">
+						<div className="mb-4 flex items-center gap-3">
+							<div className="rounded-lg bg-emerald-50 p-2 text-emerald-600">
+								<Users className="h-5 w-5" />
+							</div>
+							<div>
+								<h2 className="font-heading text-stone-900 text-xl">Members</h2>
+								<p className="text-stone-500 text-sm">
+									{props.groupData.members.length} member
+									{props.groupData.members.length !== 1 ? "s" : ""} in this
+									group
+								</p>
+							</div>
+						</div>
+
 						<div>
-							<h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-								Default Currency
-							</h2>
-							<p className="text-sm text-gray-500 dark:text-gray-400">
-								Used for new expenses in this group
-							</p>
-						</div>
-					</div>
-
-					<div className="relative">
-						<select
-							className="w-full cursor-pointer appearance-none rounded-sm border border-gray-300 bg-white px-3 py-3 text-gray-900 transition-all focus:border-cyan-600 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-white"
-							value={selectedCurrency}
-							onChange={(event) =>
-								setSelectedCurrency(event.currentTarget.value)
-							}
-						>
-							{Object.entries(currencySigns).map(([code, sign]) => (
-								<option value={code}>
-									{code} ({sign})
-								</option>
-							))}
-						</select>
-						<div className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2">
-							<span className="text-2xl text-gray-400">
-								{currencySigns[selectedCurrency] || "$"}
-							</span>
-						</div>
-					</div>
-				</div>
-
-				<div className="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-					<div className="mb-4 flex items-center gap-3">
-						<div className="rounded-sm bg-green-50 p-2 text-green-700 dark:bg-green-950/40 dark:text-green-300">
-							<Users className="h-5 w-5" />
-						</div>
-						<div>
-							<h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-								Members
-							</h2>
-							<p className="text-sm text-gray-500 dark:text-gray-400">
-								{props.groupData.members.length} member
-								{props.groupData.members.length !== 1 ? "s" : ""} in this group
-							</p>
-						</div>
-					</div>
-
-					<div className="space-y-2">
-						{props.groupData.members.map((member) => {
-							const isCurrentUser =
-								member.telegramUserId === props.telegramUserId;
-							return (
-								<div
-									key={member._id}
-									className={`flex items-center gap-3 rounded-sm border p-3 ${
-										isCurrentUser
-											? "border-cyan-200 bg-cyan-50 dark:border-cyan-900/70 dark:bg-cyan-950/30"
-											: "border-gray-200 bg-slate-50 dark:border-gray-800 dark:bg-gray-950"
-									}`}
-								>
+							{props.groupData.members.map((member) => {
+								const isCurrentUser =
+									member.telegramUserId === props.telegramUserId;
+								return (
 									<div
-										className={`flex h-10 w-10 items-center justify-center rounded-sm font-bold text-sm ${
+										key={member._id}
+										className={`flex items-center gap-3 border-stone-100 border-b px-1 py-3 last:border-b-0 ${
 											isCurrentUser
-												? "bg-cyan-700 text-white"
-												: "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+												? "rounded-lg border border-sky-100 bg-sky-50 px-3"
+												: ""
 										}`}
 									>
-										{(
-											member.firstName?.[0] ||
-											member.username?.[0] ||
-											"?"
-										).toUpperCase()}
-									</div>
-									<div className="flex-1">
-										<p className="font-medium text-gray-900 dark:text-white">
-											{member.firstName} {member.lastName}
-											{isCurrentUser ? (
-												<span className="ml-2 text-cyan-700 text-xs dark:text-cyan-300">
-													(You)
-												</span>
-											) : null}
-										</p>
-										{member.username ? (
-											<p className="text-sm text-gray-500 dark:text-gray-400">
-												@{member.username}
+										<div
+											className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-white font-bold text-sm ${
+												isCurrentUser
+													? "bg-sky-500 text-white"
+													: "bg-stone-300 text-stone-500"
+											}`}
+										>
+											{(
+												member.firstName?.[0] ||
+												member.username?.[0] ||
+												"?"
+											).toUpperCase()}
+										</div>
+										<div className="flex-1">
+											<p className="font-medium text-stone-900">
+												{member.firstName} {member.lastName}
+												{isCurrentUser ? (
+													<span className="ml-2 text-sky-500 text-xs">
+														(You)
+													</span>
+												) : null}
 											</p>
-										) : null}
+											{member.username ? (
+												<p className="text-stone-500 text-sm">
+													@{member.username}
+												</p>
+											) : null}
+										</div>
 									</div>
-								</div>
-							);
-						})}
+								);
+							})}
+						</div>
 					</div>
 				</div>
 			</div>
@@ -260,7 +259,7 @@ function GroupSettings(props: {
 			) : null}
 
 			{showSuccess ? (
-				<div className="fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-sm bg-green-600 px-4 py-2 text-white shadow-lg">
+				<div className="fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-white shadow-lg">
 					<Check className="h-4 w-4" />
 					<span className="text-sm font-medium">Settings saved!</span>
 				</div>
@@ -271,9 +270,9 @@ function GroupSettings(props: {
 
 function Loading() {
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-gray-950">
+		<div className="flex min-h-screen items-center justify-center bg-stone-50 p-6">
 			<div className="text-center">
-				<LoaderCircle className="mx-auto mb-4 h-8 w-8 animate-spin text-cyan-600 dark:text-cyan-400" />
+				<LoaderCircle className="mx-auto mb-4 h-8 w-8 animate-spin text-sky-500" />
 			</div>
 		</div>
 	);

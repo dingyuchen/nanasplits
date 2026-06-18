@@ -27,7 +27,15 @@ export const Route = createRootRouteWithContext<{
 				content: "Telegram-native expense splitting powered by Convex.",
 			},
 		],
-		links: [{ rel: "stylesheet", href: appCss }],
+		links: [
+			{ rel: "preconnect", href: "https://fonts.googleapis.com" },
+			{ rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
+			{
+				rel: "stylesheet",
+				href: "https://fonts.googleapis.com/css2?family=Instrument+Serif:opsz@36&family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap",
+			},
+			{ rel: "stylesheet", href: appCss },
+		],
 	}),
 	component: RootComponent,
 	errorComponent: RootErrorComponent,
@@ -45,14 +53,12 @@ function RootErrorComponent(props: ErrorComponentProps) {
 			: "Something went wrong.";
 
 	return (
-		<main className="flex min-h-screen items-center justify-center bg-gray-50 px-6 py-12 text-gray-900 dark:bg-gray-950 dark:text-white">
-			<div className="w-full max-w-sm rounded-sm border border-gray-200 bg-white p-6 text-center shadow-sm dark:border-gray-800 dark:bg-gray-900">
-				<h1 className="font-semibold text-xl">Unable to load NanaSplits</h1>
-				<p className="mt-3 text-gray-600 text-sm dark:text-gray-300">
-					{message}
-				</p>
+		<main className="flex min-h-screen items-center justify-center bg-stone-50 px-6 py-12 text-stone-900">
+			<div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 text-center shadow-sm">
+				<h1 className="font-heading text-2xl">Unable to load NanaSplits</h1>
+				<p className="mt-3 text-stone-500 text-sm">{message}</p>
 				<button
-					className="mt-6 rounded-sm bg-gray-950 px-5 py-2.5 font-semibold text-sm text-white transition hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200"
+					className="mt-6 rounded-lg bg-sky-500 px-5 py-2.5 font-semibold text-sm text-white transition hover:bg-sky-600"
 					onClick={() => props.reset()}
 					type="button"
 				>

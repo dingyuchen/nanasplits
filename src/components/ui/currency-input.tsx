@@ -50,8 +50,8 @@ export function CurrencyInput({
 			step="0.01"
 			readOnly={readOnly}
 			className={cn(
-				"block min-w-0 grow py-3 pr-3 pl-1 text-base text-gray-900 dark:text-white",
-				"bg-transparent placeholder:text-gray-400 focus:outline-none sm:text-sm/6",
+				"block min-w-0 grow py-3 pr-3 pl-1 text-base text-stone-900",
+				"bg-transparent placeholder:text-stone-400 focus:outline-none sm:text-sm/6",
 				readOnly && "opacity-70",
 				className,
 			)}

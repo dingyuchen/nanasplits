@@ -14,11 +14,9 @@ export default function NotFound({
 	title = "Not found",
 }: NotFoundProps) {
 	const content = (
-		<div className="rounded-sm border border-gray-200 bg-white p-6 text-center shadow-sm dark:border-gray-800 dark:bg-gray-900">
-			<h1 className="mb-2 font-semibold text-gray-900 text-lg dark:text-white">
-				{title}
-			</h1>
-			<p className="text-gray-600 text-sm dark:text-gray-400">{text}</p>
+		<div className="rounded-2xl border border-stone-200 bg-white p-6 text-center shadow-sm">
+			<h1 className="font-heading mb-2 text-stone-900 text-2xl">{title}</h1>
+			<p className="text-stone-500 text-sm">{text}</p>
 		</div>
 	);
 
@@ -29,7 +27,7 @@ export default function NotFound({
 	return (
 		<div
 			className={cn(
-				"flex min-h-screen items-center justify-center bg-slate-50 p-6 dark:bg-gray-950",
+				"flex min-h-screen items-center justify-center bg-stone-50 p-6",
 				className,
 			)}
 		>

@@ -16,19 +16,17 @@ export function Button({
 	return (
 		<button
 			className={cn(
-				"inline-flex items-center justify-center whitespace-nowrap rounded-sm text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+				"inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-semibold tracking-[-0.01em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
 				{
-					"bg-gray-900 text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200":
-						variant === "default",
-					"border border-gray-300 bg-white hover:bg-gray-50 hover:text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700":
+					"bg-sky-500 text-white hover:bg-sky-600": variant === "default",
+					"border border-stone-200 bg-white text-stone-900 hover:border-sky-500 hover:text-sky-500":
 						variant === "outline",
-					"hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-700 dark:hover:text-gray-100":
+					"text-stone-500 hover:bg-stone-100 hover:text-stone-900":
 						variant === "ghost",
-					"bg-red-600 text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600":
-						variant === "destructive",
+					"bg-red-600 text-white hover:bg-red-700": variant === "destructive",
 					"h-10 px-4 py-2": size === "default",
-					"h-9 rounded-sm px-3": size === "sm",
-					"h-11 rounded-sm px-8": size === "lg",
+					"h-9 px-3": size === "sm",
+					"h-11 px-8": size === "lg",
 					"h-10 w-10": size === "icon",
 				},
 				className,
