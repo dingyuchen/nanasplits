@@ -8,6 +8,7 @@ import {
 	Check,
 	Plus,
 	Split,
+	Tag,
 	Trash2,
 	X,
 } from "lucide-react";
@@ -33,6 +34,7 @@ type EditExpenseSearchParams = {
 	payerId: string | null;
 	date: string | null;
 	items: string | null;
+	tag: string | null;
 };
 
 export const Route = createFileRoute("/app/groups/$groupId/add-expense")({
@@ -51,6 +53,7 @@ export const Route = createFileRoute("/app/groups/$groupId/add-expense")({
 		expenseId: stringSearchParam(search.expenseId),
 		items: stringSearchParam(search.items),
 		payerId: stringSearchParam(search.payerId),
+		tag: stringSearchParam(search.tag),
 	}),
 	component: AddExpenseRoute,
 });
@@ -74,6 +77,7 @@ const baseExpenseSchema = z.object({
 	currency: z.string().min(1),
 	description: z.string().min(1, "Description is required"),
 	payerId: z.string().min(1, "Payer is required"),
+	tag: z.string().max(32).optional(),
 });
 
 const simpleExpenseSchema = baseExpenseSchema.extend({
@@ -723,6 +727,14 @@ function EditExpensePage(props: {
 		props.searchParams.currency || props.groupData.defaultCurrency || "USD";
 	const editPayerId = props.searchParams.payerId as Id<"users"> | null;
 	const submitButtonRef = useRef<HTMLButtonElement | null>(null);
+	const tagOptions = () =>
+		Array.from(
+			new Set(
+				props.groupData.expenses
+					.map((expense) => expense.tag?.trim() ?? "")
+					.filter((expenseTag) => expenseTag.length > 0),
+			),
+		).sort((first, second) => first.localeCompare(second));
 
 	const defaultSplits = (amount: number): SplitShare[] =>
 		props.groupData.members.map((member) => ({
@@ -745,6 +757,7 @@ function EditExpensePage(props: {
 			? new Date(Number(props.searchParams.date)).toISOString().split("T")[0]
 			: new Date().toISOString().split("T")[0],
 	);
+	const [tag, setTag] = useAccessorState(props.searchParams.tag ?? "");
 	const [items, setItems] = useAccessorState<SubItem[]>(
 		createInitialItems(editItems, editDescription),
 	);
@@ -820,6 +833,7 @@ function EditExpensePage(props: {
 			currency: currency(),
 			description: description(),
 			payerId: payer()?._id ?? "",
+			tag: tag().trim() || undefined,
 		};
 
 		if (isItemized()) {
@@ -850,6 +864,7 @@ function EditExpensePage(props: {
 		}
 
 		const finalItems = isItemized() ? rest() : items();
+		const expenseTag = tag().trim() || null;
 
 		try {
 			if (isEditing() && expenseId) {
@@ -860,6 +875,7 @@ function EditExpensePage(props: {
 					expenseId,
 					items: finalItems,
 					payerId: selectedPayer._id,
+					tag: expenseTag,
 					telegramChatId: props.telegramChatId,
 					telegramUserId: props.telegramUserId,
 				});
@@ -870,6 +886,7 @@ function EditExpensePage(props: {
 					description: description(),
 					items: finalItems,
 					payerId: selectedPayer._id,
+					tag: expenseTag,
 					telegramChatId: props.telegramChatId,
 					telegramUserId: props.telegramUserId,
 				});
@@ -936,6 +953,43 @@ function EditExpensePage(props: {
 								handleItemChange(0, "name", event.currentTarget.value)
 							}
 						/>
+					</div>
+
+					<div className="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+						<label
+							className="mb-2 block font-medium text-gray-700 text-sm dark:text-gray-300"
+							htmlFor="tag"
+						>
+							Tag
+						</label>
+						<div className="relative">
+							<Tag className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-gray-400" />
+							<input
+								className="w-full rounded-sm border border-gray-300 bg-white py-3 pr-10 pl-10 text-gray-900 placeholder-gray-400 transition-all focus:border-cyan-600 focus:outline-none dark:border-gray-700 dark:bg-gray-950 dark:text-white [&:user-invalid]:border-red-500"
+								id="tag"
+								list="expense-tags"
+								maxLength={32}
+								placeholder="e.g., Food"
+								type="text"
+								value={tag()}
+								onInput={(event) => setTag(event.currentTarget.value)}
+							/>
+							{tag() ? (
+								<button
+									aria-label="Clear tag"
+									className="absolute top-1/2 right-3 -translate-y-1/2 rounded-sm p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+									type="button"
+									onClick={() => setTag("")}
+								>
+									<X className="h-4 w-4" />
+								</button>
+							) : null}
+							<datalist id="expense-tags">
+								{tagOptions().map((expenseTag) => (
+									<option key={expenseTag} value={expenseTag} />
+								))}
+							</datalist>
+						</div>
 					</div>
 
 					<div className="rounded-sm border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">

@@ -41,6 +41,16 @@ function roundMoney(amount: number) {
 	return Math.round((amount + Number.EPSILON) * 100) / 100;
 }
 
+function normalizeExpenseTag(tag: string | null | undefined) {
+	if (tag === null || tag === undefined) return null;
+	const trimmed = tag.trim();
+	if (trimmed.length === 0) return null;
+	if (trimmed.length > 32) {
+		throw new Error("Tag must be 32 characters or less");
+	}
+	return trimmed;
+}
+
 /**
  * Validates expense participants and returns the group with member IDs
  */
@@ -563,6 +573,7 @@ export const addExpense = protectedMutation({
 		payerId: v.id("users"),
 		currency: v.string(),
 		description: v.string(),
+		tag: v.optional(v.union(v.string(), v.null())),
 		date: v.number(),
 		items: expenseItemsValidator,
 	},
@@ -578,6 +589,7 @@ export const addExpense = protectedMutation({
 			groupId: group._id,
 			currency: args.currency,
 			description: args.description,
+			tag: normalizeExpenseTag(args.tag),
 			payerId: args.payerId,
 			items: args.items,
 			date: args.date,
@@ -785,6 +797,7 @@ export const updateExpense = protectedMutation({
 		payerId: v.id("users"),
 		currency: v.string(),
 		description: v.string(),
+		tag: v.optional(v.union(v.string(), v.null())),
 		date: v.number(),
 		items: expenseItemsValidator,
 	},
@@ -810,6 +823,7 @@ export const updateExpense = protectedMutation({
 		await ctx.db.patch(args.expenseId, {
 			currency: args.currency,
 			description: args.description,
+			tag: normalizeExpenseTag(args.tag),
 			payerId: args.payerId,
 			items: args.items,
 			date: args.date,

@@ -240,6 +240,7 @@ function GroupView(props: {
 				expenseId: expense._id,
 				items: JSON.stringify(expense.items),
 				payerId: expense.payerId,
+				tag: expense.tag ?? null,
 			},
 			to: "/app/groups/$groupId/add-expense",
 		});
@@ -591,6 +592,11 @@ function ExpenseRow(props: {
 					<p className="font-medium text-gray-900 dark:text-white">
 						{props.expense.description}
 					</p>
+					{props.expense.tag ? (
+						<p className="mt-0.5 text-cyan-700 text-xs dark:text-cyan-300">
+							#{props.expense.tag}
+						</p>
+					) : null}
 					<p className="text-xs text-gray-500 dark:text-gray-400">
 						{isTransfer()
 							? `Settled with ${props.expense.payerName}`
@@ -1051,6 +1057,7 @@ function AddExpenseButton(props: {
 				expenseId: null,
 				items: null,
 				payerId: null,
+				tag: null,
 			}}
 			to="/app/groups/$groupId/add-expense"
 		>
