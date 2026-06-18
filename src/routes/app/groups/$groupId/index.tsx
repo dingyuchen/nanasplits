@@ -236,6 +236,7 @@ function GroupView(props: {
 				expenseId: expense._id,
 				items: JSON.stringify(expense.items),
 				payerId: expense.payerId,
+				tag: expense.tag ?? null,
 			},
 			to: "/app/groups/$groupId/add-expense",
 		});
@@ -268,7 +269,7 @@ function GroupView(props: {
 						<ArrowRight className="h-4 w-4 rotate-180" />
 					</Link>
 					<div className="absolute left-1/2 w-[min(12rem,calc(100%-13rem))] -translate-x-1/2 text-center">
-						<h1 className="font-heading truncate text-stone-900 text-[1.375rem] leading-tight tracking-[-0.03em]">
+						<h1 className="font-serif font-medium tracking-tight truncate text-stone-900 text-[1.375rem] leading-tight">
 							{props.groupData.title}
 						</h1>
 						<div className="mt-1 flex items-center justify-center gap-1 text-stone-400 text-xs">
@@ -334,7 +335,9 @@ function GroupView(props: {
 						type="button"
 						onClick={() => setMembersCollapsed(!membersCollapsed())}
 					>
-						<h2 className="font-heading text-stone-900 text-lg">Members</h2>
+						<h2 className="font-serif font-medium tracking-tight text-stone-900 text-lg">
+							Members
+						</h2>
 						<span className="rounded-full bg-stone-100 px-2 py-0.5 font-semibold text-stone-400 text-[0.6875rem]">
 							{props.groupData.memberCount}
 						</span>
@@ -369,7 +372,9 @@ function GroupView(props: {
 					<div className="mb-3 flex items-center justify-between gap-2 border-stone-100 border-b pb-2">
 						<div className="flex items-center gap-2">
 							<Receipt className="h-4 w-4 text-stone-400" />
-							<h2 className="font-heading text-stone-900 text-lg">Expenses</h2>
+							<h2 className="font-serif font-medium tracking-tight text-stone-900 text-lg">
+								Expenses
+							</h2>
 							<span className="rounded-full bg-stone-100 px-2 py-0.5 font-semibold text-stone-400 text-[0.6875rem]">
 								{props.groupData.expenses.length}
 							</span>
@@ -433,14 +438,14 @@ function CurrencyBalanceCard(props: {
 					: "border-red-200 bg-red-50"
 			}`}
 		>
-			<div className="font-semibold text-[0.6875rem] uppercase leading-tight tracking-[0.06em]">
+			<div className="font-semibold text-[0.6875rem] uppercase leading-tight tracking-tight">
 				<span className={isPositive() ? "text-emerald-600" : "text-red-600"}>
 					Your Balance
 				</span>
 				<span className="text-stone-400"> - {props.currency}</span>
 			</div>
 			<p
-				className={`mt-1 font-bold text-[2.25rem] leading-[1.05] tracking-[-0.04em] ${
+				className={`mt-1 font-bold text-[2.25rem] leading-[1.05] tracking-tight ${
 					isPositive() ? "text-emerald-600" : "text-red-600"
 				}`}
 			>
@@ -553,6 +558,11 @@ function ExpenseRow(props: {
 				<p className="truncate font-medium text-stone-900 text-[0.9375rem]">
 					{props.expense.description}
 				</p>
+				{props.expense.tag ? (
+					<p className="truncate font-semibold text-sky-500 text-xs">
+						#{props.expense.tag}
+					</p>
+				) : null}
 				<p className="truncate text-stone-400 text-xs">
 					{isTransfer()
 						? `Settled with ${props.expense.payerName}`
@@ -643,7 +653,9 @@ function SettleUp(props: {
 	return (
 		<section className="mx-5 mt-5">
 			<div className="border-stone-100 border-b pb-2">
-				<h2 className="font-heading text-stone-900 text-lg">Settle Up</h2>
+				<h2 className="font-serif font-medium tracking-tight text-stone-900 text-lg">
+					Settle Up
+				</h2>
 			</div>
 			<div>
 				{balanceEntries().length > 0 ? (
@@ -717,7 +729,7 @@ function SettleUp(props: {
 			{settleDialog() ? (
 				<div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-stone-900/30 p-4 backdrop-blur-[2px]">
 					<div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl">
-						<h3 className="font-heading mb-2 text-stone-900 text-2xl">
+						<h3 className="font-serif font-medium tracking-tight mb-2 text-stone-900 text-2xl">
 							Confirm settlement
 						</h3>
 						<p className="mb-6 text-stone-500">
@@ -889,7 +901,7 @@ function ExpenseCurrencyConversionButton(props: {
 			{isOpen() ? (
 				<div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-stone-900/30 p-4 backdrop-blur-[2px]">
 					<div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl">
-						<h3 className="font-heading mb-2 text-stone-900 text-2xl">
+						<h3 className="font-serif font-medium tracking-tight mb-2 text-stone-900 text-2xl">
 							Convert transaction
 						</h3>
 						<p className="mb-5 text-stone-500 text-sm leading-6">
@@ -1037,6 +1049,7 @@ function AddExpenseButton(props: {
 				expenseId: null,
 				items: null,
 				payerId: null,
+				tag: null,
 			}}
 			to="/app/groups/$groupId/add-expense"
 		>

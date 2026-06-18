@@ -8,6 +8,7 @@ import {
 	Check,
 	Plus,
 	Split,
+	Tag,
 	Trash2,
 	X,
 } from "lucide-react";
@@ -33,6 +34,7 @@ type EditExpenseSearchParams = {
 	payerId: string | null;
 	date: string | null;
 	items: string | null;
+	tag: string | null;
 };
 
 export const Route = createFileRoute("/app/groups/$groupId/add-expense")({
@@ -51,6 +53,7 @@ export const Route = createFileRoute("/app/groups/$groupId/add-expense")({
 		expenseId: stringSearchParam(search.expenseId),
 		items: stringSearchParam(search.items),
 		payerId: stringSearchParam(search.payerId),
+		tag: stringSearchParam(search.tag),
 	}),
 	component: AddExpenseRoute,
 });
@@ -74,6 +77,7 @@ const baseExpenseSchema = z.object({
 	currency: z.string().min(1),
 	description: z.string().min(1, "Description is required"),
 	payerId: z.string().min(1, "Payer is required"),
+	tag: z.string().max(32).optional(),
 });
 
 const simpleExpenseSchema = baseExpenseSchema.extend({
@@ -434,7 +438,7 @@ function SplitModal(props: {
 			<div className="my-8 w-full max-w-md rounded-2xl border border-stone-200 bg-white shadow-2xl">
 				<div className="flex items-center justify-between border-stone-100 border-b p-5">
 					<div>
-						<h2 className="font-heading text-stone-900 text-2xl">
+						<h2 className="font-serif font-medium tracking-tight text-stone-900 text-2xl">
 							Split Expense
 						</h2>
 						<p className="text-stone-500 text-sm">
@@ -715,6 +719,14 @@ function EditExpensePage(props: {
 		props.searchParams.currency || props.groupData.defaultCurrency || "USD";
 	const editPayerId = props.searchParams.payerId as Id<"users"> | null;
 	const submitButtonRef = useRef<HTMLButtonElement | null>(null);
+	const tagOptions = () =>
+		Array.from(
+			new Set(
+				props.groupData.expenses
+					.map((expense) => expense.tag?.trim() ?? "")
+					.filter((expenseTag) => expenseTag.length > 0),
+			),
+		).sort((first, second) => first.localeCompare(second));
 
 	const defaultSplits = (amount: number): SplitShare[] =>
 		props.groupData.members.map((member) => ({
@@ -737,6 +749,7 @@ function EditExpensePage(props: {
 			? new Date(Number(props.searchParams.date)).toISOString().split("T")[0]
 			: new Date().toISOString().split("T")[0],
 	);
+	const [tag, setTag] = useAccessorState(props.searchParams.tag ?? "");
 	const [items, setItems] = useAccessorState<SubItem[]>(
 		createInitialItems(editItems, editDescription),
 	);
@@ -812,6 +825,7 @@ function EditExpensePage(props: {
 			currency: currency(),
 			description: description(),
 			payerId: payer()?._id ?? "",
+			tag: tag().trim() || undefined,
 		};
 
 		if (isItemized()) {
@@ -842,6 +856,7 @@ function EditExpensePage(props: {
 		}
 
 		const finalItems = isItemized() ? rest() : items();
+		const expenseTag = tag().trim() || null;
 
 		try {
 			if (isEditing() && expenseId) {
@@ -852,6 +867,7 @@ function EditExpensePage(props: {
 					expenseId,
 					items: finalItems,
 					payerId: selectedPayer._id,
+					tag: expenseTag,
 					telegramChatId: props.telegramChatId,
 					telegramUserId: props.telegramUserId,
 				});
@@ -862,6 +878,7 @@ function EditExpensePage(props: {
 					description: description(),
 					items: finalItems,
 					payerId: selectedPayer._id,
+					tag: expenseTag,
 					telegramChatId: props.telegramChatId,
 					telegramUserId: props.telegramUserId,
 				});
@@ -902,7 +919,7 @@ function EditExpensePage(props: {
 					>
 						<ArrowLeft className="h-4 w-4" />
 					</button>
-					<h1 className="font-heading text-stone-900 text-xl">
+					<h1 className="font-serif font-medium tracking-tight text-stone-900 text-xl">
 						{isEditing() ? "Edit Expense" : "Add Expense"}
 					</h1>
 				</div>
@@ -927,6 +944,43 @@ function EditExpensePage(props: {
 									handleItemChange(0, "name", event.currentTarget.value)
 								}
 							/>
+						</div>
+
+						<div className="rounded-lg border border-stone-200 bg-white p-4">
+							<label
+								className="mb-2 block font-semibold text-stone-500 text-sm"
+								htmlFor="tag"
+							>
+								Tag
+							</label>
+							<div className="relative">
+								<Tag className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-stone-400" />
+								<input
+									className="w-full rounded-lg border border-stone-200 bg-white py-3 pr-10 pl-10 text-stone-900 placeholder:text-stone-400 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10 [&:user-invalid]:border-red-600"
+									id="tag"
+									list="expense-tags"
+									maxLength={32}
+									placeholder="e.g., Food"
+									type="text"
+									value={tag()}
+									onInput={(event) => setTag(event.currentTarget.value)}
+								/>
+								{tag() ? (
+									<button
+										aria-label="Clear tag"
+										className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md p-1 text-stone-400 transition hover:bg-stone-100 hover:text-stone-900"
+										type="button"
+										onClick={() => setTag("")}
+									>
+										<X className="h-4 w-4" />
+									</button>
+								) : null}
+								<datalist id="expense-tags">
+									{tagOptions().map((expenseTag) => (
+										<option key={expenseTag} value={expenseTag} />
+									))}
+								</datalist>
+							</div>
 						</div>
 
 						<div className="rounded-lg border border-stone-200 bg-white p-4">

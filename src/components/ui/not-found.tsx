@@ -15,7 +15,9 @@ export default function NotFound({
 }: NotFoundProps) {
 	const content = (
 		<div className="rounded-2xl border border-stone-200 bg-white p-6 text-center shadow-sm">
-			<h1 className="font-heading mb-2 text-stone-900 text-2xl">{title}</h1>
+			<h1 className="font-serif font-medium tracking-tight mb-2 text-stone-900 text-2xl">
+				{title}
+			</h1>
 			<p className="text-stone-500 text-sm">{text}</p>
 		</div>
 	);

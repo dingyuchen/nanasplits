@@ -47,6 +47,7 @@ export default defineSchema({
 		groupId: v.id("groups"),
 		currency: v.string(),
 		description: v.string(),
+		tag: v.optional(v.union(v.string(), v.null())),
 		payerId: v.id("users"),
 		// Multiple sub-items support
 		items: v.array(expenseItemSchema),

@@ -46,7 +46,9 @@ function DashboardContent({ data }: { data: DashboardData }) {
 			<div className="relative mx-auto my-8 max-w-[430px] overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm max-[480px]:my-0 max-[480px]:min-h-screen max-[480px]:rounded-none max-[480px]:border-0">
 				<header className="flex items-center justify-between border-stone-100 border-b px-5 py-3">
 					<div className="flex h-8 w-8 items-center justify-center rounded-md text-stone-500" />
-					<h1 className="font-heading text-stone-900 text-xl">NanaSplits</h1>
+					<h1 className="font-serif font-medium tracking-tight text-stone-900 text-xl">
+						NanaSplits
+					</h1>
 					<div className="flex h-8 min-w-8 items-center justify-center gap-1 rounded-md text-sky-500">
 						<Users className="h-4 w-4" />
 						<span className="font-semibold text-xs">
@@ -57,10 +59,10 @@ function DashboardContent({ data }: { data: DashboardData }) {
 
 				<div className="p-5">
 					<div className="mb-6 border-stone-100 border-b pb-4">
-						<p className="mb-1 font-semibold text-stone-400 text-[0.6875rem] uppercase tracking-[0.08em]">
+						<p className="mb-1 font-semibold text-stone-400 text-[0.6875rem] uppercase tracking-tight">
 							Dashboard
 						</p>
-						<h2 className="font-heading text-stone-900 text-[1.75rem] leading-tight">
+						<h2 className="font-serif font-medium tracking-tight text-stone-900 text-[1.75rem] leading-tight">
 							Your balances
 						</h2>
 						<p className="mt-1 text-stone-400 text-sm">
@@ -88,7 +90,7 @@ function DashboardContent({ data }: { data: DashboardData }) {
 
 					<section>
 						<div className="mb-3 flex items-center gap-2 border-stone-100 border-b pb-2">
-							<h3 className="font-heading text-stone-900 text-lg">
+							<h3 className="font-serif font-medium tracking-tight text-stone-900 text-lg">
 								Active groups
 							</h3>
 							<span className="rounded-full bg-stone-100 px-2 py-0.5 font-semibold text-stone-400 text-[0.6875rem]">
@@ -169,11 +171,11 @@ function BalanceCard({ currencyData }: { currencyData: BalanceData }) {
 			}`}
 		>
 			<div>
-				<span className="mb-1 block font-semibold text-stone-400 text-[0.6875rem] uppercase tracking-[0.06em]">
+				<span className="mb-1 block font-semibold text-stone-400 text-[0.6875rem] uppercase tracking-tight">
 					{currencyData.currency}
 				</span>
 				<p
-					className={`font-bold text-[1.625rem] leading-tight tracking-[-0.03em] ${
+					className={`font-bold text-[1.625rem] leading-tight tracking-tight ${
 						isPositive ? "text-emerald-600" : "text-red-600"
 					}`}
 				>
@@ -224,7 +226,9 @@ function EmptyState({ title, text }: { title: string; text: string }) {
 	return (
 		<div className="rounded-lg border border-dashed border-stone-200 bg-stone-50 py-8 text-center">
 			<AlertCircle className="mx-auto mb-3 h-8 w-8 text-stone-400" />
-			<h3 className="font-heading mb-1 text-stone-500 text-lg">{title}</h3>
+			<h3 className="font-serif font-medium tracking-tight mb-1 text-stone-500 text-lg">
+				{title}
+			</h3>
 			<p className="text-stone-400 text-sm">{text}</p>
 		</div>
 	);

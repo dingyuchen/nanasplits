@@ -8,7 +8,7 @@ export function TelegramRequiredPage() {
 					<div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-lg bg-sky-50 text-sky-500">
 						<MessageSquare className="h-7 w-7" />
 					</div>
-					<h1 className="font-heading mb-3 text-3xl text-stone-900">
+					<h1 className="font-serif font-medium tracking-tight mb-3 text-3xl text-stone-900">
 						Open in Telegram
 					</h1>
 					<p className="mb-6 leading-7 text-stone-500">

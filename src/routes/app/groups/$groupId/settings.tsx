@@ -136,7 +136,7 @@ function GroupSettings(props: {
 						>
 							<ArrowLeft className="h-5 w-5" />
 						</button>
-						<h1 className="font-heading text-stone-900 text-2xl">
+						<h1 className="font-serif font-medium tracking-tight text-stone-900 text-2xl">
 							Group Settings
 						</h1>
 					</div>
@@ -152,7 +152,7 @@ function GroupSettings(props: {
 								<Globe className="h-5 w-5" />
 							</div>
 							<div>
-								<h2 className="font-heading text-stone-900 text-xl">
+								<h2 className="font-serif font-medium tracking-tight text-stone-900 text-xl">
 									Default Currency
 								</h2>
 								<p className="text-stone-500 text-sm">
@@ -189,7 +189,9 @@ function GroupSettings(props: {
 								<Users className="h-5 w-5" />
 							</div>
 							<div>
-								<h2 className="font-heading text-stone-900 text-xl">Members</h2>
+								<h2 className="font-serif font-medium tracking-tight text-stone-900 text-xl">
+									Members
+								</h2>
 								<p className="text-stone-500 text-sm">
 									{props.groupData.members.length} member
 									{props.groupData.members.length !== 1 ? "s" : ""} in this

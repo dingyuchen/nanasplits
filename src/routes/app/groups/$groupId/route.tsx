@@ -77,7 +77,7 @@ function AccessDenied() {
 				<div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-lg bg-red-50 p-3">
 					<ShieldAlert className="h-8 w-8 text-red-600" />
 				</div>
-				<h1 className="font-heading mb-3 text-3xl text-stone-900">
+				<h1 className="font-serif font-medium tracking-tight mb-3 text-3xl text-stone-900">
 					Access Denied
 				</h1>
 				<p className="mb-6 text-stone-500">

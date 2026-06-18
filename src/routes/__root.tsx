@@ -55,7 +55,9 @@ function RootErrorComponent(props: ErrorComponentProps) {
 	return (
 		<main className="flex min-h-screen items-center justify-center bg-stone-50 px-6 py-12 text-stone-900">
 			<div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 text-center shadow-sm">
-				<h1 className="font-heading text-2xl">Unable to load NanaSplits</h1>
+				<h1 className="font-serif font-medium tracking-tight text-2xl">
+					Unable to load NanaSplits
+				</h1>
 				<p className="mt-3 text-stone-500 text-sm">{message}</p>
 				<button
 					className="mt-6 rounded-lg bg-sky-500 px-5 py-2.5 font-semibold text-sm text-white transition hover:bg-sky-600"
