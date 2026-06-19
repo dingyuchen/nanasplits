@@ -12,7 +12,7 @@ import {
 	Trash2,
 	X,
 } from "lucide-react";
-import { type SubmitEvent, useEffect, useRef } from "react";
+import { type SubmitEvent, useEffect, useRef, useState } from "react";
 import { z } from "zod";
 
 import { TelegramMainButton } from "#/components/telegram-main-button";
@@ -22,7 +22,6 @@ import Loading from "#/components/ui/loading";
 import NotFound from "#/components/ui/not-found";
 import { useQuery } from "#/convex-react";
 import { CurrencyDropdownOptions, currencySigns } from "#/currencies";
-import { useAccessorState } from "#/react-accessor-state";
 import { useTelegramLaunchParams } from "#/telegram-launch";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
@@ -170,26 +169,20 @@ function SplitModal(props: {
 	onClose: () => void;
 	onSave: (splits: SplitShare[]) => void;
 }) {
-	const [splitType, setSplitType] = useAccessorState<SplitType>("equal");
-	const [splits, setSplits] = useAccessorState<SplitShare[]>(
-		props.initialSplits,
-	);
-	const [selectedUsers, setSelectedUsers] = useAccessorState<string[]>(
+	const [splitType, setSplitType] = useState<SplitType>("equal");
+	const [splits, setSplits] = useState<SplitShare[]>(props.initialSplits);
+	const [selectedUsers, setSelectedUsers] = useState<string[]>(
 		props.initialSplits.length > 0
 			? props.initialSplits.map((split) => split.userId)
 			: props.members.map((member) => member._id),
 	);
-	const [percentages, setPercentages] = useAccessorState<
-		Record<string, number>
-	>({});
-	const [shares, setShares] = useAccessorState<Record<string, number>>({});
-	const [validationError, setValidationError] = useAccessorState<string | null>(
-		null,
-	);
+	const [percentages, setPercentages] = useState<Record<string, number>>({});
+	const [shares, setShares] = useState<Record<string, number>>({});
+	const [validationError, setValidationError] = useState<string | null>(null);
 
 	const orderedSelectedUsers = () =>
 		props.members
-			.filter((member) => selectedUsers().includes(member._id))
+			.filter((member) => selectedUsers.includes(member._id))
 			.map((member) => member._id);
 	const lastSelectedUserId = () =>
 		orderedSelectedUsers()[orderedSelectedUsers().length - 1];
@@ -199,7 +192,7 @@ function SplitModal(props: {
 		const userCount = userIds.length;
 		if (userCount === 0) return;
 
-		if (splitType() === "equal") {
+		if (splitType === "equal") {
 			const splitAmount = props.amount / userCount;
 			setSplits(
 				userIds.map((userId) => ({
@@ -207,14 +200,14 @@ function SplitModal(props: {
 					userId,
 				})),
 			);
-		} else if (splitType() === "exact") {
+		} else if (splitType === "exact") {
 			setSplits((previous) =>
 				userIds.map((userId) => {
 					const existing = previous.find((split) => split.userId === userId);
 					return { amount: existing?.amount ?? 0, userId };
 				}),
 			);
-		} else if (splitType() === "percentage") {
+		} else if (splitType === "percentage") {
 			const equalPercent = 100 / userCount;
 			setPercentages((previous) => {
 				const next: Record<string, number> = {};
@@ -248,37 +241,37 @@ function SplitModal(props: {
 			);
 		}
 		setValidationError(null);
-	}, [props.amount, props.members, selectedUsers().join("|"), splitType()]);
+	}, [props.amount, props.members, selectedUsers, splitType]);
 
 	const getExactAmountForUser = (userId: string) => {
 		if (userId === lastSelectedUserId()) {
-			const otherUsersTotal = splits()
+			const otherUsersTotal = splits
 				.filter(
 					(split) =>
 						split.userId !== lastSelectedUserId() &&
-						selectedUsers().includes(split.userId),
+						selectedUsers.includes(split.userId),
 				)
 				.reduce((sum, split) => sum + split.amount, 0);
 			return Math.max(0, props.amount - otherUsersTotal);
 		}
-		return splits().find((split) => split.userId === userId)?.amount ?? 0;
+		return splits.find((split) => split.userId === userId)?.amount ?? 0;
 	};
 
 	const getPercentageForUser = (userId: string) => {
 		if (userId === lastSelectedUserId()) {
-			const otherUsersTotal = Object.entries(percentages())
+			const otherUsersTotal = Object.entries(percentages)
 				.filter(
-					([id]) => id !== lastSelectedUserId() && selectedUsers().includes(id),
+					([id]) => id !== lastSelectedUserId() && selectedUsers.includes(id),
 				)
 				.reduce((sum, [, percentage]) => sum + percentage, 0);
 			return Math.max(0, 100 - otherUsersTotal);
 		}
-		return percentages()[userId] ?? 0;
+		return percentages[userId] ?? 0;
 	};
 
-	const getSharesForUser = (userId: string) => shares()[userId] ?? 1;
+	const getSharesForUser = (userId: string) => shares[userId] ?? 1;
 	const getTotalShares = () =>
-		selectedUsers().reduce((sum, userId) => sum + getSharesForUser(userId), 0);
+		selectedUsers.reduce((sum, userId) => sum + getSharesForUser(userId), 0);
 	const getAmountFromShares = (userId: string) => {
 		const totalShares = getTotalShares();
 		return totalShares === 0
@@ -311,10 +304,10 @@ function SplitModal(props: {
 
 	const handlePercentageChange = (userId: string, newPercent: number) => {
 		if (userId === lastSelectedUserId()) return;
-		const nextPercentages = { ...percentages(), [userId]: newPercent };
+		const nextPercentages = { ...percentages, [userId]: newPercent };
 		setPercentages(nextPercentages);
 		setSplits(
-			selectedUsers().map((selectedUserId) => {
+			selectedUsers.map((selectedUserId) => {
 				const percent =
 					selectedUserId === lastSelectedUserId()
 						? Math.max(
@@ -324,7 +317,7 @@ function SplitModal(props: {
 										.filter(
 											([id]) =>
 												id !== lastSelectedUserId() &&
-												selectedUsers().includes(id),
+												selectedUsers.includes(id),
 										)
 										.reduce((sum, [, percentage]) => sum + percentage, 0),
 							)
@@ -340,16 +333,16 @@ function SplitModal(props: {
 
 	const handleSharesChange = (userId: string, newShareCount: number) => {
 		const validShares = Math.max(0, Math.floor(newShareCount));
-		const nextShares = { ...shares(), [userId]: validShares };
+		const nextShares = { ...shares, [userId]: validShares };
 		setShares(nextShares);
 
-		const totalShares = selectedUsers().reduce(
+		const totalShares = selectedUsers.reduce(
 			(sum, selectedUserId) => sum + (nextShares[selectedUserId] ?? 1),
 			0,
 		);
 		if (totalShares > 0) {
 			setSplits(
-				selectedUsers().map((selectedUserId) => ({
+				selectedUsers.map((selectedUserId) => ({
 					amount:
 						((nextShares[selectedUserId] ?? 1) / totalShares) * props.amount,
 					userId: selectedUserId as Id<"users">,
@@ -360,20 +353,20 @@ function SplitModal(props: {
 	};
 
 	const getFinalSplits = (): SplitShare[] => {
-		if (splitType() === "equal") return splits();
-		if (splitType() === "exact") {
-			return selectedUsers().map((userId) => ({
+		if (splitType === "equal") return splits;
+		if (splitType === "exact") {
+			return selectedUsers.map((userId) => ({
 				amount: getExactAmountForUser(userId),
 				userId: userId as Id<"users">,
 			}));
 		}
-		if (splitType() === "percentage") {
-			return selectedUsers().map((userId) => ({
+		if (splitType === "percentage") {
+			return selectedUsers.map((userId) => ({
 				amount: (getPercentageForUser(userId) / 100) * props.amount,
 				userId: userId as Id<"users">,
 			}));
 		}
-		return selectedUsers().map((userId) => ({
+		return selectedUsers.map((userId) => ({
 			amount: getAmountFromShares(userId),
 			userId: userId as Id<"users">,
 		}));
@@ -394,8 +387,8 @@ function SplitModal(props: {
 			return false;
 		}
 
-		if (splitType() === "percentage") {
-			const totalPercent = selectedUsers().reduce(
+		if (splitType === "percentage") {
+			const totalPercent = selectedUsers.reduce(
 				(sum, userId) => sum + getPercentageForUser(userId),
 				0,
 			);
@@ -407,7 +400,7 @@ function SplitModal(props: {
 			}
 		}
 
-		if (splitType() === "shares" && getTotalShares() <= 0) {
+		if (splitType === "shares" && getTotalShares() <= 0) {
 			setValidationError("Total shares must be greater than 0");
 			return false;
 		}
@@ -424,14 +417,14 @@ function SplitModal(props: {
 	const totalAssigned = () =>
 		getFinalSplits().reduce((sum, split) => sum + split.amount, 0);
 	const totalPercent = () =>
-		splitType() === "percentage"
-			? selectedUsers().reduce(
+		splitType === "percentage"
+			? selectedUsers.reduce(
 					(sum, userId) => sum + getPercentageForUser(userId),
 					0,
 				)
 			: 0;
 	const totalSharesDisplay = () =>
-		splitType() === "shares" ? getTotalShares() : 0;
+		splitType === "shares" ? getTotalShares() : 0;
 
 	return (
 		<div className="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-stone-900/30 p-4 backdrop-blur-[2px]">
@@ -461,7 +454,7 @@ function SplitModal(props: {
 								<button
 									key={type}
 									className={`rounded-md py-1.5 font-semibold text-sm transition ${
-										splitType() === type
+										splitType === type
 											? "bg-white text-stone-900 shadow-sm"
 											: "text-stone-500 hover:text-stone-900"
 									}`}
@@ -478,7 +471,7 @@ function SplitModal(props: {
 
 					<div className="max-h-60 space-y-2 overflow-y-auto">
 						{props.members.map((member) => {
-							const isSelected = () => selectedUsers().includes(member._id);
+							const isSelected = () => selectedUsers.includes(member._id);
 							const isLastUser = () => member._id === lastSelectedUserId();
 
 							return (
@@ -517,8 +510,8 @@ function SplitModal(props: {
 												handleSharesChange={handleSharesChange}
 												isLastUser={isLastUser()}
 												memberId={member._id}
-												selectedUsersCount={selectedUsers().length}
-												splitType={splitType()}
+												selectedUsersCount={selectedUsers.length}
+												splitType={splitType}
 											/>
 										</div>
 									) : null}
@@ -528,7 +521,7 @@ function SplitModal(props: {
 					</div>
 
 					<div className="border-stone-100 border-t pt-4">
-						{splitType() === "percentage" ? (
+						{splitType === "percentage" ? (
 							<div className="mb-2 flex justify-between text-sm font-medium">
 								<span className="text-stone-500">Total percentage:</span>
 								<span
@@ -542,7 +535,7 @@ function SplitModal(props: {
 								</span>
 							</div>
 						) : null}
-						{splitType() === "shares" ? (
+						{splitType === "shares" ? (
 							<div className="mb-2 flex justify-between text-sm font-medium">
 								<span className="text-stone-500">Total shares:</span>
 								<span
@@ -569,9 +562,9 @@ function SplitModal(props: {
 								{props.currency}
 							</span>
 						</div>
-						{validationError() ? (
+						{validationError ? (
 							<div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-2">
-								<p className="text-red-600 text-sm">{validationError()}</p>
+								<p className="text-red-600 text-sm">{validationError}</p>
 							</div>
 						) : null}
 						<div className="flex gap-3">
@@ -734,9 +727,9 @@ function EditExpensePage(props: {
 			userId: member._id,
 		}));
 
-	const [currency, setCurrency] = useAccessorState(editCurrency);
-	const currencySymbol = () => currencySigns[currency()] || "$";
-	const [payer, setPayer] = useAccessorState<Doc<"users"> | null>(
+	const [currency, setCurrency] = useState(editCurrency);
+	const currencySymbol = () => currencySigns[currency] || "$";
+	const [payer, setPayer] = useState<Doc<"users"> | null>(
 		editPayerId
 			? (props.groupData.members.find((member) => member._id === editPayerId) ??
 					null)
@@ -744,23 +737,20 @@ function EditExpensePage(props: {
 					(member) => member.telegramUserId === props.telegramUserId,
 				) ?? null),
 	);
-	const [date, setDate] = useAccessorState(
+	const [date, setDate] = useState(
 		props.searchParams.date
 			? new Date(Number(props.searchParams.date)).toISOString().split("T")[0]
 			: new Date().toISOString().split("T")[0],
 	);
-	const [tag, setTag] = useAccessorState(props.searchParams.tag ?? "");
-	const [items, setItems] = useAccessorState<SubItem[]>(
+	const [tag, setTag] = useState(props.searchParams.tag ?? "");
+	const [items, setItems] = useState<SubItem[]>(
 		createInitialItems(editItems, editDescription),
 	);
-	const [activeSplitIndex, setActiveSplitIndex] = useAccessorState<
-		number | null
-	>(null);
-	const [showSimpleSplitModal, setShowSimpleSplitModal] =
-		useAccessorState(false);
+	const [activeSplitIndex, setActiveSplitIndex] = useState<number | null>(null);
+	const [showSimpleSplitModal, setShowSimpleSplitModal] = useState(false);
 
 	useEffect(() => {
-		if (payer() !== null) return;
+		if (payer !== null) return;
 		const selectedPayer =
 			editPayerId !== null
 				? props.groupData.members.find((member) => member._id === editPayerId)
@@ -768,14 +758,14 @@ function EditExpensePage(props: {
 						(member) => member.telegramUserId === props.telegramUserId,
 					);
 		setPayer(selectedPayer ?? null);
-	}, [editPayerId, payer(), props.groupData.members, props.telegramUserId]);
+	}, [editPayerId, payer, props.groupData.members, props.telegramUserId]);
 
-	const firstItem = () => items()[0] ?? { amount: 0, name: "", splits: [] };
-	const rest = () => items().slice(1);
+	const firstItem = () => items[0] ?? { amount: 0, name: "", splits: [] };
+	const rest = () => items.slice(1);
 	const description = () => firstItem().name;
 	const amount = () => firstItem().amount;
 	const splits = () => firstItem().splits;
-	const isItemized = () => items().length > 1;
+	const isItemized = () => items.length > 1;
 
 	const handleAddItem = () => {
 		setItems((current) => [...current, { amount: 0, name: "", splits: [] }]);
@@ -822,16 +812,16 @@ function EditExpensePage(props: {
 
 	const formValidation = () => {
 		const baseData = {
-			currency: currency(),
+			currency,
 			description: description(),
-			payerId: payer()?._id ?? "",
-			tag: tag().trim() || undefined,
+			payerId: payer?._id ?? "",
+			tag: tag.trim() || undefined,
 		};
 
 		if (isItemized()) {
 			return itemizedExpenseSchema.safeParse({
 				...baseData,
-				items: items().slice(1),
+				items: items.slice(1),
 			});
 		}
 		return simpleExpenseSchema.safeParse({
@@ -849,20 +839,20 @@ function EditExpensePage(props: {
 
 	const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
 		event.preventDefault();
-		const selectedPayer = payer();
+		const selectedPayer = payer;
 		if (!selectedPayer) {
 			alert("No payer selected");
 			return;
 		}
 
-		const finalItems = isItemized() ? rest() : items();
-		const expenseTag = tag().trim() || null;
+		const finalItems = isItemized() ? rest() : items;
+		const expenseTag = tag.trim() || null;
 
 		try {
 			if (isEditing() && expenseId) {
 				await updateExpense({
-					currency: currency(),
-					date: new Date(date()).getTime(),
+					currency,
+					date: new Date(date).getTime(),
 					description: description(),
 					expenseId,
 					items: finalItems,
@@ -873,8 +863,8 @@ function EditExpensePage(props: {
 				});
 			} else {
 				await addExpense({
-					currency: currency(),
-					date: new Date(date()).getTime(),
+					currency,
+					date: new Date(date).getTime(),
 					description: description(),
 					items: finalItems,
 					payerId: selectedPayer._id,
@@ -897,8 +887,8 @@ function EditExpensePage(props: {
 	};
 
 	const activeSplitItem = () => {
-		const index = activeSplitIndex();
-		return index === null ? null : (items()[index] ?? null);
+		const index = activeSplitIndex;
+		return index === null ? null : (items[index] ?? null);
 	};
 
 	return (
@@ -962,10 +952,10 @@ function EditExpensePage(props: {
 									maxLength={32}
 									placeholder="e.g., Food"
 									type="text"
-									value={tag()}
+									value={tag}
 									onInput={(event) => setTag(event.currentTarget.value)}
 								/>
-								{tag() ? (
+								{tag ? (
 									<button
 										aria-label="Clear tag"
 										className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md p-1 text-stone-400 transition hover:bg-stone-100 hover:text-stone-900"
@@ -998,7 +988,7 @@ function EditExpensePage(props: {
 									name="date"
 									required
 									type="date"
-									value={date()}
+									value={date}
 									onInput={(event) => setDate(event.currentTarget.value)}
 								/>
 								<Calendar className="pointer-events-none absolute top-1/2 right-4 h-5 w-5 -translate-y-1/2 transform text-stone-400" />
@@ -1035,7 +1025,7 @@ function EditExpensePage(props: {
 										aria-label="Currency"
 										className="col-start-1 row-start-1 w-full appearance-none rounded-r-lg bg-transparent py-3 pr-7 pl-3 text-base text-stone-500 placeholder:text-stone-400 focus:outline-none sm:text-sm/6"
 										id="currency"
-										value={currency()}
+										value={currency}
 										onChange={(event) => setCurrency(event.currentTarget.value)}
 									>
 										<CurrencyDropdownOptions />
@@ -1057,7 +1047,7 @@ function EditExpensePage(props: {
 							</div>
 						</div>
 
-						{payer() ? (
+						{payer ? (
 							<div className="rounded-lg border border-stone-200 bg-white p-4">
 								<label
 									className="mb-2 block font-semibold text-stone-500 text-sm"
@@ -1068,7 +1058,7 @@ function EditExpensePage(props: {
 								<select
 									className="w-full appearance-none rounded-lg border border-stone-200 bg-white px-3 py-3 text-stone-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10 [&:user-invalid]:border-red-600"
 									id="payer"
-									value={payer()!._id}
+									value={payer._id}
 									onChange={(event) => {
 										const member = props.groupData.members.find(
 											(groupMember) =>
@@ -1218,11 +1208,11 @@ function EditExpensePage(props: {
 			{activeSplitItem()
 				? (() => {
 						const currentItem = activeSplitItem()!;
-						const index = activeSplitIndex();
+						const index = activeSplitIndex;
 						return (
 							<SplitModal
 								amount={currentItem.amount}
-								currency={currency()}
+								currency={currency}
 								initialSplits={currentItem.splits}
 								itemName={currentItem.name || "Item"}
 								members={props.groupData.members}
@@ -1237,10 +1227,10 @@ function EditExpensePage(props: {
 					})()
 				: null}
 
-			{showSimpleSplitModal() ? (
+			{showSimpleSplitModal ? (
 				<SplitModal
 					amount={amount()}
-					currency={currency()}
+					currency={currency}
 					initialSplits={splits()}
 					itemName={description() || "Expense"}
 					members={props.groupData.members}

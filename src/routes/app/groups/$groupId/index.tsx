@@ -5,14 +5,13 @@ import type { FunctionReturnType } from "convex/server";
 import {
 	ArrowLeftRight,
 	ArrowRight,
-	ChevronDown,
-	ChevronUp,
 	LoaderCircle,
 	Plus,
 	Receipt,
 	Settings,
 	Users,
 } from "lucide-react";
+import { useState } from "react";
 
 import { TelegramMainButton } from "#/components/telegram-main-button";
 import NotFound from "#/components/ui/not-found";
@@ -23,7 +22,6 @@ import {
 	filteredCurrencyCodes,
 	type SettleUpConversionOption,
 } from "#/lib/expense-conversion";
-import { useAccessorState } from "#/react-accessor-state";
 import { useTelegramLaunchParams } from "#/telegram-launch";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -132,7 +130,6 @@ function GroupView(props: {
 	telegramUserId: number;
 }) {
 	const navigate = useNavigate();
-	const [membersCollapsed, setMembersCollapsed] = useAccessorState(true);
 	const { mutate: addUserToGroup } = useMutation({
 		mutationFn: useConvexMutation(api.groups.addUserToGroup),
 	});
@@ -328,45 +325,6 @@ function GroupView(props: {
 						telegramUserId={props.telegramUserId}
 					/>
 				) : null}
-
-				<section className="mx-5 mt-5">
-					<button
-						className="mb-3 flex w-full items-center gap-2 border-stone-100 border-b pb-2 text-left"
-						type="button"
-						onClick={() => setMembersCollapsed(!membersCollapsed())}
-					>
-						<h2 className="font-serif font-medium tracking-tight text-stone-900 text-lg">
-							Members
-						</h2>
-						<span className="rounded-full bg-stone-100 px-2 py-0.5 font-semibold text-stone-400 text-[0.6875rem]">
-							{props.groupData.memberCount}
-						</span>
-						{membersCollapsed() ? (
-							<ChevronDown className="ml-auto h-5 w-5 text-stone-400" />
-						) : (
-							<ChevronUp className="ml-auto h-5 w-5 text-stone-400" />
-						)}
-					</button>
-					{!membersCollapsed() ? (
-						<div className="flex flex-wrap gap-2 py-1">
-							{props.groupData.members.map((member) => (
-								<div
-									key={member._id}
-									className="flex items-center gap-2 rounded-full border border-stone-200 bg-stone-50 py-1 pr-3 pl-1"
-								>
-									<div
-										className={`flex h-7 w-7 items-center justify-center rounded-full font-bold text-white text-xs ${getAvatarColorClass(props.groupData.members.indexOf(member))}`}
-									>
-										{getMemberInitial(member)}
-									</div>
-									<span className="text-stone-500 text-sm font-medium">
-										{getMemberDisplayName(member)}
-									</span>
-								</div>
-							))}
-						</div>
-					) : null}
-				</section>
 
 				<section className="mx-5 mt-5 mb-5">
 					<div className="mb-3 flex items-center justify-between gap-2 border-stone-100 border-b pb-2">
@@ -599,7 +557,7 @@ function SettleUp(props: {
 	const { mutate: settleUp } = useMutation({
 		mutationFn: useConvexMutation(api.groups.settleUp),
 	});
-	const [settleDialog, setSettleDialog] = useAccessorState<{
+	const [settleDialog, setSettleDialog] = useState<{
 		memberId: Id<"users">;
 		memberName: string;
 		amount: number;
@@ -629,7 +587,7 @@ function SettleUp(props: {
 	};
 
 	const handleSettle = async () => {
-		const dialog = settleDialog();
+		const dialog = settleDialog;
 		if (!dialog) return;
 
 		try {
@@ -726,22 +684,22 @@ function SettleUp(props: {
 				)}
 			</div>
 
-			{settleDialog() ? (
+			{settleDialog ? (
 				<div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-stone-900/30 p-4 backdrop-blur-[2px]">
 					<div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl">
 						<h3 className="font-serif font-medium tracking-tight mb-2 text-stone-900 text-2xl">
 							Confirm settlement
 						</h3>
 						<p className="mb-6 text-stone-500">
-							{settleDialog()!.amount > 0
+							{settleDialog.amount > 0
 								? `Collect ${formatCurrencyAmount(
-										settleDialog()!.amount,
-										settleDialog()!.currency,
-									)} from ${settleDialog()!.memberName}?`
+										settleDialog.amount,
+										settleDialog.currency,
+									)} from ${settleDialog.memberName}?`
 								: `Pay ${formatCurrencyAmount(
-										Math.abs(settleDialog()!.amount),
-										settleDialog()!.currency,
-									)} to ${settleDialog()!.memberName}?`}
+										Math.abs(settleDialog.amount),
+										settleDialog.currency,
+									)} to ${settleDialog.memberName}?`}
 						</p>
 						<div className="grid grid-cols-2 gap-2">
 							<button
@@ -775,20 +733,19 @@ function ExpenseCurrencyConversionButton(props: {
 	const { mutate: convertSettleUpCurrency } = useMutation({
 		mutationFn: useConvexMutation(api.groups.convertSettleUpCurrency),
 	});
-	const [isOpen, setIsOpen] = useAccessorState(false);
-	const [selectedOptionId, setSelectedOptionId] = useAccessorState("");
-	const [targetCurrency, setTargetCurrency] = useAccessorState("");
+	const [isOpen, setIsOpen] = useState(false);
+	const [selectedOptionId, setSelectedOptionId] = useState("");
+	const [targetCurrency, setTargetCurrency] = useState("");
 	const [conversionQuote, setConversionQuote] =
-		useAccessorState<ConversionQuote | null>(null);
-	const [convertedAmount, setConvertedAmount] = useAccessorState("");
-	const [isFetchingConversion, setIsFetchingConversion] =
-		useAccessorState(false);
+		useState<ConversionQuote | null>(null);
+	const [convertedAmount, setConvertedAmount] = useState("");
+	const [isFetchingConversion, setIsFetchingConversion] = useState(false);
 
 	const optionId = (option: SettleUpConversionOption<Id<"users">>) =>
 		option.settlementId;
 
 	const selectedOption = () => {
-		const selectedId = selectedOptionId() || optionId(props.options[0]);
+		const selectedId = selectedOptionId || optionId(props.options[0]);
 		return (
 			props.options.find((option) => optionId(option) === selectedId) ??
 			props.options[0]
@@ -845,7 +802,7 @@ function ExpenseCurrencyConversionButton(props: {
 				data: {
 					amount: option.amount,
 					fromCurrency: option.currency,
-					toCurrency: targetCurrency(),
+					toCurrency: targetCurrency,
 				},
 			});
 
@@ -861,10 +818,10 @@ function ExpenseCurrencyConversionButton(props: {
 
 	const handleConfirmConversion = async () => {
 		const option = selectedOption();
-		const quote = conversionQuote();
+		const quote = conversionQuote;
 		if (!quote) return;
 
-		const finalConvertedAmount = Number(convertedAmount());
+		const finalConvertedAmount = Number(convertedAmount);
 		if (!Number.isFinite(finalConvertedAmount) || finalConvertedAmount <= 0) {
 			alert("Enter a converted amount greater than zero.");
 			return;
@@ -879,7 +836,7 @@ function ExpenseCurrencyConversionButton(props: {
 				receiverId: option.receiverId,
 				telegramChatId: props.groupIdNumber,
 				telegramUserId: props.telegramUserId,
-				toCurrency: targetCurrency(),
+				toCurrency: targetCurrency,
 			});
 			closeDialog();
 		} catch (error) {
@@ -898,7 +855,7 @@ function ExpenseCurrencyConversionButton(props: {
 				<ArrowLeftRight className="h-3.5 w-3.5" /> Convert
 			</button>
 
-			{isOpen() ? (
+			{isOpen ? (
 				<div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-stone-900/30 p-4 backdrop-blur-[2px]">
 					<div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl">
 						<h3 className="font-serif font-medium tracking-tight mb-2 text-stone-900 text-2xl">
@@ -954,7 +911,7 @@ function ExpenseCurrencyConversionButton(props: {
 									<select
 										className="min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-3 py-2.5 text-stone-900 text-sm outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10"
 										id="conversion-target-currency"
-										value={targetCurrency()}
+										value={targetCurrency}
 										onInput={(event) => {
 											setTargetCurrency(event.currentTarget.value);
 											resetQuote();
@@ -968,16 +925,16 @@ function ExpenseCurrencyConversionButton(props: {
 									</select>
 									<button
 										className="shrink-0 rounded-lg border border-sky-500 px-3 py-2.5 font-semibold text-sky-500 text-sm transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:border-stone-200 disabled:text-stone-400"
-										disabled={isFetchingConversion()}
+										disabled={isFetchingConversion}
 										type="button"
 										onClick={handleGetConversion}
 									>
-										{isFetchingConversion() ? "Fetching..." : "Get rate"}
+										{isFetchingConversion ? "Fetching..." : "Get rate"}
 									</button>
 								</div>
 							</div>
 
-							{conversionQuote() ? (
+							{conversionQuote ? (
 								<div>
 									<label
 										className="mb-2 block font-semibold text-stone-500 text-sm"
@@ -992,15 +949,15 @@ function ExpenseCurrencyConversionButton(props: {
 										min="0.01"
 										step="0.01"
 										type="number"
-										value={convertedAmount()}
+										value={convertedAmount}
 										onInput={(event) =>
 											setConvertedAmount(event.currentTarget.value)
 										}
 									/>
 									<p className="mt-2 text-stone-400 text-xs">
-										Rate {conversionQuote()!.rate.toFixed(6)}
-										{conversionQuote()!.rateDate
-											? ` on ${conversionQuote()!.rateDate}`
+										Rate {conversionQuote.rate.toFixed(6)}
+										{conversionQuote.rateDate
+											? ` on ${conversionQuote.rateDate}`
 											: ""}
 									</p>
 								</div>
@@ -1009,7 +966,7 @@ function ExpenseCurrencyConversionButton(props: {
 							<div className="grid grid-cols-2 gap-2">
 								<button
 									className="rounded-lg bg-sky-500 px-3 py-2.5 font-semibold text-sm text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-stone-300"
-									disabled={!conversionQuote()}
+									disabled={!conversionQuote}
 									type="button"
 									onClick={handleConfirmConversion}
 								>
