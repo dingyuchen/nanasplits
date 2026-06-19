@@ -1,5 +1,7 @@
 # Convex guidelines
 
+These guidelines target Convex `^1.41.0`.
+
 ## Function guidelines
 
 ### Http endpoint syntax
@@ -11,12 +13,12 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 const http = httpRouter();
 http.route({
-	path: "/echo",
-	method: "POST",
-	handler: httpAction(async (ctx, req) => {
-		const body = await req.bytes();
-		return new Response(body, { status: 200 });
-	}),
+  path: "/echo",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    const body = await req.bytes();
+    return new Response(body, { status: 200 });
+  }),
 });
 ```
 
@@ -31,12 +33,12 @@ import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export default mutation({
-	args: {
-		simpleArray: v.array(v.union(v.string(), v.number())),
-	},
-	handler: async (ctx, args) => {
-		//...
-	},
+  args: {
+    simpleArray: v.array(v.union(v.string(), v.number())),
+  },
+  handler: async (ctx, args) => {
+    //...
+  },
 });
 ```
 
@@ -47,18 +49,18 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
-	results: defineTable(
-		v.union(
-			v.object({
-				kind: v.literal("error"),
-				errorMessage: v.string(),
-			}),
-			v.object({
-				kind: v.literal("success"),
-				value: v.number(),
-			}),
-		),
-	),
+  results: defineTable(
+    v.union(
+      v.object({
+        kind: v.literal("error"),
+        errorMessage: v.string(),
+      }),
+      v.object({
+        kind: v.literal("success"),
+        value: v.number(),
+      }),
+    ),
+  ),
 });
 ```
 
@@ -127,14 +129,14 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 export const listWithExtraArg = query({
-	args: { paginationOpts: paginationOptsValidator, author: v.string() },
-	handler: async (ctx, args) => {
-		return await ctx.db
-			.query("messages")
-			.withIndex("by_author", (q) => q.eq("author", args.author))
-			.order("desc")
-			.paginate(args.paginationOpts);
-	},
+  args: { paginationOpts: paginationOptsValidator, author: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("messages")
+      .withIndex("by_author", (q) => q.eq("author", args.author))
+      .order("desc")
+      .paginate(args.paginationOpts);
+  },
 });
 ```
 
@@ -164,12 +166,12 @@ Note: `paginationOpts` is an object with the following properties:
 
 ```typescript
 export default {
-	providers: [
-		{
-			domain: "https://your-auth-provider.com",
-			applicationID: "convex",
-		},
-	],
+  providers: [
+    {
+      domain: "https://your-auth-provider.com",
+      applicationID: "convex",
+    },
+  ],
 };
 ```
 
@@ -186,11 +188,11 @@ import { ConvexProviderWithAuth, ConvexReactClient } from "convex/react";
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 function App({ children }: { children: React.ReactNode }) {
-	return (
-		<ConvexProviderWithAuth client={convex} useAuth={useYourAuthHook}>
-			{children}
-		</ConvexProviderWithAuth>
-	);
+  return (
+    <ConvexProviderWithAuth client={convex} useAuth={useYourAuthHook}>
+      {children}
+    </ConvexProviderWithAuth>
+  );
 }
 ```
 
@@ -208,22 +210,23 @@ import { query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 
 export const exampleQuery = query({
-	args: { userIds: v.array(v.id("users")) },
-	handler: async (ctx, args) => {
-		const idToUsername: Record<Id<"users">, string> = {};
-		for (const userId of args.userIds) {
-			const user = await ctx.db.get("users", userId);
-			if (user) {
-				idToUsername[user._id] = user.username;
-			}
-		}
+  args: { userIds: v.array(v.id("users")) },
+  handler: async (ctx, args) => {
+    const idToUsername: Record<Id<"users">, string> = {};
+    for (const userId of args.userIds) {
+      const user = await ctx.db.get("users", userId);
+      if (user) {
+        idToUsername[user._id] = user.username;
+      }
+    }
 
-		return idToUsername;
-	},
+    return idToUsername;
+  },
 });
 ```
 
 - Be strict with types, particularly around id's of documents. For example, if a function takes in an id for a document in the 'users' table, take in `Id<'users'>` rather than `string`.
+- For typed app environment variables, declare them in `convex/convex.config.ts` with `defineApp({ env: { MY_KEY: v.optional(v.string()) } })` and read them with `env` from `./_generated/server` instead of `process.env`.
 
 ## Full text search guidelines
 
@@ -241,7 +244,7 @@ q.search("body", "hello hi").eq("channel", "#general"),
 - Do NOT use `filter` in queries. Instead, define an index in the schema and use `withIndex` instead.
 - If the user does not explicitly tell you to return all results from a query you should ALWAYS return a bounded collection instead. So that is instead of using `.collect()` you should use `.take()` or paginate on database queries. This prevents future performance issues when tables grow in an unbounded way.
 - Never use `.collect().length` to count rows. Convex has no built-in count operator, so if you need a count that stays efficient at scale, maintain a denormalized counter in a separate document and update it in your mutations.
-- Convex queries do NOT support `.delete()`. If you need to delete all documents matching a query, use `.take(n)` to read them in batches, iterate over each batch calling `ctx.db.delete(row._id)`, and repeat until no more results are returned.
+- Convex queries do NOT support `.delete()`. If you need to delete all documents matching a query, use `.take(n)` to read them in batches, iterate over each batch calling `ctx.db.delete("tasks", row._id)`, and repeat until no more results are returned.
 - Convex mutations are transactions with limits on the number of documents read and written. If a mutation needs to process more documents than fit in a single transaction (e.g. bulk deletion on a large table), process a batch with `.take(n)` and then call `ctx.scheduler.runAfter(0, api.myModule.myMutation, args)` to schedule itself to continue. This way each invocation stays within transaction limits.
 - Use `.unique()` to get a single document from a query. This method will throw an error if there are multiple documents that match the query.
 - When using async iteration, don't use `.collect()` or `.take(n)` on the result of a query. Instead, use the `for await (const row of query)` syntax.
@@ -254,8 +257,8 @@ q.search("body", "hello hi").eq("channel", "#general"),
 
 ## Mutation guidelines
 
-- Use `ctx.db.replace` to fully replace an existing document. This method will throw an error if the document does not exist. Syntax: `await ctx.db.replace('tasks', taskId, { name: 'Buy milk', completed: false })`
-- Use `ctx.db.patch` to shallow merge updates into an existing document. This method will throw an error if the document does not exist. Syntax: `await ctx.db.patch('tasks', taskId, { completed: true })`
+- Use `ctx.db.replace` to fully replace an existing document. This method will throw an error if the document does not exist. Syntax: `await ctx.db.replace("tasks", taskId, { name: "Buy milk", completed: false })`
+- Use `ctx.db.patch` to shallow merge updates into an existing document. This method will throw an error if the document does not exist. Syntax: `await ctx.db.patch("tasks", taskId, { completed: true })`
 
 ## Action guidelines
 
@@ -269,11 +272,11 @@ q.search("body", "hello hi").eq("channel", "#general"),
 import { action } from "./_generated/server";
 
 export const exampleAction = action({
-	args: {},
-	handler: async (ctx, args) => {
-		console.log("This action does not return anything");
-		return null;
-	},
+  args: {},
+  handler: async (ctx, args) => {
+    console.log("This action does not return anything");
+    return null;
+  },
 });
 ```
 
@@ -291,10 +294,10 @@ import { internal } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 
 const empty = internalAction({
-	args: {},
-	handler: async (ctx, args) => {
-		console.log("empty");
-	},
+  args: {},
+  handler: async (ctx, args) => {
+    console.log("empty");
+  },
 });
 
 const crons = cronJobs();
@@ -324,10 +327,10 @@ import schema from "./schema";
 const modules = import.meta.glob("./**/*.ts");
 
 test("some behavior", async () => {
-	const t = convexTest(schema, modules);
-	await t.mutation(api.messages.send, { body: "Hi!", author: "Sarah" });
-	const messages = await t.query(api.messages.list);
-	expect(messages).toMatchObject([{ body: "Hi!", author: "Sarah" }]);
+  const t = convexTest(schema, modules);
+  await t.mutation(api.messages.send, { body: "Hi!", author: "Sarah" });
+  const messages = await t.query(api.messages.list);
+  expect(messages).toMatchObject([{ body: "Hi!", author: "Sarah" }]);
 });
 ```
 
