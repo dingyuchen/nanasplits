@@ -8,6 +8,12 @@
  * @module
  */
 
+import type {
+	ApiFromModules,
+	FilterApi,
+	FunctionReference,
+} from "convex/server";
+
 import type * as auth from "../auth.js";
 import type * as groups from "../groups.js";
 import type * as http from "../http.js";
@@ -15,19 +21,13 @@ import type * as lib_utils from "../lib/utils.js";
 import type * as session from "../session.js";
 import type * as telegramAuthProvider from "../telegramAuthProvider.js";
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
-
 declare const fullApi: ApiFromModules<{
-  auth: typeof auth;
-  groups: typeof groups;
-  http: typeof http;
-  "lib/utils": typeof lib_utils;
-  session: typeof session;
-  telegramAuthProvider: typeof telegramAuthProvider;
+	auth: typeof auth;
+	groups: typeof groups;
+	http: typeof http;
+	"lib/utils": typeof lib_utils;
+	session: typeof session;
+	telegramAuthProvider: typeof telegramAuthProvider;
 }>;
 
 /**
@@ -39,8 +39,8 @@ declare const fullApi: ApiFromModules<{
  * ```
  */
 export declare const api: FilterApi<
-  typeof fullApi,
-  FunctionReference<any, "public">
+	typeof fullApi,
+	FunctionReference<any, "public">
 >;
 
 /**
@@ -52,8 +52,8 @@ export declare const api: FilterApi<
  * ```
  */
 export declare const internal: FilterApi<
-  typeof fullApi,
-  FunctionReference<any, "internal">
+	typeof fullApi,
+	FunctionReference<any, "internal">
 >;
 
 export declare const components: {};
