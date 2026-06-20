@@ -1,11 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
-import { AlertCircle, ArrowRight, LoaderCircle, Users } from "lucide-react";
-import type { ReactNode } from "react";
+import {
+	AlertCircle,
+	ArrowRight,
+	LoaderCircle,
+	TrendingUp,
+	Users,
+} from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { useQuery } from "#/convex-react";
+import { getCurrencyConversion } from "#/currency-conversion";
 import { useTelegramLaunchParams } from "#/telegram-launch";
 import { api } from "@/convex/_generated/api";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/")({
 	component: DashboardRoute,
@@ -37,9 +45,47 @@ function Dashboard({ userId }: { userId: number }) {
 }
 
 type DashboardData = FunctionReturnType<typeof api.groups.getDashboardData>;
+type BalanceData = DashboardData["balancesByCurrency"][number];
+type SummaryMode = "hybrid" | "perCurrency";
+
+type DashboardSummaryStats = {
+	balanceCount: number;
+	currencyCount: number;
+	groupCount: number;
+};
+
+type HybridEstimate = {
+	error: string | null;
+	isPending: boolean;
+	total: number | null;
+};
+
+const DASHBOARD_ESTIMATE_CURRENCY = "USD";
 
 function DashboardContent({ data }: { data: DashboardData }) {
 	const { stats, groupsWithPendingSplits, balancesByCurrency } = data;
+	const [summaryMode, setSummaryMode] = useState<SummaryMode>("hybrid");
+	const balanceEntries = balancesByCurrency.filter(
+		(currencyData) => currencyData.netBalance !== 0,
+	);
+	const balanceEntriesKey = balanceEntries
+		.map(
+			(currencyData) => `${currencyData.currency}:${currencyData.netBalance}`,
+		)
+		.join("|");
+	const summaryStats: DashboardSummaryStats = {
+		balanceCount: groupsWithPendingSplits.reduce(
+			(total, group) => total + group.stats.length,
+			0,
+		),
+		currencyCount: balanceEntries.length,
+		groupCount: stats.groupsWithPendingSplits,
+	};
+	const hybridEstimate = useHybridEstimate(
+		balanceEntries,
+		balanceEntriesKey,
+		DASHBOARD_ESTIMATE_CURRENCY,
+	);
 
 	return (
 		<div className="min-h-screen bg-stone-50 text-stone-900">
@@ -71,21 +117,32 @@ function DashboardContent({ data }: { data: DashboardData }) {
 						</p>
 					</div>
 
-					<section className="mb-6">
-						<div className="grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
-							{balancesByCurrency.length === 0 ? (
-								<p className="col-span-full rounded-lg border border-dashed border-stone-200 bg-stone-50 py-8 text-center text-stone-500 text-sm">
-									No pending balances
-								</p>
-							) : (
-								balancesByCurrency.map((currencyData) => (
-									<BalanceCard
-										key={currencyData.currency}
-										currencyData={currencyData}
+					<section className="mb-6 space-y-3">
+						{balanceEntries.length === 0 ? (
+							<p className="rounded-lg border border-dashed border-stone-200 bg-stone-50 py-8 text-center text-stone-500 text-sm">
+								No pending balances
+							</p>
+						) : (
+							<>
+								<BalanceSummaryToggle
+									mode={summaryMode}
+									onChange={setSummaryMode}
+								/>
+								{summaryMode === "hybrid" ? (
+									<HybridBalanceSummary
+										balancesByCurrency={balanceEntries}
+										estimate={hybridEstimate}
+										stats={summaryStats}
+										targetCurrency={DASHBOARD_ESTIMATE_CURRENCY}
 									/>
-								))
-							)}
-						</div>
+								) : (
+									<PerCurrencyBalanceSummary
+										balancesByCurrency={balanceEntries}
+										stats={summaryStats}
+									/>
+								)}
+							</>
+						)}
 					</section>
 
 					<section>
@@ -156,55 +213,299 @@ function DashboardContent({ data }: { data: DashboardData }) {
 	);
 }
 
-type BalanceData = FunctionReturnType<
-	typeof api.groups.getDashboardData
->["balancesByCurrency"][number];
-
-function BalanceCard({ currencyData }: { currencyData: BalanceData }) {
-	const isPositive = currencyData.netBalance >= 0;
+function BalanceSummaryToggle(props: {
+	mode: SummaryMode;
+	onChange: (mode: SummaryMode) => void;
+}) {
 	return (
 		<div
-			className={`rounded-lg border p-4 ${
-				isPositive
-					? "border-emerald-200 bg-emerald-50"
-					: "border-red-200 bg-red-50"
-			}`}
+			aria-label="Balance summary view"
+			className="grid grid-cols-2 rounded-full bg-stone-100 p-1"
+			role="tablist"
 		>
-			<div>
-				<span className="mb-1 block font-semibold text-stone-400 text-[0.6875rem] uppercase tracking-tight">
-					{currencyData.currency}
-				</span>
-				<p
-					className={`font-bold text-[1.625rem] leading-tight tracking-tight ${
-						isPositive ? "text-emerald-600" : "text-red-600"
-					}`}
-				>
-					{isPositive ? "+" : ""}
-					{formatCurrencyAmount(currencyData.netBalance, currencyData.currency)}
+			<BalanceSummaryToggleButton
+				isActive={props.mode === "hybrid"}
+				label="Hybrid estimate"
+				onClick={() => props.onChange("hybrid")}
+			/>
+			<BalanceSummaryToggleButton
+				isActive={props.mode === "perCurrency"}
+				label="Per-currency"
+				onClick={() => props.onChange("perCurrency")}
+			/>
+		</div>
+	);
+}
+
+function BalanceSummaryToggleButton(props: {
+	isActive: boolean;
+	label: string;
+	onClick: () => void;
+}) {
+	return (
+		<button
+			aria-selected={props.isActive}
+			className={cn(
+				"min-h-10 rounded-full px-3 font-semibold text-sm transition",
+				props.isActive
+					? "bg-cyan-400 text-stone-950 shadow-sm ring-2 ring-white"
+					: "text-stone-400 hover:text-stone-600",
+			)}
+			role="tab"
+			type="button"
+			onClick={props.onClick}
+		>
+			{props.label}
+		</button>
+	);
+}
+
+function HybridBalanceSummary(props: {
+	balancesByCurrency: BalanceData[];
+	estimate: HybridEstimate;
+	stats: DashboardSummaryStats;
+	targetCurrency: string;
+}) {
+	const estimateTotal = props.estimate.total;
+	const isNegative =
+		estimateTotal !== null && !props.estimate.error && estimateTotal < 0;
+	const estimateAmountClass =
+		estimateTotal === null || props.estimate.error
+			? "text-stone-900"
+			: estimateTotal < 0
+				? "text-red-600"
+				: estimateTotal > 0
+					? "text-emerald-600"
+					: "text-stone-900";
+
+	return (
+		<div
+			className={cn(
+				"rounded-2xl border p-5 shadow-sm",
+				props.estimate.error
+					? "border-stone-200 bg-stone-50"
+					: isNegative
+						? "border-red-200 bg-red-50"
+						: "border-emerald-200 bg-emerald-50",
+			)}
+		>
+			<div className="flex items-center gap-2 text-stone-700">
+				<TrendingUp className="h-4 w-4" />
+				<span className="font-medium text-sm">Total across all groups</span>
+			</div>
+
+			<div className="mt-5">
+				{props.estimate.isPending ? (
+					<div className="flex min-h-14 items-center gap-2 font-bold text-2xl text-stone-950">
+						<LoaderCircle className="h-5 w-5 animate-spin" />
+						<span>Calculating...</span>
+					</div>
+				) : props.estimate.error ? (
+					<p className="min-h-14 font-bold text-2xl text-stone-900">
+						Estimate unavailable
+					</p>
+				) : (
+					<div
+						className={cn(
+							"flex min-w-0 items-start gap-2",
+							estimateAmountClass,
+						)}
+					>
+						<span className="mt-1 font-bold text-3xl leading-none">
+							&asymp;
+						</span>
+						<p className="min-w-0 font-bold text-[2.75rem] leading-none tabular-nums [overflow-wrap:anywhere]">
+							{formatCurrencyAmount(
+								props.estimate.total ?? 0,
+								props.targetCurrency,
+							)}
+						</p>
+					</div>
+				)}
+				<p className="mt-2 text-stone-700 text-sm">
+					estimated in {props.targetCurrency} &middot; rates approximate
 				</p>
 			</div>
-			{currencyData.memberBalances.length > 0 ? (
-				<div className="mt-3 space-y-2 border-black/5 border-t pt-3">
-					{currencyData.memberBalances.map((member) => (
-						<div
-							key={member.memberId}
-							className="flex items-center justify-between"
+
+			<div className="mt-5 flex flex-wrap gap-2">
+				{props.balancesByCurrency.map((currencyData) => {
+					const balanceTone =
+						currencyData.netBalance < 0
+							? "bg-red-100 text-red-700"
+							: currencyData.netBalance > 0
+								? "bg-emerald-100 text-emerald-700"
+								: "bg-stone-100 text-stone-500";
+
+					return (
+						<span
+							key={currencyData.currency}
+							className={cn(
+								"rounded-full px-3 py-1.5 font-semibold text-xs tabular-nums",
+								balanceTone,
+							)}
 						>
-							<span className="text-stone-500 text-xs">
-								{member.memberName}
+							{formatSignedCurrencyAmount(
+								currencyData.netBalance,
+								currencyData.currency,
+							)}
+						</span>
+					);
+				})}
+			</div>
+
+			<DashboardStatStrip
+				className="mt-5 border-stone-200 border-t pt-4 text-stone-500"
+				stats={props.stats}
+			/>
+		</div>
+	);
+}
+
+function PerCurrencyBalanceSummary(props: {
+	balancesByCurrency: BalanceData[];
+	stats: DashboardSummaryStats;
+}) {
+	return (
+		<div className="rounded-2xl border border-stone-200 bg-stone-50 p-5 shadow-sm">
+			<div className="flex items-center gap-2 text-stone-500">
+				<Users className="h-4 w-4" />
+				<span className="font-medium text-sm">Total across all groups</span>
+			</div>
+
+			<div className="mt-3 divide-y divide-stone-200">
+				{props.balancesByCurrency.map((currencyData) => {
+					const isPositive = currencyData.netBalance > 0;
+					return (
+						<div
+							key={currencyData.currency}
+							className="grid grid-cols-[4rem_minmax(0,1fr)] items-baseline gap-4 py-4"
+						>
+							<span className="font-semibold text-stone-400 text-sm">
+								{currencyData.currency}
 							</span>
-							<span className="font-semibold text-stone-900 text-xs">
-								{formatCurrencyAmount(
-									Math.abs(member.balance),
+							<span
+								className={cn(
+									"text-right font-bold text-[1.875rem] leading-none tabular-nums [overflow-wrap:anywhere]",
+									isPositive ? "text-emerald-600" : "text-red-600",
+								)}
+							>
+								{formatSignedCurrencyAmount(
+									currencyData.netBalance,
 									currencyData.currency,
 								)}
 							</span>
 						</div>
-					))}
-				</div>
-			) : null}
+					);
+				})}
+			</div>
+
+			<DashboardStatStrip
+				className="mt-2 border-stone-200 border-t pt-4 text-stone-500"
+				stats={props.stats}
+			/>
 		</div>
 	);
+}
+
+function DashboardStatStrip(props: {
+	className?: string;
+	stats: DashboardSummaryStats;
+}) {
+	return (
+		<div
+			className={cn(
+				"grid grid-cols-3 gap-3 font-medium text-sm",
+				props.className,
+			)}
+		>
+			<span>{formatCount(props.stats.groupCount, "group")}</span>
+			<span>{formatCount(props.stats.balanceCount, "balance")}</span>
+			<span>{formatCount(props.stats.currencyCount, "currency")}</span>
+		</div>
+	);
+}
+
+function useHybridEstimate(
+	balancesByCurrency: BalanceData[],
+	balanceEntriesKey: string,
+	targetCurrency: string,
+) {
+	const [estimate, setEstimate] = useState<HybridEstimate>({
+		error: null,
+		isPending: false,
+		total: 0,
+	});
+
+	useEffect(() => {
+		if (balancesByCurrency.length === 0) {
+			setEstimate({
+				error: null,
+				isPending: false,
+				total: 0,
+			});
+			return;
+		}
+
+		let isCancelled = false;
+
+		const loadEstimate = async () => {
+			setEstimate({
+				error: null,
+				isPending: true,
+				total: null,
+			});
+
+			try {
+				const convertedBalances = await Promise.all(
+					balancesByCurrency.map(async (currencyData) => {
+						if (currencyData.currency === targetCurrency) {
+							return currencyData.netBalance;
+						}
+
+						const sign = currencyData.netBalance < 0 ? -1 : 1;
+						const quote = await getCurrencyConversion({
+							data: {
+								amount: Math.abs(currencyData.netBalance),
+								fromCurrency: currencyData.currency,
+								toCurrency: targetCurrency,
+							},
+						});
+
+						return quote.convertedAmount * sign;
+					}),
+				);
+
+				if (isCancelled) return;
+
+				setEstimate({
+					error: null,
+					isPending: false,
+					total: roundMoney(
+						convertedBalances.reduce(
+							(total, convertedAmount) => total + convertedAmount,
+							0,
+						),
+					),
+				});
+			} catch (error) {
+				console.error("Failed to estimate dashboard balance:", error);
+				if (isCancelled) return;
+				setEstimate({
+					error: "Failed to fetch exchange rates",
+					isPending: false,
+					total: null,
+				});
+			}
+		};
+
+		void loadEstimate();
+
+		return () => {
+			isCancelled = true;
+		};
+	}, [balanceEntriesKey, targetCurrency]);
+
+	return estimate;
 }
 
 function Shell({ children }: { children: ReactNode }) {
@@ -238,4 +539,17 @@ function formatCurrencyAmount(amount: number, currency: string) {
 	return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
 		amount,
 	);
+}
+
+function formatSignedCurrencyAmount(amount: number, currency: string) {
+	const prefix = amount > 0 ? "+" : "";
+	return `${prefix}${formatCurrencyAmount(amount, currency)}`;
+}
+
+function formatCount(count: number, singular: string) {
+	return `${count} ${singular}${count === 1 ? "" : "s"}`;
+}
+
+function roundMoney(amount: number) {
+	return Math.round((amount + Number.EPSILON) * 100) / 100;
 }
