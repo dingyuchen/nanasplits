@@ -260,8 +260,8 @@ function GroupView(props: {
 				<div className="fixed inset-0 z-40 bg-stone-900/30 backdrop-blur-[2px]" />
 			) : null}
 
-			<div className="relative mx-auto my-8 max-w-[430px] overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm max-[480px]:my-0 max-[480px]:min-h-screen max-[480px]:rounded-none max-[480px]:border-0">
-				<header className="relative flex min-h-[4.375rem] items-center gap-3 border-stone-100 border-b px-5 py-3">
+			<div className="relative mx-auto my-8 max-w-107.5 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm max-[480px]:my-0 max-[480px]:min-h-screen max-[480px]:rounded-none max-[480px]:border-0">
+				<header className="relative flex min-h-17.5 items-center gap-3 border-stone-100 border-b px-5 py-3">
 					<Link
 						className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-stone-500 transition hover:bg-stone-100"
 						to="/app"
