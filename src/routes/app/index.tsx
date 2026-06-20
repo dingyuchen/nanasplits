@@ -64,7 +64,7 @@ const DASHBOARD_ESTIMATE_CURRENCY = "USD";
 
 function DashboardContent({ data }: { data: DashboardData }) {
 	const { stats, groupsWithPendingSplits, balancesByCurrency } = data;
-	const [summaryMode, setSummaryMode] = useState<SummaryMode>("hybrid");
+	const [summaryMode, setSummaryMode] = useState<SummaryMode>("perCurrency");
 	const balanceEntries = balancesByCurrency.filter(
 		(currencyData) => currencyData.netBalance !== 0,
 	);
@@ -224,14 +224,14 @@ function BalanceSummaryToggle(props: {
 			role="tablist"
 		>
 			<BalanceSummaryToggleButton
-				isActive={props.mode === "hybrid"}
-				label="Hybrid estimate"
-				onClick={() => props.onChange("hybrid")}
-			/>
-			<BalanceSummaryToggleButton
 				isActive={props.mode === "perCurrency"}
 				label="Per-currency"
 				onClick={() => props.onChange("perCurrency")}
+			/>
+			<BalanceSummaryToggleButton
+				isActive={props.mode === "hybrid"}
+				label="Hybrid estimate"
+				onClick={() => props.onChange("hybrid")}
 			/>
 		</div>
 	);
