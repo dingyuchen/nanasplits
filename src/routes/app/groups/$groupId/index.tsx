@@ -278,7 +278,7 @@ function GroupView(props: {
 						</div>
 					</div>
 					<Link
-						className="flex h-8 w-8 items-center justify-center rounded-md text-stone-500 transition hover:bg-stone-100"
+						className="relative z-10 ml-auto flex h-8 w-8 items-center justify-center rounded-md text-stone-500 transition hover:bg-stone-100"
 						params={{
 							groupId: String(props.groupIdNumber),
 						}}
@@ -298,6 +298,7 @@ function GroupView(props: {
 
 				{props.isRegisteredMemberOfGroup && currentUserId() ? (
 					<SettleUp
+						conversionOptions={conversionOptions()}
 						currencyBalances={currencyBalances}
 						currentUserId={currentUserId() as Id<"users">}
 						defaultCurrency={props.groupData.defaultCurrency}
@@ -317,15 +318,6 @@ function GroupView(props: {
 								{props.groupData.expenses.length}
 							</span>
 						</div>
-						{props.isRegisteredMemberOfGroup &&
-						conversionOptions().length > 0 ? (
-							<ExpenseCurrencyConversionButton
-								defaultCurrency={props.groupData.defaultCurrency}
-								groupIdNumber={props.groupIdNumber}
-								options={conversionOptions()}
-								telegramUserId={props.telegramUserId}
-							/>
-						) : null}
 					</div>
 
 					<div>
@@ -488,6 +480,7 @@ function ExpenseRow(props: {
 }
 
 function SettleUp(props: {
+	conversionOptions: Array<SettleUpConversionOption<Id<"users">>>;
 	currencyBalances: CurrencyBalances;
 	currentUserId: Id<"users">;
 	defaultCurrency: string;
@@ -550,10 +543,18 @@ function SettleUp(props: {
 
 	return (
 		<section className="mx-5 mt-5">
-			<div className="border-stone-100 border-b pb-2">
+			<div className="flex items-center justify-between gap-2 border-stone-100 border-b pb-2">
 				<h2 className="font-serif font-medium tracking-tight text-stone-900 text-lg">
 					Settle Up
 				</h2>
+				{props.conversionOptions.length > 0 ? (
+					<ExpenseCurrencyConversionButton
+						defaultCurrency={props.defaultCurrency}
+						groupIdNumber={props.groupIdNumber}
+						options={props.conversionOptions}
+						telegramUserId={props.telegramUserId}
+					/>
+				) : null}
 			</div>
 			<div>
 				{balanceEntries().length > 0 ? (
@@ -601,7 +602,7 @@ function SettleUp(props: {
 											</>
 										) : (
 											<>
-												You <span className="text-red-600">owe</span>{" "}
+												<span className="text-red-600">You owe</span>{" "}
 												{member.memberName}
 											</>
 										)}
