@@ -147,6 +147,8 @@ function AppOutlet() {
 
 	useEffect(() => {
 		if (location.pathname !== "/app") return;
+		const bareAppUrl = location.href === "/app";
+		if (bareAppUrl) return;
 		if (launchParams() === null) return;
 
 		const groupId = startParam();
@@ -158,7 +160,7 @@ function AppOutlet() {
 			});
 			return;
 		}
-	}, [launchParams, location.pathname, navigate, startParam]);
+	}, [launchParams, location.href, location.pathname, navigate, startParam]);
 
 	return <Outlet />;
 }
