@@ -242,9 +242,9 @@ function GroupView(props: {
 		});
 	};
 
-	const handleJoinGroup = async () => {
+	const handleJoinGroup = () => {
 		try {
-			await addUserToGroup({
+			addUserToGroup({
 				telegramChatId: props.groupIdNumber,
 				telegramUserId: props.telegramUserId,
 			});
@@ -378,14 +378,13 @@ function BalanceCard(props: { currencyBalances: CurrencyBalances }) {
 		);
 
 	return (
-		<div className="rounded-lg border border-stone-200 bg-white">
-			<h2 className="px-4 pt-3 pb-2 text-left font-semibold text-stone-500 text-xs leading-tight">
+		<>
+			<h2 className="font-serif font-medium tracking-tight text-stone-900 text-lg">
 				Your Balance
 			</h2>
 			<div>
 				{balanceEntries().map(([currency, currencyData], index) => {
 					const isPositive = currencyData.netBalance > 0;
-					const isNegative = currencyData.netBalance < 0;
 					return (
 						<div
 							key={currency}
@@ -398,11 +397,7 @@ function BalanceCard(props: { currencyBalances: CurrencyBalances }) {
 							</span>
 							<span
 								className={`whitespace-nowrap text-right font-bold text-sm tabular-nums ${
-									isPositive
-										? "text-emerald-600"
-										: isNegative
-											? "text-red-600"
-											: "text-stone-500"
+									isPositive ? "text-emerald-600" : "text-red-600"
 								}`}
 							>
 								{isPositive ? "+" : ""}
@@ -412,7 +407,7 @@ function BalanceCard(props: { currencyBalances: CurrencyBalances }) {
 					);
 				})}
 			</div>
-		</div>
+		</>
 	);
 }
 
