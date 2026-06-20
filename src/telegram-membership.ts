@@ -17,13 +17,15 @@ const validTelegramMemberStatuses = new Set([
 ]);
 
 export const checkTelegramMembership = createServerFn({ method: "GET" })
-	.inputValidator(membershipInput)
+	.validator(membershipInput)
 	.handler(async ({ data }) => {
 		const bot = new Bot(getServerEnv("TELEGRAM_BOT_TOKEN"));
 		const chatMember = await bot.api.getChatMember({
 			chat_id: data.chatId,
 			user_id: data.userId,
 		});
+
+		console.log("chatMember", chatMember);
 
 		return {
 			isMember: validTelegramMemberStatuses.has(chatMember.status),
