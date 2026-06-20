@@ -274,31 +274,18 @@ function GroupView(props: {
 						</h1>
 						<div className="mt-1 flex items-center justify-center gap-1 text-stone-400 text-xs">
 							<Users className="h-3.5 w-3.5" />
-							<span>{props.groupData.memberCount} members</span>
+							<span>{props.groupData.memberCount} </span>
 						</div>
 					</div>
-					<div className="relative z-10 ml-auto flex items-center gap-2">
-						<Link
-							className="flex h-8 w-8 items-center justify-center rounded-md text-stone-500 transition hover:bg-stone-100"
-							params={{
-								groupId: String(props.groupIdNumber),
-							}}
-							to="/app/groups/$groupId/settings"
-						>
-							<Settings className="h-4 w-4" />
-						</Link>
-						<div className="flex items-center justify-end">
-							{props.groupData.members.slice(0, 3).map((member, index) => (
-								<div
-									key={member._id}
-									className={`-ml-1.5 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white font-bold text-white text-xs first:ml-0 ${getAvatarColorClass(index)}`}
-									title={getMemberDisplayName(member)}
-								>
-									{getMemberInitial(member)}
-								</div>
-							))}
-						</div>
-					</div>
+					<Link
+						className="flex h-8 w-8 items-center justify-center rounded-md text-stone-500 transition hover:bg-stone-100"
+						params={{
+							groupId: String(props.groupIdNumber),
+						}}
+						to="/app/groups/$groupId/settings"
+					>
+						<Settings className="h-4 w-4" />
+					</Link>
 				</header>
 
 				<section className="mx-5 mt-5 space-y-3">
@@ -985,17 +972,6 @@ function getAvatarColorClass(index: number) {
 		"bg-teal-700",
 	];
 	return classes[index % classes.length];
-}
-
-function getMemberDisplayName(member: GroupData["members"][number]) {
-	const fullName = [member.firstName, member.lastName]
-		.filter(Boolean)
-		.join(" ");
-	return fullName || member.username || "Unknown";
-}
-
-function getMemberInitial(member: GroupData["members"][number]) {
-	return getInitialFromName(getMemberDisplayName(member));
 }
 
 function getInitialFromName(name: string) {
