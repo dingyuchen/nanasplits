@@ -138,7 +138,7 @@ function GroupView(props: {
 			(member) => member.telegramUserId === props.telegramUserId,
 		)?._id;
 
-	const currencyBalances = (): CurrencyBalances => {
+	const currencyBalances: CurrencyBalances = (() => {
 		const current = currentUserId();
 		if (!current) return {};
 
@@ -188,7 +188,7 @@ function GroupView(props: {
 		}
 
 		return balances;
-	};
+	})();
 
 	const calculateUserBalance = (expense: Expense) => {
 		const current = currentUserId();
@@ -216,10 +216,13 @@ function GroupView(props: {
 		if (!current) return [];
 
 		return buildSettleUpConversionOptions({
-			currencyBalances: currencyBalances(),
+			currencyBalances,
 			currentUserId: current,
 		});
 	};
+	const hasBalanceEntries = Object.values(currencyBalances).some(
+		(currencyData) => currencyData.netBalance !== 0,
+	);
 
 	const handleEditExpense = (expense: Expense) => {
 		void navigate({
@@ -299,26 +302,16 @@ function GroupView(props: {
 				</header>
 
 				<section className="mx-5 mt-5 space-y-3">
-					{Object.keys(currencyBalances()).length > 0 ? (
-						<>
-							{Object.entries(currencyBalances()).map(
-								([currency, currencyData]) => (
-									<CurrencyBalanceCard
-										key={currency}
-										currency={currency}
-										currencyData={currencyData}
-									/>
-								),
-							)}
-						</>
-					) : (
+					{hasBalanceEntries ? (
+						<BalanceCard currencyBalances={currencyBalances} />
+					) : props.groupData.expenses.length === 0 ? (
 						<EmptyExpenseState text="No expenses yet" />
-					)}
+					) : null}
 				</section>
 
 				{props.isRegisteredMemberOfGroup && currentUserId() ? (
 					<SettleUp
-						currencyBalances={currencyBalances()}
+						currencyBalances={currencyBalances}
 						currentUserId={currentUserId() as Id<"users">}
 						defaultCurrency={props.groupData.defaultCurrency}
 						groupIdNumber={props.groupIdNumber}
@@ -378,82 +371,47 @@ function GroupView(props: {
 	);
 }
 
-function CurrencyBalanceCard(props: {
-	currency: string;
-	currencyData: CurrencyData;
-}) {
-	const isPositive = () => props.currencyData.netBalance >= 0;
-	const memberBalanceEntries = () =>
-		Object.values(props.currencyData.memberBalances).filter(
-			(member) => member.balance !== 0,
+function BalanceCard(props: { currencyBalances: CurrencyBalances }) {
+	const balanceEntries = () =>
+		Object.entries(props.currencyBalances).filter(
+			([, currencyData]) => currencyData.netBalance !== 0,
 		);
 
 	return (
-		<div
-			className={`rounded-lg border p-5 ${
-				isPositive()
-					? "border-emerald-200 bg-emerald-50"
-					: "border-red-200 bg-red-50"
-			}`}
-		>
-			<div className="font-semibold text-[0.6875rem] uppercase leading-tight tracking-tight">
-				<span className={isPositive() ? "text-emerald-600" : "text-red-600"}>
-					Your Balance
-				</span>
-				<span className="text-stone-400"> - {props.currency}</span>
-			</div>
-			<p
-				className={`mt-1 font-bold text-[2.25rem] leading-[1.05] tracking-tight ${
-					isPositive() ? "text-emerald-600" : "text-red-600"
-				}`}
-			>
-				{isPositive() ? "+" : ""}
-				{formatCurrencyAmount(props.currencyData.netBalance, props.currency)}
-			</p>
-			<p className="mt-2 text-stone-500 text-sm leading-tight">
-				{props.currencyData.netBalance === 0
-					? "All settled in this currency"
-					: isPositive()
-						? "You are owed money"
-						: "You owe money"}
-			</p>
-
-			{memberBalanceEntries().length > 0 ? (
-				<div className="mt-4 space-y-2 border-black/5 border-t pt-3">
-					{memberBalanceEntries().map((member, index) => {
-						const isMemberPositive = member.balance > 0;
-						return (
-							<div
-								key={member.memberId}
-								className="flex items-center justify-between gap-3"
+		<div className="rounded-lg border border-stone-200 bg-white">
+			<h2 className="px-4 pt-3 pb-2 text-left font-semibold text-stone-500 text-xs leading-tight">
+				Your Balance
+			</h2>
+			<div>
+				{balanceEntries().map(([currency, currencyData], index) => {
+					const isPositive = currencyData.netBalance > 0;
+					const isNegative = currencyData.netBalance < 0;
+					return (
+						<div
+							key={currency}
+							className={`grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3 px-4 py-3 ${
+								index > 0 ? "border-stone-100 border-t" : ""
+							}`}
+						>
+							<span className="truncate font-semibold text-stone-900 text-sm">
+								{currency}
+							</span>
+							<span
+								className={`whitespace-nowrap text-right font-bold text-sm tabular-nums ${
+									isPositive
+										? "text-emerald-600"
+										: isNegative
+											? "text-red-600"
+											: "text-stone-500"
+								}`}
 							>
-								<div className="flex items-center gap-2">
-									<div
-										className={`flex h-7 w-7 items-center justify-center rounded-full border-2 border-white font-bold text-white text-xs ${getAvatarColorClass(index + 1)}`}
-									>
-										{member.memberName[0]?.toUpperCase() || "?"}
-									</div>
-									<span className="text-stone-500 text-sm">
-										{isMemberPositive
-											? `${member.memberName} owes you`
-											: `You owe ${member.memberName}`}
-									</span>
-								</div>
-								<span
-									className={`shrink-0 text-sm font-semibold ${
-										isMemberPositive ? "text-emerald-600" : "text-red-600"
-									}`}
-								>
-									{formatCurrencyAmount(
-										Math.abs(member.balance),
-										props.currency,
-									)}
-								</span>
-							</div>
-						);
-					})}
-				</div>
-			) : null}
+								{isPositive ? "+" : ""}
+								{formatCurrencyAmount(currencyData.netBalance, currency)}
+							</span>
+						</div>
+					);
+				})}
+			</div>
 		</div>
 	);
 }
