@@ -564,7 +564,7 @@ function SettleUp(props: {
 							return (
 								<button
 									key={`${currency}:${member.memberId}`}
-									className="grid min-h-16 w-full grid-cols-[2.5rem_1.25rem_2.5rem_minmax(0,1fr)_auto] items-center gap-2.5 border-stone-100 border-b px-2 py-3 text-left transition hover:bg-stone-50"
+									className="group grid min-h-16 w-full grid-cols-[2.5rem_1.25rem_2.5rem_minmax(0,1fr)_auto] items-center gap-2.5 border-stone-100 border-b px-2 py-3 text-left transition hover:bg-stone-50"
 									type="button"
 									onClick={() =>
 										setSettleDialog({
@@ -608,8 +608,10 @@ function SettleUp(props: {
 										)}
 									</span>
 									<span
-										className={`justify-self-end whitespace-nowrap font-bold text-sm ${
-											isCollecting ? "text-emerald-600" : "text-red-600"
+										className={`inline-flex justify-self-end whitespace-nowrap rounded-lg border px-2.5 py-1.5 font-semibold text-xs leading-none tabular-nums transition ${
+											isCollecting
+												? "border-emerald-200 bg-emerald-50 text-emerald-600 group-hover:border-emerald-500"
+												: "border-red-200 bg-red-50 text-red-600 group-hover:border-red-500"
 										}`}
 									>
 										{formatCurrencyAmount(Math.abs(member.balance), currency)}
