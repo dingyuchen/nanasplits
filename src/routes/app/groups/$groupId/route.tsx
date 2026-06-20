@@ -33,7 +33,6 @@ function GroupLayoutRoute() {
 	useEffect(() => {
 		const chatId = Number(params.groupId);
 		const userId = telegramUserId();
-		let isCurrent = true;
 
 		if (userId === null || Number.isNaN(chatId)) {
 			setMembership({ isMember: false, status: "invalid" });
@@ -44,19 +43,15 @@ function GroupLayoutRoute() {
 		setIsChecking(true);
 		void checkTelegramMembership({ data: { chatId, userId } })
 			.then((result) => {
-				if (isCurrent) setMembership(result);
+				setMembership(result);
 			})
 			.catch((error) => {
 				console.error("Failed to check Telegram membership:", error);
-				if (isCurrent) setMembership({ isMember: false, status: "error" });
+				setMembership({ isMember: false, status: "error" });
 			})
 			.finally(() => {
-				if (isCurrent) setIsChecking(false);
+				setIsChecking(false);
 			});
-
-		return () => {
-			isCurrent = false;
-		};
 	}, [params.groupId, telegramUserId]);
 
 	if (isChecking || membership === null) {

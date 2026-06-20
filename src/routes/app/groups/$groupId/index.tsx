@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
 import {
+	House,
 	ArrowLeftRight,
 	ArrowRight,
 	LoaderCircle,
@@ -266,7 +267,7 @@ function GroupView(props: {
 						className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-stone-500 transition hover:bg-stone-100"
 						to="/app"
 					>
-						<ArrowRight className="h-4 w-4 rotate-180" />
+						<House className="h-4 w-4" />
 					</Link>
 					<div className="absolute left-1/2 w-[min(12rem,calc(100%-13rem))] -translate-x-1/2 text-center">
 						<h1 className="font-serif font-medium tracking-tight truncate text-stone-900 text-[1.375rem] leading-tight">

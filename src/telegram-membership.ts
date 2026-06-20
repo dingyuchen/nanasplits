@@ -25,7 +25,7 @@ export const checkTelegramMembership = createServerFn({ method: "GET" })
 			user_id: data.userId,
 		});
 
-		console.log("chatMember", chatMember);
+		console.log("chatMember", chatMember.status);
 
 		return {
 			isMember: validTelegramMemberStatuses.has(chatMember.status),
