@@ -4,6 +4,7 @@ import {
 	AlertCircle,
 	ArrowRight,
 	LoaderCircle,
+	Settings,
 	TrendingUp,
 	Users,
 } from "lucide-react";
@@ -60,11 +61,13 @@ type HybridEstimate = {
 	total: number | null;
 };
 
-const DASHBOARD_ESTIMATE_CURRENCY = "USD";
+const FALLBACK_DASHBOARD_ESTIMATE_CURRENCY = "USD";
 
 function DashboardContent({ data }: { data: DashboardData }) {
 	const { stats, groupsWithPendingSplits, balancesByCurrency } = data;
 	const [summaryMode, setSummaryMode] = useState<SummaryMode>("perCurrency");
+	const estimateCurrency =
+		data.settings.defaultCurrency || FALLBACK_DASHBOARD_ESTIMATE_CURRENCY;
 	const balanceEntries = balancesByCurrency.filter(
 		(currencyData) => currencyData.netBalance !== 0,
 	);
@@ -84,14 +87,20 @@ function DashboardContent({ data }: { data: DashboardData }) {
 	const hybridEstimate = useHybridEstimate(
 		balanceEntries,
 		balanceEntriesKey,
-		DASHBOARD_ESTIMATE_CURRENCY,
+		estimateCurrency,
 	);
 
 	return (
 		<div className="min-h-screen bg-stone-50 text-stone-900">
 			<div className="relative mx-auto my-8 max-w-[430px] overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm max-[480px]:my-0 max-[480px]:min-h-screen max-[480px]:rounded-none max-[480px]:border-0">
 				<header className="flex items-center justify-between border-stone-100 border-b px-5 py-3">
-					<div className="flex h-8 w-8 items-center justify-center rounded-md text-stone-500" />
+					<Link
+						aria-label="Open settings"
+						className="flex h-8 w-8 items-center justify-center rounded-md text-stone-500 transition hover:bg-stone-100"
+						to="/app/settings"
+					>
+						<Settings className="h-4 w-4" />
+					</Link>
 					<h1 className="font-serif font-medium tracking-tight text-stone-900 text-xl">
 						NanaSplits
 					</h1>
@@ -133,7 +142,7 @@ function DashboardContent({ data }: { data: DashboardData }) {
 										balancesByCurrency={balanceEntries}
 										estimate={hybridEstimate}
 										stats={summaryStats}
-										targetCurrency={DASHBOARD_ESTIMATE_CURRENCY}
+										targetCurrency={estimateCurrency}
 									/>
 								) : (
 									<PerCurrencyBalanceSummary
@@ -418,9 +427,13 @@ function DashboardStatStrip(props: {
 				props.className,
 			)}
 		>
-			<span>{formatCount(props.stats.groupCount, "group")}</span>
-			<span>{formatCount(props.stats.balanceCount, "balance")}</span>
-			<span>{formatCount(props.stats.currencyCount, "currency")}</span>
+			<span>{formatCount(props.stats.groupCount, "group", "groups")}</span>
+			<span>
+				{formatCount(props.stats.balanceCount, "balance", "balances")}
+			</span>
+			<span>
+				{formatCount(props.stats.currencyCount, "currency", "currencies")}
+			</span>
 		</div>
 	);
 }
@@ -546,8 +559,8 @@ function formatSignedCurrencyAmount(amount: number, currency: string) {
 	return `${prefix}${formatCurrencyAmount(amount, currency)}`;
 }
 
-function formatCount(count: number, singular: string) {
-	return `${count} ${singular}${count === 1 ? "" : "s"}`;
+function formatCount(count: number, singular: string, plural: string) {
+	return `${count} ${count === 1 ? singular : plural}`;
 }
 
 function roundMoney(amount: number) {

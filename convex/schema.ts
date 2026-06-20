@@ -13,6 +13,23 @@ const expenseItemSchema = v.object({
 	),
 });
 
+export enum PaymentType {
+	PayNow = "PayNow",
+	Zelle = "Zelle",
+}
+
+const paynowSchema = v.object({
+	type: v.literal(PaymentType.PayNow),
+	phoneNumber: v.string(),
+});
+
+const zelleSchema = v.object({
+	type: v.literal(PaymentType.Zelle),
+	token: v.string(),
+	name: v.string(), // case-insensitive
+});
+export const paymentMethodSchema = v.union(zelleSchema, paynowSchema);
+
 export enum ExpenseType {
 	Split = "split",
 	Transfer = "transfer",
@@ -26,6 +43,7 @@ export default defineSchema({
 		lastName: v.optional(v.string()),
 		telegramUserId: v.number(),
 		defaultCurrency: v.optional(v.string()),
+		paymentMethods: v.optional(v.array(paymentMethodSchema)),
 	}).index("by_telegram_user_id", ["telegramUserId"]),
 
 	groups: defineTable({

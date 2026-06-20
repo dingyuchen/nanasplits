@@ -7,7 +7,7 @@ import {
 	protectedQuery,
 	trustedMutation,
 } from "./lib/utils";
-import { ExpenseType } from "./schema";
+import { ExpenseType, PaymentType, paymentMethodSchema } from "./schema";
 
 /** Shared validator for expense items */
 const expenseItemsValidator = v.array(
@@ -29,12 +29,50 @@ type ExpenseItem = {
 	splits: { userId: Id<"users">; amount: number }[];
 };
 
+type AccountPaymentMethod = NonNullable<Doc<"users">["paymentMethods"]>[number];
+
 function normalizeCurrencyCode(currency: string) {
 	const code = currency.trim().toUpperCase();
 	if (!/^[A-Z]{3}$/.test(code)) {
 		throw new Error("Currency must be a 3-letter ISO code");
 	}
 	return code;
+}
+
+function normalizeSettingsText(
+	value: string,
+	label: string,
+	maxLength: number,
+) {
+	const trimmed = value.trim();
+	if (trimmed.length === 0) {
+		throw new Error(`${label} is required`);
+	}
+	if (trimmed.length > maxLength) {
+		throw new Error(`${label} must be ${maxLength} characters or less`);
+	}
+	return trimmed;
+}
+
+function normalizePaymentMethods(paymentMethods: AccountPaymentMethod[]) {
+	return paymentMethods.map((method) => {
+		if (method.type === PaymentType.PayNow) {
+			return {
+				type: PaymentType.PayNow,
+				phoneNumber: normalizeSettingsText(
+					method.phoneNumber,
+					"PayNow phone number",
+					32,
+				),
+			};
+		}
+
+		return {
+			type: PaymentType.Zelle,
+			name: normalizeSettingsText(method.name, "Zelle name", 64),
+			token: normalizeSettingsText(method.token, "Zelle handle", 64),
+		};
+	});
 }
 
 function roundMoney(amount: number) {
@@ -429,8 +467,52 @@ export const getDashboardData = protectedQuery({
 			stats: {
 				groupsWithPendingSplits: groupsWithStats.length,
 			},
+			settings: {
+				defaultCurrency: user.defaultCurrency ?? "USD",
+			},
 			groupsWithPendingSplits: groupsWithStats,
 			balancesByCurrency,
+		};
+	},
+});
+
+export const getAccountSettings = protectedQuery({
+	args: {},
+	handler: async (ctx) => {
+		const user = await ctx.db.get(ctx.userId);
+		if (!user) {
+			throw new Error("User not found");
+		}
+
+		return {
+			defaultCurrency: user.defaultCurrency ?? "USD",
+			paymentMethods: user.paymentMethods ?? [],
+		};
+	},
+});
+
+export const updateAccountSettings = protectedMutation({
+	args: {
+		defaultCurrency: v.string(),
+		paymentMethods: v.array(paymentMethodSchema),
+	},
+	handler: async (ctx, args) => {
+		const user = await ctx.db.get(ctx.userId);
+		if (!user) {
+			throw new Error("User not found");
+		}
+
+		const defaultCurrency = normalizeCurrencyCode(args.defaultCurrency);
+		const paymentMethods = normalizePaymentMethods(args.paymentMethods);
+
+		await ctx.db.patch(ctx.userId, {
+			defaultCurrency,
+			paymentMethods,
+		});
+
+		return {
+			defaultCurrency,
+			paymentMethods,
 		};
 	},
 });

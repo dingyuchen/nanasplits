@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/app/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppSettingsRouteImport } from './routes/app/settings'
 import { Route as ApiBotRouteImport } from './routes/api/bot'
 import { Route as AppGroupsGroupIdRouteRouteImport } from './routes/app/groups/$groupId/route'
 import { Route as AppGroupsGroupIdIndexRouteImport } from './routes/app/groups/$groupId/index'
@@ -31,6 +32,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const ApiBotRoute = ApiBotRouteImport.update({
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
   '/api/bot': typeof ApiBotRoute
+  '/app/settings': typeof AppSettingsRoute
   '/app/': typeof AppIndexRoute
   '/app/groups/$groupId': typeof AppGroupsGroupIdRouteRouteWithChildren
   '/app/groups/$groupId/add-expense': typeof AppGroupsGroupIdAddExpenseRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/bot': typeof ApiBotRoute
+  '/app/settings': typeof AppSettingsRoute
   '/app': typeof AppIndexRoute
   '/app/groups/$groupId/add-expense': typeof AppGroupsGroupIdAddExpenseRoute
   '/app/groups/$groupId/settings': typeof AppGroupsGroupIdSettingsRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
   '/api/bot': typeof ApiBotRoute
+  '/app/settings': typeof AppSettingsRoute
   '/app/': typeof AppIndexRoute
   '/app/groups/$groupId': typeof AppGroupsGroupIdRouteRouteWithChildren
   '/app/groups/$groupId/add-expense': typeof AppGroupsGroupIdAddExpenseRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/api/bot'
+    | '/app/settings'
     | '/app/'
     | '/app/groups/$groupId'
     | '/app/groups/$groupId/add-expense'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/api/bot'
+    | '/app/settings'
     | '/app'
     | '/app/groups/$groupId/add-expense'
     | '/app/groups/$groupId/settings'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/api/bot'
+    | '/app/settings'
     | '/app/'
     | '/app/groups/$groupId'
     | '/app/groups/$groupId/add-expense'
@@ -148,6 +160,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/app/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/api/bot': {
@@ -206,11 +225,13 @@ const AppGroupsGroupIdRouteRouteWithChildren =
   )
 
 interface AppRouteRouteChildren {
+  AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppGroupsGroupIdRouteRoute: typeof AppGroupsGroupIdRouteRouteWithChildren
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
   AppGroupsGroupIdRouteRoute: AppGroupsGroupIdRouteRouteWithChildren,
 }
