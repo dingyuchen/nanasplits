@@ -915,7 +915,7 @@ function EditExpensePage(props: {
 	};
 
 	const isFormValid = () => formValidation().success;
-	const isInteractingWithSplitModal = () =>
+	const isAdjustingSplits = () =>
 		activeSplitIndex !== null || showSimpleSplitModal;
 
 	const handleSplitSave = (index: number, nextSplits: SplitShare[]) => {
@@ -1243,8 +1243,8 @@ function EditExpensePage(props: {
 						</button>
 
 						<TelegramMainButton
-							ready={isFormValid() && !isInteractingWithSplitModal()}
-							show={isFormValid() && !isInteractingWithSplitModal()}
+							ready={isFormValid() && !isAdjustingSplits()}
+							show={!isAdjustingSplits()}
 							text={isEditing() ? "Update Expense" : "Save Expense"}
 							onClick={() => submitButtonRef.current?.click()}
 						/>
