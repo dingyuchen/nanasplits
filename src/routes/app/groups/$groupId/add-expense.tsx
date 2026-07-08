@@ -1,4 +1,5 @@
 import { convexQuery, useConvexMutation } from "@convex-dev/react-query";
+import { useForm, useStore } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { FunctionReturnType } from "convex/server";
@@ -98,6 +99,18 @@ type SubItem = {
 	name: string;
 	amount: number;
 	splits: SplitShare[];
+};
+
+type FormSubItem = SubItem & {
+	formId: string;
+};
+
+type ExpenseFormValues = {
+	currency: string;
+	date: string;
+	items: FormSubItem[];
+	payerId: Id<"users"> | "";
+	tag: string;
 };
 
 function AddExpenseRoute() {
@@ -727,75 +740,146 @@ function EditExpensePage(props: {
 			userId: member._id,
 		}));
 
-	const [currency, setCurrency] = useState(editCurrency);
-	const currencySymbol = () => currencySigns[currency] || "$";
-	const [payer, setPayer] = useState<Doc<"users"> | null>(
-		editPayerId
-			? (props.groupData.members.find((member) => member._id === editPayerId) ??
-					null)
-			: (props.groupData.members.find(
-					(member) => member.telegramUserId === props.telegramUserId,
-				) ?? null),
-	);
-	const [date, setDate] = useState(
-		props.searchParams.date
-			? new Date(Number(props.searchParams.date)).toISOString().split("T")[0]
-			: new Date().toISOString().split("T")[0],
-	);
-	const [tag, setTag] = useState(props.searchParams.tag ?? "");
-	const [items, setItems] = useState<SubItem[]>(
-		createInitialItems(editItems, editDescription),
-	);
+	const initialPayer = editPayerId
+		? (props.groupData.members.find((member) => member._id === editPayerId) ??
+			null)
+		: (props.groupData.members.find(
+				(member) => member.telegramUserId === props.telegramUserId,
+			) ?? null);
+	const itemIdCounterRef = useRef(0);
 	const [activeSplitIndex, setActiveSplitIndex] = useState<number | null>(null);
 	const [showSimpleSplitModal, setShowSimpleSplitModal] = useState(false);
 
+	const form = useForm({
+		defaultValues: {
+			currency: editCurrency,
+			date: props.searchParams.date
+				? new Date(Number(props.searchParams.date)).toISOString().split("T")[0]
+				: new Date().toISOString().split("T")[0],
+			items: createInitialItems(editItems, editDescription),
+			payerId: initialPayer?._id ?? "",
+			tag: props.searchParams.tag ?? "",
+		} satisfies ExpenseFormValues,
+		onSubmit: async ({ value }) => {
+			const selectedPayer = props.groupData.members.find(
+				(member) => member._id === value.payerId,
+			);
+			if (!selectedPayer) {
+				alert("No payer selected");
+				return;
+			}
+
+			const finalItems = (
+				isItemized(value.items) ? rest(value.items) : value.items
+			).map(toSubItem);
+			const expenseTag = value.tag.trim() || null;
+
+			try {
+				if (isEditing() && expenseId) {
+					await updateExpense({
+						currency: value.currency,
+						date: new Date(value.date).getTime(),
+						description: description(value.items),
+						expenseId,
+						items: finalItems,
+						payerId: selectedPayer._id,
+						tag: expenseTag,
+						telegramChatId: props.telegramChatId,
+						telegramUserId: props.telegramUserId,
+					});
+				} else {
+					await addExpense({
+						currency: value.currency,
+						date: new Date(value.date).getTime(),
+						description: description(value.items),
+						items: finalItems,
+						payerId: selectedPayer._id,
+						tag: expenseTag,
+						telegramChatId: props.telegramChatId,
+						telegramUserId: props.telegramUserId,
+					});
+				}
+
+				void navigate({
+					params: {
+						groupId: String(props.telegramChatId),
+					},
+					to: "/app/groups/$groupId",
+				});
+			} catch (error) {
+				console.error("Failed to save expense:", error);
+				alert("Failed to save expense. Please try again.");
+			}
+		},
+	});
+	const formValues = useStore(form.store, (state) => state.values);
+	const currencySymbol = () => currencySigns[formValues.currency] || "$";
+
+	const firstItem = (items = formValues.items) =>
+		items[0] ?? { amount: 0, formId: "fallback", name: "", splits: [] };
+	const rest = (items = formValues.items) => items.slice(1);
+	const description = (items = formValues.items) => firstItem(items).name;
+	const amount = () => firstItem().amount;
+	const splits = () => firstItem().splits;
+	const isItemized = (items = formValues.items) => items.length > 1;
+
 	useEffect(() => {
-		if (payer !== null) return;
+		if (formValues.payerId !== "") return;
 		const selectedPayer =
 			editPayerId !== null
 				? props.groupData.members.find((member) => member._id === editPayerId)
 				: props.groupData.members.find(
 						(member) => member.telegramUserId === props.telegramUserId,
 					);
-		setPayer(selectedPayer ?? null);
-	}, [editPayerId, payer, props.groupData.members, props.telegramUserId]);
+		if (selectedPayer) {
+			form.setFieldValue("payerId", selectedPayer._id);
+		}
+	}, [
+		editPayerId,
+		form,
+		formValues.payerId,
+		props.groupData.members,
+		props.telegramUserId,
+	]);
 
-	const firstItem = () => items[0] ?? { amount: 0, name: "", splits: [] };
-	const rest = () => items.slice(1);
-	const description = () => firstItem().name;
-	const amount = () => firstItem().amount;
-	const splits = () => firstItem().splits;
-	const isItemized = () => items.length > 1;
+	const selectedPayer = () =>
+		props.groupData.members.find(
+			(member) => member._id === formValues.payerId,
+		) ?? null;
 
 	const handleAddItem = () => {
-		setItems((current) => [...current, { amount: 0, name: "", splits: [] }]);
+		itemIdCounterRef.current += 1;
+		form.pushFieldValue("items", {
+			amount: 0,
+			formId: `new-${itemIdCounterRef.current}`,
+			name: "",
+			splits: [],
+		});
 	};
 
 	const handleRemoveItem = (index: number) => {
-		setItems((current) =>
-			current.length > 1
-				? current.filter((_, itemIndex) => itemIndex !== index)
-				: current,
-		);
+		if (formValues.items.length <= 1) return;
+		void form.removeFieldValue("items", index);
 	};
 
 	const handleClearItems = () => {
 		const totalAmount = rest().reduce((sum, item) => sum + item.amount, 0);
-		setItems([
+		form.setFieldValue("items", [
 			{
 				amount: totalAmount,
+				formId: firstItem().formId,
 				name: description(),
 				splits: defaultSplits(totalAmount),
 			},
 		]);
 	};
 
-	const handleItemChange = <Key extends keyof SubItem>(
+	const handleItemChange = <Key extends keyof FormSubItem>(
 		index: number,
 		field: Key,
-		value: SubItem[Key],
+		value: FormSubItem[Key],
 	) => {
-		setItems((current) =>
+		form.setFieldValue("items", (current) =>
 			current.map((item, itemIndex) => {
 				if (itemIndex !== index) return item;
 				if (field === "amount" && typeof value === "number") {
@@ -812,16 +896,16 @@ function EditExpensePage(props: {
 
 	const formValidation = () => {
 		const baseData = {
-			currency,
+			currency: formValues.currency,
 			description: description(),
-			payerId: payer?._id ?? "",
-			tag: tag.trim() || undefined,
+			payerId: formValues.payerId,
+			tag: formValues.tag.trim() || undefined,
 		};
 
 		if (isItemized()) {
 			return itemizedExpenseSchema.safeParse({
 				...baseData,
-				items: items.slice(1),
+				items: rest().map(toSubItem),
 			});
 		}
 		return simpleExpenseSchema.safeParse({
@@ -831,6 +915,8 @@ function EditExpensePage(props: {
 	};
 
 	const isFormValid = () => formValidation().success;
+	const isInteractingWithSplitModal = () =>
+		activeSplitIndex !== null || showSimpleSplitModal;
 
 	const handleSplitSave = (index: number, nextSplits: SplitShare[]) => {
 		handleItemChange(index, "splits", nextSplits);
@@ -839,56 +925,12 @@ function EditExpensePage(props: {
 
 	const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
 		event.preventDefault();
-		const selectedPayer = payer;
-		if (!selectedPayer) {
-			alert("No payer selected");
-			return;
-		}
-
-		const finalItems = isItemized() ? rest() : items;
-		const expenseTag = tag.trim() || null;
-
-		try {
-			if (isEditing() && expenseId) {
-				await updateExpense({
-					currency,
-					date: new Date(date).getTime(),
-					description: description(),
-					expenseId,
-					items: finalItems,
-					payerId: selectedPayer._id,
-					tag: expenseTag,
-					telegramChatId: props.telegramChatId,
-					telegramUserId: props.telegramUserId,
-				});
-			} else {
-				await addExpense({
-					currency,
-					date: new Date(date).getTime(),
-					description: description(),
-					items: finalItems,
-					payerId: selectedPayer._id,
-					tag: expenseTag,
-					telegramChatId: props.telegramChatId,
-					telegramUserId: props.telegramUserId,
-				});
-			}
-
-			void navigate({
-				params: {
-					groupId: String(props.telegramChatId),
-				},
-				to: "/app/groups/$groupId",
-			});
-		} catch (error) {
-			console.error("Failed to save expense:", error);
-			alert("Failed to save expense. Please try again.");
-		}
+		await form.handleSubmit();
 	};
 
 	const activeSplitItem = () => {
 		const index = activeSplitIndex;
-		return index === null ? null : (items[index] ?? null);
+		return index === null ? null : (formValues.items[index] ?? null);
 	};
 
 	return (
@@ -952,15 +994,17 @@ function EditExpensePage(props: {
 									maxLength={32}
 									placeholder="e.g., Food"
 									type="text"
-									value={tag}
-									onInput={(event) => setTag(event.currentTarget.value)}
+									value={formValues.tag}
+									onInput={(event) =>
+										form.setFieldValue("tag", event.currentTarget.value)
+									}
 								/>
-								{tag ? (
+								{formValues.tag ? (
 									<button
 										aria-label="Clear tag"
 										className="absolute top-1/2 right-3 -translate-y-1/2 rounded-md p-1 text-stone-400 transition hover:bg-stone-100 hover:text-stone-900"
 										type="button"
-										onClick={() => setTag("")}
+										onClick={() => form.setFieldValue("tag", "")}
 									>
 										<X className="h-4 w-4" />
 									</button>
@@ -988,8 +1032,10 @@ function EditExpensePage(props: {
 									name="date"
 									required
 									type="date"
-									value={date}
-									onInput={(event) => setDate(event.currentTarget.value)}
+									value={formValues.date}
+									onInput={(event) =>
+										form.setFieldValue("date", event.currentTarget.value)
+									}
 								/>
 								<Calendar className="pointer-events-none absolute top-1/2 right-4 h-5 w-5 -translate-y-1/2 transform text-stone-400" />
 							</div>
@@ -1025,8 +1071,10 @@ function EditExpensePage(props: {
 										aria-label="Currency"
 										className="col-start-1 row-start-1 w-full appearance-none rounded-r-lg bg-transparent py-3 pr-7 pl-3 text-base text-stone-500 placeholder:text-stone-400 focus:outline-none sm:text-sm/6"
 										id="currency"
-										value={currency}
-										onChange={(event) => setCurrency(event.currentTarget.value)}
+										value={formValues.currency}
+										onChange={(event) =>
+											form.setFieldValue("currency", event.currentTarget.value)
+										}
 									>
 										<CurrencyDropdownOptions />
 									</select>
@@ -1047,7 +1095,7 @@ function EditExpensePage(props: {
 							</div>
 						</div>
 
-						{payer ? (
+						{selectedPayer() ? (
 							<div className="rounded-lg border border-stone-200 bg-white p-4">
 								<label
 									className="mb-2 block font-semibold text-stone-500 text-sm"
@@ -1058,14 +1106,13 @@ function EditExpensePage(props: {
 								<select
 									className="w-full appearance-none rounded-lg border border-stone-200 bg-white px-3 py-3 text-stone-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/10 [&:user-invalid]:border-red-600"
 									id="payer"
-									value={payer._id}
-									onChange={(event) => {
-										const member = props.groupData.members.find(
-											(groupMember) =>
-												groupMember._id === event.currentTarget.value,
-										);
-										if (member) setPayer(member);
-									}}
+									value={formValues.payerId}
+									onChange={(event) =>
+										form.setFieldValue(
+											"payerId",
+											event.currentTarget.value as Id<"users">,
+										)
+									}
 								>
 									{props.groupData.members.map((member) => (
 										<option key={member._id} value={member._id}>
@@ -1119,7 +1166,7 @@ function EditExpensePage(props: {
 								<>
 									{rest().map((item, itemIndex) => (
 										<div
-											key={`${item.name}:${itemIndex}`}
+											key={item.formId}
 											className="space-y-3 rounded-lg border border-stone-200 bg-white p-4"
 										>
 											<div className="flex items-start gap-3">
@@ -1196,8 +1243,8 @@ function EditExpensePage(props: {
 						</button>
 
 						<TelegramMainButton
-							ready={isFormValid()}
-							show={isFormValid()}
+							ready={isFormValid() && !isInteractingWithSplitModal()}
+							show={isFormValid() && !isInteractingWithSplitModal()}
 							text={isEditing() ? "Update Expense" : "Save Expense"}
 							onClick={() => submitButtonRef.current?.click()}
 						/>
@@ -1212,7 +1259,7 @@ function EditExpensePage(props: {
 						return (
 							<SplitModal
 								amount={currentItem.amount}
-								currency={currency}
+								currency={formValues.currency}
 								initialSplits={currentItem.splits}
 								itemName={currentItem.name || "Item"}
 								members={props.groupData.members}
@@ -1230,7 +1277,7 @@ function EditExpensePage(props: {
 			{showSimpleSplitModal ? (
 				<SplitModal
 					amount={amount()}
-					currency={currency}
+					currency={formValues.currency}
 					initialSplits={splits()}
 					itemName={description() || "Expense"}
 					members={props.groupData.members}
@@ -1248,18 +1295,33 @@ function EditExpensePage(props: {
 function createInitialItems(
 	editItems: SubItem[] | null,
 	editDescription: string,
-): SubItem[] {
+): FormSubItem[] {
 	if (editItems && editItems.length > 0) {
 		if (editItems.length > 1) {
 			const totalAmount = editItems.reduce((sum, item) => sum + item.amount, 0);
-			return [
+			return withFormIds([
 				{ amount: totalAmount, name: editDescription, splits: [] },
 				...editItems,
-			];
+			]);
 		}
-		return [{ ...editItems[0], name: editDescription }];
+		return withFormIds([{ ...editItems[0], name: editDescription }]);
 	}
-	return [{ amount: 0, name: "", splits: [] }];
+	return withFormIds([{ amount: 0, name: "", splits: [] }]);
+}
+
+function withFormIds(items: SubItem[]): FormSubItem[] {
+	return items.map((item, index) => ({
+		...item,
+		formId: `initial-${index}`,
+	}));
+}
+
+function toSubItem(item: FormSubItem): SubItem {
+	return {
+		amount: item.amount,
+		name: item.name,
+		splits: item.splits,
+	};
 }
 
 function parseEditItems(rawItems: string | null): SubItem[] | null {
