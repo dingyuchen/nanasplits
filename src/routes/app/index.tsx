@@ -8,7 +8,7 @@ import {
 	TrendingUp,
 	Users,
 } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useQuery } from "#/convex-react";
 import { getCurrencyConversion } from "#/currency-conversion";
@@ -24,14 +24,10 @@ function DashboardRoute() {
 	const { telegramUserId } = useTelegramLaunchParams();
 	const userId = telegramUserId();
 
-	return (
-		<Shell>
-			{userId === null ? (
-				<Loading message="Getting your data..." />
-			) : (
-				<Dashboard userId={userId} />
-			)}
-		</Shell>
+	return userId === null ? (
+		<Loading message="Getting your data..." />
+	) : (
+		<Dashboard userId={userId} />
 	);
 }
 
@@ -519,10 +515,6 @@ function useHybridEstimate(
 	}, [balanceEntriesKey, targetCurrency]);
 
 	return estimate;
-}
-
-function Shell({ children }: { children: ReactNode }) {
-	return <>{children}</>;
 }
 
 function Loading({ message }: { message: string }) {

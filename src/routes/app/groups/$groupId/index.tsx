@@ -23,6 +23,11 @@ import {
 	filteredCurrencyCodes,
 	type SettleUpConversionOption,
 } from "#/lib/expense-conversion";
+import {
+	simplifyTransactionsByCurrency,
+	type SimplifiableCurrencyBalances,
+	type SimplifiedTransaction,
+} from "#/lib/simplify-transactions";
 import { useTelegramLaunchParams } from "#/telegram-launch";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -56,6 +61,7 @@ type CurrencyData = {
 };
 
 type CurrencyBalances = Record<string, CurrencyData>;
+type GroupCurrencyBalances = SimplifiableCurrencyBalances<Id<"users">>;
 type ConversionQuote = Awaited<ReturnType<typeof getCurrencyConversion>>;
 
 function GroupIndexRoute() {
@@ -138,6 +144,12 @@ function GroupView(props: {
 		props.groupData.members.find(
 			(member) => member.telegramUserId === props.telegramUserId,
 		)?._id;
+	const memberNameById = new Map(
+		props.groupData.members.map((member) => [
+			member._id,
+			member.firstName || member.username || "Unknown",
+		]),
+	);
 
 	const currencyBalances: CurrencyBalances = (() => {
 		const current = currentUserId();
@@ -157,10 +169,9 @@ function GroupView(props: {
 			memberId: Id<"users">,
 		): MemberBalance => {
 			if (!(memberId in currencyData.memberBalances)) {
-				const member = props.groupData.members.find((m) => m._id === memberId);
 				currencyData.memberBalances[memberId] = {
 					memberId,
-					memberName: member?.firstName || member?.username || "Unknown",
+					memberName: memberNameById.get(memberId) ?? "Unknown",
 					balance: 0,
 				};
 			}
@@ -184,6 +195,48 @@ function GroupView(props: {
 						getOrCreateMemberBalance(currencyData, expense.payerId).balance -=
 							split.amount;
 					}
+				}
+			}
+		}
+
+		return balances;
+	})();
+
+	const groupCurrencyBalances: GroupCurrencyBalances = (() => {
+		const balances: GroupCurrencyBalances = {};
+
+		const getOrCreateCurrency = (currency: string) => {
+			if (!(currency in balances)) {
+				balances[currency] = { memberBalances: {} };
+			}
+			return balances[currency];
+		};
+
+		const getOrCreateMemberBalance = (
+			currencyData: GroupCurrencyBalances[string],
+			memberId: Id<"users">,
+		) => {
+			if (!(memberId in currencyData.memberBalances)) {
+				currencyData.memberBalances[memberId] = {
+					memberId,
+					memberName: memberNameById.get(memberId) ?? "Unknown",
+					balance: 0,
+				};
+			}
+			return currencyData.memberBalances[memberId];
+		};
+
+		for (const expense of props.groupData.expenses) {
+			const currencyData = getOrCreateCurrency(expense.currency);
+
+			for (const item of expense.items) {
+				for (const split of item.splits) {
+					if (split.userId === expense.payerId) continue;
+
+					getOrCreateMemberBalance(currencyData, expense.payerId).balance +=
+						split.amount;
+					getOrCreateMemberBalance(currencyData, split.userId).balance -=
+						split.amount;
 				}
 			}
 		}
@@ -221,6 +274,9 @@ function GroupView(props: {
 			currentUserId: current,
 		});
 	};
+	const simplifiedTransactions = simplifyTransactionsByCurrency(
+		groupCurrencyBalances,
+	);
 	const hasBalanceEntries = Object.values(currencyBalances).some(
 		(currencyData) => currencyData.netBalance !== 0,
 	);
@@ -300,11 +356,11 @@ function GroupView(props: {
 				{props.isRegisteredMemberOfGroup && currentUserId() ? (
 					<SettleUp
 						conversionOptions={conversionOptions()}
-						currencyBalances={currencyBalances}
 						currentUserId={currentUserId() as Id<"users">}
 						defaultCurrency={props.groupData.defaultCurrency}
 						groupIdNumber={props.groupIdNumber}
 						telegramUserId={props.telegramUserId}
+						transactions={simplifiedTransactions}
 					/>
 				) : null}
 
@@ -482,39 +538,18 @@ function ExpenseRow(props: {
 
 function SettleUp(props: {
 	conversionOptions: Array<SettleUpConversionOption<Id<"users">>>;
-	currencyBalances: CurrencyBalances;
 	currentUserId: Id<"users">;
 	defaultCurrency: string;
 	groupIdNumber: number;
 	telegramUserId: number;
+	transactions: Array<SimplifiedTransaction<Id<"users">>>;
 }) {
 	const { mutate: settleUp } = useMutation({
 		mutationFn: useConvexMutation(api.groups.settleUp),
 	});
-	const [settleDialog, setSettleDialog] = useState<{
-		memberId: Id<"users">;
-		memberName: string;
-		amount: number;
-		currency: string;
-	} | null>(null);
-
-	const balanceEntries = () =>
-		Object.entries(props.currencyBalances).flatMap(([currency, currencyData]) =>
-			Object.entries(currencyData.memberBalances)
-				.filter(([, member]) => member.balance !== 0)
-				.map(([memberId, member]) => ({
-					currency,
-					member: { ...member, memberId: memberId as Id<"users"> },
-				})),
-		);
-
-	const getSettlementParticipants = (dialog: {
-		amount: number;
-		memberId: Id<"users">;
-	}) => ({
-		payerId: dialog.amount > 0 ? dialog.memberId : props.currentUserId,
-		receiverId: dialog.amount > 0 ? props.currentUserId : dialog.memberId,
-	});
+	const [settleDialog, setSettleDialog] = useState<SimplifiedTransaction<
+		Id<"users">
+	> | null>(null);
 
 	const closeDialog = () => {
 		setSettleDialog(null);
@@ -525,13 +560,11 @@ function SettleUp(props: {
 		if (!dialog) return;
 
 		try {
-			const { payerId, receiverId } = getSettlementParticipants(dialog);
-
 			await settleUp({
-				amount: Math.abs(dialog.amount),
+				amount: dialog.amount,
 				currency: dialog.currency,
-				payerId,
-				receiverId,
+				payerId: dialog.payerId,
+				receiverId: dialog.receiverId,
 				telegramChatId: props.groupIdNumber,
 				telegramUserId: props.telegramUserId,
 			});
@@ -558,64 +591,71 @@ function SettleUp(props: {
 				) : null}
 			</div>
 			<div>
-				{balanceEntries().length > 0 ? (
+				{props.transactions.length > 0 ? (
 					<div>
-						{balanceEntries().map(({ currency, member }, index) => {
-							const isCollecting = member.balance > 0;
+						{props.transactions.map((transaction, index) => {
+							const isPayer = transaction.payerId === props.currentUserId;
+							const isReceiver = transaction.receiverId === props.currentUserId;
 							return (
 								<button
-									key={`${currency}:${member.memberId}`}
+									key={`${transaction.currency}:${transaction.payerId}:${transaction.receiverId}:${transaction.amount}`}
 									className="group grid min-h-16 w-full grid-cols-[2.5rem_1.25rem_2.5rem_minmax(0,1fr)_auto] items-center gap-2.5 border-stone-100 border-b px-2 py-3 text-left transition hover:bg-stone-50"
 									type="button"
-									onClick={() =>
-										setSettleDialog({
-											amount: member.balance,
-											currency,
-											memberId: member.memberId,
-											memberName: member.memberName,
-										})
-									}
+									onClick={() => setSettleDialog(transaction)}
 								>
 									<span
 										className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-white font-bold text-white text-sm ${
-											isCollecting
-												? getAvatarColorClass(index + 1)
-												: "bg-sky-500"
+											isPayer
+												? "bg-sky-500"
+												: isReceiver
+													? getAvatarColorClass(index + 1)
+													: getAvatarColorClass(index)
 										}`}
 									>
-										{isCollecting ? getInitialFromName(member.memberName) : "Y"}
+										{isPayer ? "Y" : getInitialFromName(transaction.payerName)}
 									</span>
 									<ArrowRight className="h-4 w-4 text-stone-400" />
 									<span
 										className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-white font-bold text-white text-sm ${
-											isCollecting
-												? "bg-sky-500"
-												: getAvatarColorClass(index + 1)
+											isReceiver ? "bg-sky-500" : getAvatarColorClass(index + 1)
 										}`}
 									>
-										{isCollecting ? "Y" : getInitialFromName(member.memberName)}
+										{isReceiver
+											? "Y"
+											: getInitialFromName(transaction.receiverName)}
 									</span>
 									<span className="min-w-0 text-stone-900 text-sm font-medium leading-tight">
-										{isCollecting ? (
+										{isReceiver ? (
 											<>
-												{member.memberName}{" "}
+												{transaction.payerName}{" "}
 												<span className="text-emerald-600">owes you</span>
+											</>
+										) : isPayer ? (
+											<>
+												<span className="text-red-600">You owe</span>{" "}
+												{transaction.receiverName}
 											</>
 										) : (
 											<>
-												<span className="text-red-600">You owe</span>{" "}
-												{member.memberName}
+												{transaction.payerName}{" "}
+												<span className="text-stone-500">pays</span>{" "}
+												{transaction.receiverName}
 											</>
 										)}
 									</span>
 									<span
 										className={`inline-flex justify-self-end whitespace-nowrap rounded-lg border px-2.5 py-1.5 font-semibold text-xs leading-none tabular-nums transition ${
-											isCollecting
+											isReceiver
 												? "border-emerald-200 bg-emerald-50 text-emerald-600 group-hover:border-emerald-500"
-												: "border-red-200 bg-red-50 text-red-600 group-hover:border-red-500"
+												: isPayer
+													? "border-red-200 bg-red-50 text-red-600 group-hover:border-red-500"
+													: "border-sky-200 bg-sky-50 text-sky-600 group-hover:border-sky-500"
 										}`}
 									>
-										{formatCurrencyAmount(Math.abs(member.balance), currency)}
+										{formatCurrencyAmount(
+											transaction.amount,
+											transaction.currency,
+										)}
 									</span>
 								</button>
 							);
@@ -635,15 +675,20 @@ function SettleUp(props: {
 							Confirm settlement
 						</h3>
 						<p className="mb-6 text-stone-500">
-							{settleDialog.amount > 0
+							{settleDialog.receiverId === props.currentUserId
 								? `Collect ${formatCurrencyAmount(
 										settleDialog.amount,
 										settleDialog.currency,
-									)} from ${settleDialog.memberName}?`
-								: `Pay ${formatCurrencyAmount(
-										Math.abs(settleDialog.amount),
-										settleDialog.currency,
-									)} to ${settleDialog.memberName}?`}
+									)} from ${settleDialog.payerName}?`
+								: settleDialog.payerId === props.currentUserId
+									? `Pay ${formatCurrencyAmount(
+											settleDialog.amount,
+											settleDialog.currency,
+										)} to ${settleDialog.receiverName}?`
+									: `Record ${settleDialog.payerName} paying ${formatCurrencyAmount(
+											settleDialog.amount,
+											settleDialog.currency,
+										)} to ${settleDialog.receiverName}?`}
 						</p>
 						<div className="grid grid-cols-2 gap-2">
 							<button
